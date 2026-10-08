@@ -90,6 +90,30 @@ The "Simulated scam signals" panel calls `POST /api/signals`. A future Android c
 curl -X POST http://localhost:3000/api/signals -H "Content-Type: application/json" -H "x-signal-token: <device key>" -d "{\"unknownCall\": true, \"remoteAccess\": false, \"screenShare\": true, \"simChanged\": false}"
 ```
 
+## Deployment (Render + Postgres)
+
+Live at **https://saathiauth.onrender.com** (guardian: `/guardian.html`, desk: `/dashboard.html`).
+
+**Why not Vercel:** the app needs one always-running server.
+- Guardian alerts are pushed over long-lived Server-Sent Events connections.
+- Cool-offs and recovery windows advance on a 1-second timer.
+- All live state is in one process.
+
+Serverless functions can't hold those connections or timers, and different requests can land on different instances. Render runs a normal Node process, so everything works exactly as it does locally.
+
+**How it's set up** (also described in `render.yaml`):
+
+| Piece | Setting |
+| --- | --- |
+| Web service `saathiauth` | Node, Singapore region, `npm ci --omit=dev` → `npm start`, auto-deploys on every push to `main` |
+| Postgres `saathiauth-db` | Singapore region. When `DATABASE_URL` is set, the app stores its state in table `app_state` and sessions in `user_sessions`, so nothing is lost on restart or redeploy |
+| `RP_ID` / `ORIGIN` | Pinned to `saathiauth.onrender.com`, so passkeys are bound to that domain |
+| Session secret | Generated on first boot and stored with the state, unless `SESSION_SECRET` is set |
+
+**Free-tier limits to know about:**
+- The free web service sleeps after about 15 minutes without traffic. The first visit then takes 30–60 seconds. Open the site a minute before a demo, or switch to the Starter plan to avoid this.
+- The free Postgres expires 30 days after creation. Upgrade it to a Basic plan in the Render dashboard to keep the data.
+
 ## Tests
 
 End-to-end tests drive real WebAuthn ceremonies against Chromium's virtual authenticator (via the Chrome DevTools Protocol). Each "phone" is its own browser context with its own authenticator. They cover:

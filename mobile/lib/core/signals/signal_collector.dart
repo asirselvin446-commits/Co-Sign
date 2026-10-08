@@ -103,6 +103,8 @@ class SensitiveSession {
   Future<void> start() async {
     await collector.channel.setSecure(true);
     final cfg = await collector.config();
+    // The screen may have closed while the config was loading; never start a timer after stop().
+    if (_disposed) return;
     final every = cfg?.streamInterval ?? const Duration(seconds: 15);
     _timer = Timer.periodic(every, (_) => unawaited(_send()));
     // A screenshot or recording starting while the screen is open is reported straight away.

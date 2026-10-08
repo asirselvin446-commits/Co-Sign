@@ -384,14 +384,18 @@ class _GuardianInboxScreenState extends ConsumerState<GuardianInboxScreen> {
                 leading: const Icon(Icons.person_outline),
                 title: Text(p.displayName),
                 subtitle: Text(p.status == 'active' ? l.activeGuardian : p.status),
+                // Capped so long translations wrap instead of squeezing out the name.
                 trailing: p.status == 'active'
-                    ? TextButton(
-                        onPressed: () async {
-                          if (!await confirmDialog(context, l.stepDownConfirm)) return;
-                          await ref.read(apiProvider).resign(p.linkId);
-                          ref.invalidate(peopleProvider);
-                        },
-                        child: Text(l.stepDown),
+                    ? ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 120),
+                        child: TextButton(
+                          onPressed: () async {
+                            if (!await confirmDialog(context, l.stepDownConfirm)) return;
+                            await ref.read(apiProvider).resign(p.linkId);
+                            ref.invalidate(peopleProvider);
+                          },
+                          child: Text(l.stepDown, textAlign: TextAlign.center),
+                        ),
                       )
                     : null,
               ),

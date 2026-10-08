@@ -25,6 +25,8 @@ describe('step-up co-sign end to end', () => {
     await makeGuardian(t, user, g1);
     await makeGuardian(t, user, g2);
     payeeId = await addPayee(t, user, 'shop');
+    // An established payee, so these tests isolate the call and remote-access rules.
+    await t.deps.prisma.payee.update({ where: { id: payeeId }, data: { createdAt: new Date(Date.now() - 30 * 86400_000) } });
   });
   afterAll(async () => {
     await t.close();

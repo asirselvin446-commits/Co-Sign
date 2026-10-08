@@ -157,10 +157,10 @@ export async function authRoutes(app: ZApp, ctx: Ctx): Promise<void> {
       const ipKey = `signin:ip:${sha256B64url(req.ip)}`;
       await deps.limiter.assertUnder(ipKey, 20, 15 * 60);
       const { response } = req.body;
-      const challenge = challengeFromClientData(response.response.clientDataJSON);
-      const record = await webauthn.takeChallenge(challenge);
       let credential;
       try {
+        const challenge = challengeFromClientData(response.response.clientDataJSON);
+        const record = await webauthn.takeChallenge(challenge);
         if (!record || record.purpose !== 'user_login') throw new AppError('SIGN_IN_FAILED');
         credential = await credentials.verifyAssertion(response, challenge);
       } catch (e) {

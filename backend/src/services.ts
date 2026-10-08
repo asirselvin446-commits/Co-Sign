@@ -4,6 +4,7 @@ import { TokenService } from './modules/auth/tokens.js';
 import { DevicesService } from './modules/devices/devices.service.js';
 import { GuardiansService } from './modules/guardians/guardians.service.js';
 import { LedgerService } from './modules/ledger/ledger.service.js';
+import { MonitorService } from './modules/monitor/monitor.service.js';
 import { PrivacyService } from './modules/privacy/privacy.service.js';
 import { Notifier } from './modules/push/notifier.js';
 import { RecoveryService } from './modules/recovery/recovery.service.js';
@@ -28,6 +29,7 @@ export interface Services {
   privacy: PrivacyService;
   stepup: StepupService;
   recovery: RecoveryService;
+  monitor: MonitorService;
 }
 
 export function createServices(deps: Deps): Services {
@@ -47,5 +49,6 @@ export function createServices(deps: Deps): Services {
   const services = { tokens, webauthn, users, credentials, devices, notifier, risk, ledger, guardians, phone, privacy } as Services;
   services.stepup = new StepupService(deps, services, createActions(deps, services));
   services.recovery = new RecoveryService(deps, services);
+  services.monitor = new MonitorService(deps, services);
   return services;
 }

@@ -31,6 +31,7 @@ export class PrivacyService {
         riskSignals: { orderBy: { createdAt: 'desc' } },
         stepupRequests: { orderBy: { createdAt: 'desc' } },
         recoveries: true,
+        monitorEvents: { orderBy: { createdAt: 'desc' } },
       },
     });
     const dec = (v: string | null, c: string) => (v ? cipher.decrypt(v, c) : null);
@@ -93,6 +94,15 @@ export class PrivacyService {
       })),
       safetyChecks: user.stepupRequests.map((r) => ({ action: r.action, status: r.status, score: r.score, createdAt: r.createdAt })),
       recoveries: user.recoveries.map((r) => ({ status: r.status, createdAt: r.createdAt, completedAt: r.completedAt })),
+      familyProtection: user.monitorEvents.map((m) => ({
+        at: m.occurredAt,
+        kind: m.kind,
+        appCategory: m.appCategory,
+        app: m.appPackage,
+        amountRange: m.amountBucket,
+        severity: m.severity,
+        rules: m.rules,
+      })),
     };
   }
 
@@ -107,6 +117,8 @@ export class PrivacyService {
     await this.devices.revokeInTx(tx, log, ids, userId, 'account_deleted', { actorType: 'user', actorId: userId });
     await tx.credential.deleteMany({ where: { userId } });
     await tx.riskSignal.deleteMany({ where: { userId } });
+    await tx.monitorEvent.deleteMany({ where: { userId } });
+    await tx.devicePause.deleteMany({ where: { userId } });
     await tx.recoveryCode.deleteMany({ where: { userId } });
     await tx.payee.updateMany({ where: { ownerId: userId, removedAt: null }, data: { removedAt: new Date() } });
     await tx.payee.updateMany({ where: { payeeUserId: userId, removedAt: null }, data: { removedAt: new Date() } });

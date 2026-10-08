@@ -579,6 +579,46 @@ const Map<String, Map<String, String>> kRiskReasons = <String, Map<String, Strin
   'late_night': <String, String>{'en': "It is between midnight and 5 a.m., when scams are more common.", 'ta': "இது நள்ளிரவு முதல் அதிகாலை 5 மணி வரையிலான நேரம். இந்த நேரத்தில் மோசடிகள் அதிகம்.", 'hi': "अभी आधी रात से सुबह 5 बजे के बीच का समय है, जब धोखाधड़ी ज़्यादा होती है।"},
   'repeated_failures': <String, String>{'en': "There were 3 or more failed attempts in the last 15 minutes.", 'ta': "கடந்த 15 நிமிடங்களில் 3 அல்லது அதற்கு மேற்பட்ட முயற்சிகள் தோல்வியடைந்தன.", 'hi': "पिछले 15 मिनट में 3 या उससे ज़्यादा बार कोशिश नाकाम हुई।"},
   'integrity_failed': <String, String>{'en': "This phone or app did not pass Google's safety check.", 'ta': "இந்தத் தொலைபேசி அல்லது செயலி Google பாதுகாப்புச் சோதனையில் தேறவில்லை.", 'hi': "यह फ़ोन या ऐप Google की सुरक्षा जाँच में पास नहीं हुआ।"},
+  'recent_family_alert': <String, String>{'en': "Family protection saw a warning sign on this phone in the last 30 minutes.", 'ta': "கடந்த 30 நிமிடங்களில் இந்தத் தொலைபேசியில் குடும்பப் பாதுகாப்பு ஓர் எச்சரிக்கை அறிகுறியைக் கண்டது.", 'hi': "पिछले 30 मिनट में फ़ैमिली प्रोटेक्शन ने इस फ़ोन पर एक चेतावनी का संकेत देखा।"},
+  'unusual_amount': <String, String>{'en': "This amount is much larger than the payments this person usually makes.", 'ta': "இவர் வழக்கமாகச் செய்யும் பணப் பரிமாற்றங்களை விட இந்தத் தொகை மிக அதிகம்.", 'hi': "यह रकम इनके आम तौर पर किए जाने वाले भुगतानों से बहुत ज़्यादा है।"},
+  'new_payee_recent': <String, String>{'en': "The money is going to someone added as a payee less than a day ago.", 'ta': "ஒரு நாளுக்குள் சேர்க்கப்பட்ட ஒருவருக்குப் பணம் செல்கிறது.", 'hi': "पैसे ऐसे व्यक्ति को जा रहे हैं जिसे एक दिन से कम समय पहले जोड़ा गया था।"},
+};
+
+/// Monitoring rules: weight and reason per language. Must match the backend engine.
+const Map<String, int> kMonitorWeights = <String, int>{
+  'payment_screen_during_call': 70,
+  'login_screen_during_call': 60,
+  'otp_during_call': 60,
+  'sensitive_app_during_call': 50,
+  'remote_access_active': 40,
+  'remote_access_during_call': 30,
+  'new_login_alert': 30,
+  'login_alert_during_call': 30,
+  'unusual_debit': 30,
+  'long_unknown_call': 30,
+  'large_debit': 20,
+  'very_long_unknown_call': 20,
+  'repeated_unknown_caller': 20,
+  'hidden_or_international_caller': 15,
+  'late_night_activity': 10,
+};
+
+const Map<String, Map<String, String>> kMonitorReasons = <String, Map<String, String>>{
+  'payment_screen_during_call': <String, String>{'en': "A payment PIN screen was opened while on a call with an unknown number.", 'ta': "தெரியாத எண்ணுடன் அழைப்பில் இருக்கும்போது பணம் செலுத்தும் PIN திரை திறக்கப்பட்டது.", 'hi': "किसी अनजान नंबर से कॉल के दौरान पेमेंट PIN वाली स्क्रीन खोली गई।"},
+  'login_screen_during_call': <String, String>{'en': "A bank, payment or email sign-in screen was opened while on a call with an unknown number.", 'ta': "தெரியாத எண்ணுடன் அழைப்பில் இருக்கும்போது வங்கி, பணம் செலுத்தும் அல்லது மின்னஞ்சல் உள்நுழைவுத் திரை திறக்கப்பட்டது.", 'hi': "किसी अनजान नंबर से कॉल के दौरान बैंक, पेमेंट या ईमेल की साइन-इन स्क्रीन खोली गई।"},
+  'otp_during_call': <String, String>{'en': "A one-time code arrived while on a call with an unknown number. Scammers ask people to read these out.", 'ta': "தெரியாத எண்ணுடன் அழைப்பில் இருக்கும்போது ஒருமுறைக் குறியீடு வந்தது. மோசடிக்காரர்கள் இதைப் படிக்கச் சொல்வார்கள்.", 'hi': "किसी अनजान नंबर से कॉल के दौरान एक बार वाला कोड आया। धोखेबाज़ ऐसे कोड पढ़कर सुनाने को कहते हैं।"},
+  'sensitive_app_during_call': <String, String>{'en': "A bank or payment app was opened while on a call with an unknown number.", 'ta': "தெரியாத எண்ணுடன் அழைப்பில் இருக்கும்போது வங்கி அல்லது பணம் செலுத்தும் செயலி திறக்கப்பட்டது.", 'hi': "किसी अनजान नंबर से कॉल के दौरान बैंक या पेमेंट ऐप खोला गया।"},
+  'remote_access_active': <String, String>{'en': "An app that lets someone else control this phone is in use.", 'ta': "வேறொருவர் இந்தத் தொலைபேசியைக் கட்டுப்படுத்த உதவும் செயலி பயன்பாட்டில் உள்ளது.", 'hi': "ऐसा ऐप इस्तेमाल हो रहा है जिससे कोई और इस फ़ोन को चला सकता है।"},
+  'remote_access_during_call': <String, String>{'en': "The screen-control app is being used during a call with an unknown number.", 'ta': "தெரியாத எண்ணுடனான அழைப்பின்போது திரையைக் கட்டுப்படுத்தும் செயலி பயன்படுத்தப்படுகிறது.", 'hi': "अनजान नंबर से कॉल के दौरान स्क्रीन चलाने वाला ऐप इस्तेमाल हो रहा है।"},
+  'new_login_alert': <String, String>{'en': "An app reported a new sign-in to one of this person's accounts.", 'ta': "இவரின் கணக்குகளில் ஒன்றில் புதிய உள்நுழைவு நடந்ததாக ஒரு செயலி தெரிவித்தது.", 'hi': "एक ऐप ने बताया कि इनके किसी खाते में नया साइन-इन हुआ है।"},
+  'login_alert_during_call': <String, String>{'en': "The new sign-in happened during a call with an unknown number.", 'ta': "அந்தப் புதிய உள்நுழைவு தெரியாத எண்ணுடனான அழைப்பின்போது நடந்தது.", 'hi': "यह नया साइन-इन किसी अनजान नंबर से कॉल के दौरान हुआ।"},
+  'unusual_debit': <String, String>{'en': "Money left an account in an amount much larger than usual for this person.", 'ta': "இவருக்கு வழக்கத்தை விட மிக அதிகமான தொகை கணக்கிலிருந்து சென்றுள்ளது.", 'hi': "इनके खाते से आम तौर से बहुत ज़्यादा रकम निकली है।"},
+  'long_unknown_call': <String, String>{'en': "A call with an unknown, hidden or foreign number has lasted more than 15 minutes.", 'ta': "தெரியாத, மறைக்கப்பட்ட அல்லது வெளிநாட்டு எண்ணுடனான அழைப்பு 15 நிமிடங்களுக்கு மேல் நீடிக்கிறது.", 'hi': "अनजान, छिपे हुए या विदेशी नंबर से कॉल 15 मिनट से ज़्यादा चल रही है।"},
+  'large_debit': <String, String>{'en': "A bank or payment app reported a large amount leaving an account.", 'ta': "ஒரு கணக்கிலிருந்து பெரிய தொகை சென்றதாக வங்கி அல்லது பணம் செலுத்தும் செயலி தெரிவித்தது.", 'hi': "बैंक या पेमेंट ऐप ने बताया कि खाते से बड़ी रकम निकली है।"},
+  'very_long_unknown_call': <String, String>{'en': "The call has gone on for more than 45 minutes. Fake 'arrest' and 'police' scams keep people on long calls.", 'ta': "அழைப்பு 45 நிமிடங்களுக்கு மேல் நீடிக்கிறது. போலி 'கைது', 'காவல்துறை' மோசடிகள் மக்களை நீண்ட நேரம் அழைப்பில் வைத்திருக்கும்.", 'hi': "कॉल 45 मिनट से ज़्यादा चल रही है। नकली 'गिरफ़्तारी' और 'पुलिस' वाले धोखेबाज़ लोगों को लंबी कॉल पर रखते हैं।"},
+  'repeated_unknown_caller': <String, String>{'en': "The same unknown number has called three or more times in two hours.", 'ta': "அதே தெரியாத எண் இரண்டு மணி நேரத்தில் மூன்று முறை அல்லது அதற்கு மேல் அழைத்துள்ளது.", 'hi': "एक ही अनजान नंबर से दो घंटे में तीन या ज़्यादा बार कॉल आई है।"},
+  'hidden_or_international_caller': <String, String>{'en': "The caller's number is hidden or from another country.", 'ta': "அழைப்பவரின் எண் மறைக்கப்பட்டுள்ளது அல்லது வேறு நாட்டைச் சேர்ந்தது.", 'hi': "कॉल करने वाले का नंबर छिपा है या किसी दूसरे देश का है।"},
+  'late_night_activity': <String, String>{'en': "This happened between midnight and 5 a.m.", 'ta': "இது நள்ளிரவு முதல் அதிகாலை 5 மணிக்குள் நடந்தது.", 'hi': "यह आधी रात से सुबह 5 बजे के बीच हुआ।"},
 };
 
 const Map<String, Map<String, String>> kActionLabels = <String, Map<String, String>>{

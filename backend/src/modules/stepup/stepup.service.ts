@@ -69,6 +69,10 @@ export class StepupService {
       lang: input.lang,
       context: `stepup:${input.action}`,
       stepupRequestId: id,
+      money:
+        input.action === 'transfer_above_limit'
+          ? { amountMinor: (params as { amountMinor: bigint }).amountMinor, payeeId: (params as { payeeId: string }).payeeId }
+          : null,
     });
     const reasons: StoredReason[] = assessment.matched.map((m) => ({ key: m.key, weight: m.weight }));
 

@@ -120,6 +120,8 @@ model User {
   payeeOf           Payee[]            @relation("PayeeTarget")
   transfers         Transfer[]         @relation("TransferInitiator")
   consents          Consent[]
+  monitorEvents     MonitorEvent[]
+  pauses            DevicePause[]
 
   @@map("users")
 }
@@ -161,9 +163,13 @@ model Device {
   lastSeenAt       DateTime  @default(now()) @map("last_seen_at")
   revokedAt        DateTime? @map("revoked_at")
   revokeReason     String?   @map("revoke_reason")
+  /// SHA-256 of a monitor-only upload token (family protection), if enabled on this phone.
+  monitorTokenHash String?   @unique @map("monitor_token_hash")
 
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   credentials    Credential[]
+  monitorEvents  MonitorEvent[]
+  pauses         DevicePause[]
   refreshTokens  RefreshToken[]
   riskSignals    RiskSignal[]
   stepupRequests StepupRequest[]
@@ -517,4 +523,63 @@ model AuditEvent {
   @@index([action, createdAt])
   @@index([subjectType, subjectId])
   @@map("audit_events")
+}
+
+enum PauseStatus {
+  active
+  released
+  dismissed
+  expired
+}
+
+/// Something the family-protection monitor saw on a protected phone. Categories and ranges only.
+model MonitorEvent {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  deviceId       String    @map("device_id") @db.Uuid
+  clientId       String    @map("client_id")
+  kind           String
+  appCategory    String?   @map("app_category")
+  appPackage     String?   @map("app_package")
+  amountBucket   String?   @map("amount_bucket")
+  callEnc        String?   @map("call_enc")
+  score          Int
+  severity       String
+  rules          String[]
+  paused         Boolean   @default(false)
+  occurredAt     DateTime  @map("occurred_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  acknowledgedAt DateTime? @map("acknowledged_at")
+  acknowledgedBy String?   @map("acknowledged_by") @db.Uuid
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  pauses DevicePause[]
+
+  @@unique([deviceId, clientId])
+  @@index([userId, createdAt])
+  @@index([severity, createdAt])
+  @@map("monitor_events")
+}
+
+/// A safety pause shown on a protected phone; a guardian can release it remotely.
+model DevicePause {
+  id        String      @id @default(uuid()) @db.Uuid
+  userId    String      @map("user_id") @db.Uuid
+  deviceId  String      @map("device_id") @db.Uuid
+  eventId   String?     @map("event_id") @db.Uuid
+  status    PauseStatus
+  rules     String[]
+  createdAt DateTime    @default(now()) @map("created_at")
+  expiresAt DateTime    @map("expires_at")
+  endedAt   DateTime?   @map("ended_at")
+  endedBy   String?     @map("ended_by")
+
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device Device        @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  event  MonitorEvent? @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  @@index([deviceId, status])
+  @@index([userId, status])
+  @@map("device_pauses")
 }

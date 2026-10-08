@@ -1,0 +1,95 @@
+{
+  "$comment": "Expected scores for family-monitoring events. The backend (vitest) and the phone (Kotlin JUnit) must both produce exactly these results, so a pause shown on the phone always matches the alert the guardian receives.",
+  "vectors": [
+    {
+      "name": "bank app opened, no call",
+      "event": { "kind": "app_foreground", "app": { "package": "com.sbi.lotusintouch", "category": "bank" }, "amountBucket": null, "call": null, "localHour": 14 },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 0, "severity": "info", "rules": [], "pause": false }
+    },
+    {
+      "name": "UPI app opened during a 5-minute call with an unknown number",
+      "event": { "kind": "app_foreground", "app": { "package": "com.phonepe.app", "category": "upi" }, "amountBucket": null, "call": { "active": true, "durationSec": 300, "caller": "unknown", "repeatCount": 0 }, "localHour": 14 },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 50, "severity": "warn", "rules": ["sensitive_app_during_call"], "pause": false }
+    },
+    {
+      "name": "UPI PIN screen during a call with an unknown number",
+      "event": { "kind": "payment_screen", "app": { "package": "com.google.android.apps.nbu.paisa.user", "category": "upi" }, "amountBucket": null, "call": { "active": true, "durationSec": 600, "caller": "unknown", "repeatCount": 0 }, "localHour": 14 },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 70, "severity": "critical", "rules": ["payment_screen_during_call"], "pause": true }
+    },
+    {
+      "name": "UPI PIN screen while talking to a saved contact",
+      "event": { "kind": "payment_screen", "app": { "package": "com.phonepe.app", "category": "upi" }, "amountBucket": null, "call": { "active": true, "durationSec": 600, "caller": "known", "repeatCount": 0 }, "localHour": 14 },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 0, "severity": "info", "rules": [], "pause": false }
+    },
+    {
+      "name": "email sign-in screen during a 20-minute hidden-number call",
+      "event": { "kind": "login_screen", "app": { "package": "com.google.android.gm", "category": "email" }, "amountBucket": null, "call": { "active": true, "durationSec": 1200, "caller": "hidden", "repeatCount": 0 }, "localHour": 14 },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 105, "severity": "critical", "rules": ["login_screen_during_call", "long_unknown_call", "hidden_or_international_caller"], "pause": true }
+    },
+    {
+      "name": "one-time code arrives during an international call at 2 a.m.",
+      "event": { "kind": "notification_otp", "app": null, "amountBucket": null, "call": { "active": true, "durationSec": 90, "caller": "international", "repeatCount": 0 }, "localHour": 2 },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 85, "severity": "critical", "rules": ["otp_during_call", "hidden_or_international_caller", "late_night_activity"], "pause": true }
+    },
+    {
+      "name": "screen-control app opened, no call",
+      "event": { "kind": "app_foreground", "app": { "package": "com.anydesk.anydeskandroid", "category": "remote_access" }, "amountBucket": null, "call": null, "localHour": 11 },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 40, "severity": "warn", "rules": ["remote_access_active"], "pause": false }
+    },
+    {
+      "name": "screen-control app opened during a call with an unknown number",
+      "event": { "kind": "app_foreground", "app": { "package": "com.anydesk.anydeskandroid", "category": "remote_access" }, "amountBucket": null, "call": { "active": true, "durationSec": 120, "caller": "unknown", "repeatCount": 0 }, "localHour": 11 },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 70, "severity": "critical", "rules": ["remote_access_active", "remote_access_during_call"], "pause": true }
+    },
+    {
+      "name": "new sign-in alert during a call with an unknown number",
+      "event": { "kind": "notification_login", "app": { "package": "com.instagram.android", "category": "social" }, "amountBucket": null, "call": { "active": true, "durationSec": 200, "caller": "unknown", "repeatCount": 0 }, "localHour": 10 },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 60, "severity": "critical", "rules": ["login_alert_during_call", "new_login_alert"], "pause": false }
+    },
+    {
+      "name": "large debit far above this person's usual range",
+      "event": { "kind": "notification_debit", "app": { "package": "com.sbi.lotusintouch", "category": "bank" }, "amountBucket": "50k_1l", "call": null, "localHour": 15 },
+      "context": { "usualMaxDebitBucket": "1k_10k" },
+      "expect": { "score": 50, "severity": "warn", "rules": ["unusual_debit", "large_debit"], "pause": false }
+    },
+    {
+      "name": "large debit within this person's usual range",
+      "event": { "kind": "notification_debit", "app": { "package": "com.sbi.lotusintouch", "category": "bank" }, "amountBucket": "10k_50k", "call": null, "localHour": 15 },
+      "context": { "usualMaxDebitBucket": "10k_50k" },
+      "expect": { "score": 20, "severity": "info", "rules": ["large_debit"], "pause": false }
+    },
+    {
+      "name": "very large debit with no history yet",
+      "event": { "kind": "notification_debit", "app": { "package": "com.phonepe.app", "category": "upi" }, "amountBucket": "gt_1l", "call": null, "localHour": 15 },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 50, "severity": "warn", "rules": ["unusual_debit", "large_debit"], "pause": false }
+    },
+    {
+      "name": "50-minute call from a repeat unknown caller",
+      "event": { "kind": "call_update", "app": null, "amountBucket": null, "call": { "active": true, "durationSec": 3000, "caller": "unknown", "repeatCount": 3 }, "localHour": 11 },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 70, "severity": "critical", "rules": ["long_unknown_call", "repeated_unknown_caller", "very_long_unknown_call"], "pause": false }
+    },
+    {
+      "name": "long call when the caller cannot be checked (no call permissions)",
+      "event": { "kind": "call_update", "app": null, "amountBucket": null, "call": { "active": true, "durationSec": 1200, "caller": "unavailable", "repeatCount": 0 }, "localHour": 11 },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 0, "severity": "info", "rules": [], "pause": false }
+    },
+    {
+      "name": "money received is never an alert",
+      "event": { "kind": "notification_credit", "app": { "package": "com.sbi.lotusintouch", "category": "bank" }, "amountBucket": "gt_1l", "call": null, "localHour": 3 },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 0, "severity": "info", "rules": [], "pause": false }
+    }
+  ]
+}

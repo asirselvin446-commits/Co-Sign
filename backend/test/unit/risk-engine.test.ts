@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultRuleSet, evaluate, ruleSetSchema, type DeviceSignals, type ServerFacts } from '../../src/modules/risk/engine.js';
+import { defaultRuleSet, evaluate, isUnusualAmount, ruleSetSchema, type DeviceSignals, type ServerFacts } from '../../src/modules/risk/engine.js';
 
 const now = new Date('2026-10-08T12:00:00Z');
 const facts = (over: Partial<ServerFacts> = {}): ServerFacts => ({
@@ -32,6 +32,9 @@ describe('risk engine defaults', () => {
       late_night: 10,
       repeated_failures: 15,
       integrity_failed: 40,
+      recent_family_alert: 30,
+      unusual_amount: 25,
+      new_payee_recent: 20,
     });
     expect(rules.guardianThreshold).toBe(50);
   });
@@ -111,6 +114,30 @@ describe('risk engine defaults', () => {
     const edited = { ...rules, guardianThreshold: 60, rules: rules.rules.map((r) => (r.key === 'call_unknown_number' ? { ...r, weight: 70 } : r.key === 'remote_access_app' ? { ...r, enabled: false } : r)) };
     const r = evaluate(edited, signals({ call: { active: true, durationSec: 1, numberKnown: 'unknown' }, remoteAccess: { installed: true, active: true } }), facts());
     expect(r.score).toBe(70);
+    expect(r.needsGuardian).toBe(true);
+  });
+});
+
+describe('context rules (accuracy)', () => {
+  const rules = defaultRuleSet();
+  it('adds points for a recent family-protection alert', () => {
+    expect(evaluate(rules, null, facts({ recentFamilyAlerts: 1 })).matched.map((m) => m.key)).toEqual(['recent_family_alert']);
+  });
+  it('flags payments at least three times the usual size, but only with history', () => {
+    expect(isUnusualAmount(30_000n, 10_000n)).toBe(true);
+    expect(isUnusualAmount(29_999n, 10_000n)).toBe(false);
+    expect(isUnusualAmount(1_000_000n, null)).toBe(false);
+    const r = evaluate(rules, null, facts({ amountMinor: 900_000n, typicalAmountMinor: 50_000n, payeeAgeHours: 2 }));
+    expect(r.matched.map((m) => m.key)).toEqual(['unusual_amount', 'new_payee_recent']);
+    expect(r.score).toBe(45);
+  });
+  it('a coached victim paying a brand-new payee a large sum during a scam call needs a guardian', () => {
+    const r = evaluate(
+      rules,
+      signals({ call: { active: true, durationSec: 900, numberKnown: 'unknown' } }),
+      facts({ amountMinor: 4_500_000n, typicalAmountMinor: 120_000n, payeeAgeHours: 0.2 }),
+    );
+    expect(r.score).toBe(85);
     expect(r.needsGuardian).toBe(true);
   });
 });

@@ -21,6 +21,9 @@ export const METRIC_ACTIONS = {
   recoveriesStarted: ['recovery.started'],
   recoveriesCancelled: ['recovery.cancelled', 'recovery.guardian_denied'],
   recoveriesCompleted: ['recovery.completed'],
+  monitorAlerts: ['monitor.alert', 'monitor.pause_started'],
+  pauses: ['monitor.pause_started'],
+  pausesReleased: ['monitor.pause_released'],
 } as const;
 export type MetricKey = keyof typeof METRIC_ACTIONS;
 
@@ -61,7 +64,7 @@ export async function adminRoutes(app: ZApp, ctx: Ctx): Promise<void> {
     {
       schema: {
         ...tag,
-        summary: 'Counters for the overview (from audit events) and median guardian response time',
+        summary: 'Counters for the overview (from audit events) and median guardian response time. Buckets are UTC.',
         querystring: range,
         response: {
           200: z.object({
@@ -95,7 +98,7 @@ export async function adminRoutes(app: ZApp, ctx: Ctx): Promise<void> {
         refresh_token_reuse: byAction.get('auth.refresh_reuse_detected') ?? 0,
         staff_sign_in: byAction.get('admin.login_failed') ?? 0,
       };
-      for (const r of failureRows) failuresByType[`sign_in_${(r.reason ?? 'unknown').toLowerCase()}`] = Number(r.n);
+      for (const r of failureRows) failuresByType[`sign_in_${(r.reason ?? 'unknown').toLowerCase().replace(/^sign_in_/, '')}`] = Number(r.n);
       const [median] = await prisma.$queryRaw<Array<{ p50: number | null }>>`
         SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY response_ms) AS p50
         FROM guardian_decisions WHERE created_at >= ${from} AND created_at < ${to}`;
@@ -127,10 +130,10 @@ export async function adminRoutes(app: ZApp, ctx: Ctx): Promise<void> {
     async (req) => {
       const { from, to } = window(req.query, req.query.bucket === 'hour' ? 2 : 30);
       const bucket = req.query.bucket;
-      const keys: MetricKey[] = ['logins', 'loginFailures', 'stepups', 'approvals', 'denials', 'cooloffs', 'recoveriesStarted'];
+      const keys: MetricKey[] = ['logins', 'loginFailures', 'stepups', 'approvals', 'denials', 'cooloffs', 'recoveriesStarted', 'monitorAlerts'];
       const actions = keys.flatMap((k) => [...METRIC_ACTIONS[k]]);
       const rows = await prisma.$queryRaw<Array<{ t: Date; action: string; n: bigint }>>`
-        SELECT date_trunc(${bucket}, created_at) AS t, action, count(*) AS n FROM audit_events
+        SELECT date_trunc(${bucket}, created_at AT TIME ZONE 'UTC') AS t, action, count(*) AS n FROM audit_events
         WHERE created_at >= ${from} AND created_at < ${to} AND action IN (${Prisma.join(actions)})
         GROUP BY 1, 2 ORDER BY 1`;
       const step = bucket === 'hour' ? 3600_000 : 86_400_000;

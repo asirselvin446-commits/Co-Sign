@@ -43,7 +43,10 @@ export class RiskService {
         row = await this.deps.prisma.riskRuleSet.findFirstOrThrow({ orderBy: { version: 'desc' } });
       }
     }
-    const set: RuleSet = { version: row.version, guardianThreshold: row.guardianThreshold, rules: row.rules as unknown as RuleConfig[] };
+    const stored = row.rules as unknown as RuleConfig[];
+    // Rules added by an upgrade start at their default weight until an administrator publishes a change.
+    const missing = defaultRuleSet().rules.filter((d) => !stored.some((r) => r.key === d.key));
+    const set: RuleSet = { version: row.version, guardianThreshold: row.guardianThreshold, rules: [...stored, ...missing] };
     this.cached = { at: Date.now(), set };
     return set;
   }
@@ -141,6 +144,8 @@ export class RiskService {
     context: string;
     stepupRequestId?: string;
     persist?: boolean;
+    /** For money movement: what is being sent and to whom (feeds the unusual-amount rules). */
+    money?: { amountMinor: bigint; payeeId: string } | null;
   }): Promise<Assessment> {
     const { prisma } = this.deps;
     const consented = await this.hasSignalConsent(input.userId);
@@ -167,6 +172,10 @@ export class RiskService {
       recentFailures: await this.credentials.recentFailures(input.userId),
       integrity: await this.integrityVerdict(device.id, signals),
       now: new Date(),
+      recentFamilyAlerts: await prisma.monitorEvent.count({
+        where: { userId: input.userId, severity: 'critical', createdAt: { gt: new Date(Date.now() - 30 * 60_000) } },
+      }),
+      ...(input.money ? await this.moneyFacts(input.userId, input.money) : {}),
     };
     const ruleSet = await this.activeRuleSet();
     const result = evaluate(ruleSet, signals, facts, input.lang);
@@ -188,6 +197,31 @@ export class RiskService {
       });
     }
     return { ...result, signals, consented };
+  }
+
+  /** Median of the last 50 outgoing transfers (needs at least 3), and the payee's age. */
+  private async moneyFacts(userId: string, money: { amountMinor: bigint; payeeId: string }) {
+    const { prisma } = this.deps;
+    const account = await prisma.account.findUnique({ where: { userId }, select: { id: true } });
+    const recent = account
+      ? await prisma.transfer.findMany({
+          where: { fromAccountId: account.id, status: 'completed' },
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+          select: { amountMinor: true },
+        })
+      : [];
+    let typical: bigint | null = null;
+    if (recent.length >= 3) {
+      const sorted = recent.map((r) => r.amountMinor).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+      typical = sorted[Math.floor(sorted.length / 2)]!;
+    }
+    const payee = await prisma.payee.findFirst({ where: { id: money.payeeId, ownerId: userId }, select: { createdAt: true } });
+    return {
+      amountMinor: money.amountMinor,
+      typicalAmountMinor: typical,
+      payeeAgeHours: payee ? (Date.now() - payee.createdAt.getTime()) / 3600_000 : null,
+    };
   }
 
   /** Re-word stored reasons in another language (guardian may use a different language). */

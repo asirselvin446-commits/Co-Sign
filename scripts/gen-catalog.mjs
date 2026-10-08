@@ -29,6 +29,10 @@ function validate() {
     if (!Number.isInteger(r.weight)) problems.push(`rule ${key}: weight must be an integer`);
     for (const l of langs) if (!r[l]) problems.push(`rule ${key}: missing ${l} reason`);
   }
+  for (const [key, r] of Object.entries(catalog.monitorRules)) {
+    if (!Number.isInteger(r.weight)) problems.push(`monitor rule ${key}: weight must be an integer`);
+    for (const l of langs) if (!r[l]) problems.push(`monitor rule ${key}: missing ${l} reason`);
+  }
   for (const section of ['actions', 'terms']) {
     for (const [key, t] of Object.entries(catalog[section])) {
       for (const l of langs) if (!t[l]) problems.push(`${section}.${key}: missing ${l}`);
@@ -61,6 +65,10 @@ function genTs() {
   for (const [key, r] of Object.entries(catalog.riskRules)) {
     rules[key] = { weight: r.weight, reasons: Object.fromEntries(langs.map((l) => [l, r[l]])) };
   }
+  const monitor = {};
+  for (const [key, r] of Object.entries(catalog.monitorRules)) {
+    monitor[key] = { weight: r.weight, reasons: Object.fromEntries(langs.map((l) => [l, r[l]])) };
+  }
   const j = (v) => JSON.stringify(v, null, 2);
   return `${header}
 export const LANGUAGES = ${JSON.stringify(langs)} as const;
@@ -81,6 +89,9 @@ export type ErrorCode = keyof typeof ERROR_CATALOG;
 
 export const RISK_RULE_DEFAULTS = ${j(rules)} as const;
 export type RiskRuleKey = keyof typeof RISK_RULE_DEFAULTS;
+
+export const MONITOR_RULES = ${j(monitor)} as const;
+export type MonitorRuleKey = keyof typeof MONITOR_RULES;
 
 export const ACTION_LABELS = ${j(catalog.actions)} as const;
 export type ActionKey = keyof typeof ACTION_LABELS;
@@ -150,6 +161,15 @@ ${langs.map((l) => `      '${l}': ErrorText(${dartStr(e[l].cause)}, ${dartStr(e[
   lines.push('};\n');
   lines.push('const Map<String, Map<String, String>> kRiskReasons = <String, Map<String, String>>{');
   for (const [key, r] of Object.entries(catalog.riskRules)) {
+    lines.push(`  '${key}': <String, String>${dartLangMap(r, dartStr)},`);
+  }
+  lines.push('};\n');
+  lines.push('/// Monitoring rules: weight and reason per language. Must match the backend engine.');
+  lines.push('const Map<String, int> kMonitorWeights = <String, int>{');
+  for (const [key, r] of Object.entries(catalog.monitorRules)) lines.push(`  '${key}': ${r.weight},`);
+  lines.push('};\n');
+  lines.push('const Map<String, Map<String, String>> kMonitorReasons = <String, Map<String, String>>{');
+  for (const [key, r] of Object.entries(catalog.monitorRules)) {
     lines.push(`  '${key}': <String, String>${dartLangMap(r, dartStr)},`);
   }
   lines.push('};\n');

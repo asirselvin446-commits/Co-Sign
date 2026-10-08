@@ -45,6 +45,13 @@ export interface ServerFacts {
   recentFailures: number;
   integrity: 'pass' | 'fail' | 'unavailable';
   now: Date;
+  /** Critical family-protection alerts on this account in the last 30 minutes. */
+  recentFamilyAlerts?: number;
+  /** For money movement: the amount, and this person's typical (median) outgoing payment. */
+  amountMinor?: bigint | null;
+  typicalAmountMinor?: bigint | null;
+  /** For money movement: how long ago the payee was added. */
+  payeeAgeHours?: number | null;
 }
 
 export interface RuleConfig {
@@ -101,7 +108,19 @@ export const PREDICATES: Record<RiskRuleKey, (s: DeviceSignals | null, f: Server
   late_night: (s) => s?.behaviour !== undefined && s.behaviour.localHour >= 0 && s.behaviour.localHour < 5,
   repeated_failures: (_s, f) => f.recentFailures >= 3,
   integrity_failed: (_s, f) => f.integrity === 'fail',
+  recent_family_alert: (_s, f) => (f.recentFamilyAlerts ?? 0) > 0,
+  unusual_amount: (_s, f) => isUnusualAmount(f.amountMinor ?? null, f.typicalAmountMinor ?? null),
+  new_payee_recent: (_s, f) => f.payeeAgeHours !== null && f.payeeAgeHours !== undefined && f.payeeAgeHours < 24,
 };
+
+/**
+ * A payment is unusual when it is at least three times this person's median payment. Without
+ * enough history (null typical amount) nothing is flagged here; the daily limit still applies.
+ */
+export function isUnusualAmount(amount: bigint | null, typical: bigint | null): boolean {
+  if (amount === null || typical === null || typical <= 0n) return false;
+  return amount >= typical * 3n;
+}
 
 /**
  * Score = sum of the weights of matching, enabled rules. Every point is explained by a reason

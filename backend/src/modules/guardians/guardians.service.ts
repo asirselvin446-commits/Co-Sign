@@ -275,10 +275,13 @@ export class GuardiansService {
   async applyDueChanges(): Promise<number> {
     const { prisma } = this.deps;
     const now = new Date();
+    // With no activation delay configured, links still waiting under an older, longer delay start now.
+    const activation: Prisma.GuardianLinkWhereInput =
+      this.deps.config.GUARDIAN_ACTIVATION_DELAY_SECONDS === 0 ? { status: 'pending_activation' } : { status: 'pending_activation', activatesAt: { lte: now } };
     const due = await prisma.guardianLink.findMany({
       where: {
         OR: [
-          { status: 'pending_activation', activatesAt: { lte: now } },
+          activation,
           { status: 'pending_removal', removesAt: { lte: now } },
         ],
       },

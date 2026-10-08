@@ -96,6 +96,18 @@ describe('guardian invites', () => {
     expect(list.body.guardians.find((g: { handle: string }) => g.handle === 'firstg').undoUntil).toBeNull();
   });
 
+  it('guardians still waiting under the old 24-hour rule start at once', async () => {
+    const owner = await registerUser(t, 'oldrule');
+    const g = await registerUser(t, 'oldruleg');
+    const link = await t.deps.prisma.guardianLink.create({
+      data: { userId: owner.id, guardianId: g.id, status: 'pending_activation', activatesAt: new Date(Date.now() + 20 * 3600_000) },
+    });
+    await tick(t);
+    const after = await t.deps.prisma.guardianLink.findUniqueOrThrow({ where: { id: link.id } });
+    expect(after.status).toBe('active');
+    expect(after.activatedAt).not.toBeNull();
+  });
+
   it('expired codes are explained as expired', async () => {
     const other = await registerUser(t, 'expirer');
     const g = await registerUser(t, 'late');

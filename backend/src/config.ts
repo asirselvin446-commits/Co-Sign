@@ -30,6 +30,8 @@ const schema = z
     TRUST_PROXY: z.string().default('false'),
 
     PUBLIC_BASE_URL: z.url(),
+    /** Where staff open the dashboard (defaults to PUBLIC_BASE_URL, which serves it in production). */
+    DASHBOARD_URL: z.string().default(''),
     DATABASE_URL: z.string().min(1),
     REDIS_URL: z.string().min(1),
 

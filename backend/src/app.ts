@@ -17,6 +17,10 @@ import type { Ctx, ZApp } from './http/context.js';
 import { installErrorHandling } from './http/errors.js';
 import { createServices } from './services.js';
 import { healthRoutes } from './modules/health/health.routes.js';
+import { wellKnownRoutes } from './modules/wellknown/wellknown.routes.js';
+import { authRoutes } from './modules/auth/auth.routes.js';
+import { deviceRoutes } from './modules/devices/devices.routes.js';
+import { adminAuthRoutes } from './modules/admin/admin-auth.routes.js';
 
 export interface BuildOptions {
   /** Expose Swagger UI at /docs (on by default outside production). */
@@ -110,9 +114,22 @@ export async function buildApp(deps: Deps, opts: BuildOptions = {}): Promise<{ a
   }
 
   const services = createServices(deps);
+  // Mirror every audit event to the dashboard's live feed (IDs and action names only, no personal data).
+  deps.audit.onAppend((r) =>
+    deps.realtime.toDashboard('audit.event', {
+      id: r.id.toString(),
+      createdAt: r.createdAt.toISOString(),
+      action: r.action,
+      actorType: r.actorType,
+      subjectType: r.subjectType,
+    }),
+  );
   const ctx: Ctx = { deps, services, guards: makeAuthGuards(services.tokens) };
 
-  await app.register(async (scope) => healthRoutes(scope as unknown as ZApp, ctx));
+  const routeModules = [healthRoutes, wellKnownRoutes, authRoutes, deviceRoutes, adminAuthRoutes];
+  for (const mod of routeModules) {
+    await app.register(async (scope) => mod(scope as unknown as ZApp, ctx));
+  }
 
   const servingDashboard = await serveDashboard(app as unknown as ZApp, config.DASHBOARD_DIST);
   if (!servingDashboard) {

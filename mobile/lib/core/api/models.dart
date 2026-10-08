@@ -72,7 +72,7 @@ class DeviceView {
 }
 
 class GuardianView {
-  const GuardianView({required this.linkId, required this.displayName, required this.handle, required this.status, required this.activatesAt, required this.removesAt});
+  const GuardianView({required this.linkId, required this.displayName, required this.handle, required this.status, required this.activatesAt, required this.removesAt, this.undoUntil});
   factory GuardianView.fromJson(Json j) => GuardianView(
         linkId: j['linkId']! as String,
         displayName: j['displayName']! as String,
@@ -80,6 +80,7 @@ class GuardianView {
         status: j['status']! as String,
         activatesAt: _dateOrNull(j['activatesAt']),
         removesAt: _dateOrNull(j['removesAt']),
+        undoUntil: _dateOrNull(j['undoUntil']),
       );
   final String linkId;
   final String displayName;
@@ -87,6 +88,11 @@ class GuardianView {
   final String status;
   final DateTime? activatesAt;
   final DateTime? removesAt;
+
+  /// A guardian who started recently can be removed at once until then ("I did not add them").
+  final DateTime? undoUntil;
+
+  bool get canUndo => undoUntil != null && undoUntil!.isAfter(DateTime.now());
 }
 
 class GuardianList {

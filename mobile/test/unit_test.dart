@@ -214,6 +214,7 @@ void main() {
       expect(routeForPush({'screen': 'guardian_alert', 'alertId': 'a1'}), '/guardian/alerts/a1');
       expect(routeForPush({'screen': 'guardian_pause', 'pauseId': 'p1'}), '/guardian/pause/p1');
       expect(routeForPush({'screen': 'guardian_person', 'linkId': 'l1'}), '/guardian/person/l1');
+      expect(routeForPush({'screen': 'family'}), '/home?tab=family');
       expect(routeForPush({'screen': 'stepup', 'requestId': 's1'}), '/stepup/s1');
       expect(routeForPush({'screen': 'recovery_alert'}), '/home');
       expect(routeForPush({'screen': 'unknown'}), isNull);

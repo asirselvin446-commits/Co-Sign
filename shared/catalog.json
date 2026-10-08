@@ -869,6 +869,48 @@
         "title": "{name} ने आपसे मदद माँगी है",
         "body": "उन्होंने Co-Sign में \"मुझे मदद चाहिए\" दबाया। किसी जाने-पहचाने नंबर पर अभी उन्हें कॉल करें।"
       }
+    },
+    "guardian_started": {
+      "en": {
+        "title": "{name} is now your guardian",
+        "body": "They will be told if something on your phone looks like a scam. If you did not add them, open Co-Sign now and remove them."
+      },
+      "ta": {
+        "title": "{name} இப்போது உங்கள் பாதுகாவலர்",
+        "body": "உங்கள் போனில் ஏதாவது மோசடி போலத் தெரிந்தால் அவருக்குத் தெரிவிக்கப்படும். நீங்கள் அவரைச் சேர்க்கவில்லை என்றால், இப்போதே Co-Sign-ஐத் திறந்து அவரை நீக்குங்கள்."
+      },
+      "hi": {
+        "title": "{name} अब आपके संरक्षक हैं",
+        "body": "आपके फ़ोन पर कुछ धोखाधड़ी जैसा लगे तो उन्हें बताया जाएगा। अगर आपने उन्हें नहीं जोड़ा, तो अभी Co-Sign खोलें और उन्हें हटाएँ।"
+      }
+    },
+    "guardian_joined": {
+      "en": {
+        "title": "{name} added a new guardian",
+        "body": "{guardian} is now also a guardian for {name}. If that seems wrong, call {name} on a number you know."
+      },
+      "ta": {
+        "title": "{name} புதிய பாதுகாவலரைச் சேர்த்தார்",
+        "body": "{guardian} இப்போது {name}-க்கும் பாதுகாவலர். இது தவறாகத் தோன்றினால், உங்களுக்குத் தெரிந்த எண்ணில் {name}-ஐ அழையுங்கள்."
+      },
+      "hi": {
+        "title": "{name} ने एक नया संरक्षक जोड़ा",
+        "body": "{guardian} अब {name} के भी संरक्षक हैं। अगर यह गलत लगे, तो किसी जाने-पहचाने नंबर पर {name} को कॉल करें।"
+      }
+    },
+    "guardian_undone": {
+      "en": {
+        "title": "{name} removed you as a guardian",
+        "body": "You will no longer be alerted about their phone. If that seems wrong, call {name} on a number you know."
+      },
+      "ta": {
+        "title": "{name} உங்களைப் பாதுகாவலர் பொறுப்பிலிருந்து நீக்கினார்",
+        "body": "அவரது போனைப் பற்றி இனி உங்களுக்குத் தெரிவிக்கப்படாது. இது தவறாகத் தோன்றினால், உங்களுக்குத் தெரிந்த எண்ணில் {name}-ஐ அழையுங்கள்."
+      },
+      "hi": {
+        "title": "{name} ने आपको संरक्षक पद से हटा दिया",
+        "body": "अब आपको उनके फ़ोन के बारे में नहीं बताया जाएगा। अगर यह गलत लगे, तो किसी जाने-पहचाने नंबर पर {name} को कॉल करें।"
+      }
     }
   },
   "terms": {

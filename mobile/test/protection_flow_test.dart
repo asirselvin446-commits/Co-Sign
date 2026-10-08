@@ -69,7 +69,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('You are protected'), findsOneWidget);
-    expect(find.textContaining('Ravi Kumar will be told'), findsOneWidget);
+    expect(find.textContaining('Ravi Kumar, Divya will be told'), findsOneWidget);
     await tester.tap(find.text('I need help'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Your guardians have been told'), findsOneWidget);

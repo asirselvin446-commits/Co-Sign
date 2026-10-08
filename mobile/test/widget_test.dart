@@ -156,6 +156,29 @@ void main() {
     expect(find.text('Tell my guardian about wrong PIN attempts, and let them lock my screen'), findsOneWidget);
   });
 
+  testWidgets('a guardian added by mistake can be removed at once, without waiting a day', (tester) async {
+    phone(tester);
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    await signIn(tester);
+    await openTab(tester, 'Account');
+    await tester.tap(find.text('Guardians').first);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('New guardian. You can remove them at once'), findsOneWidget);
+    await tester.ensureVisible(find.text('Remove now: I did not add them'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Remove now: I did not add them'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.descendant(of: find.byType(AlertDialog), matching: find.text('Remove now: I did not add them')));
+    // Let the removal and the refreshed list arrive.
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await tester.pumpAndSettle();
+    expect(find.text('Divya'), findsNothing);
+    expect(find.text('Ravi Kumar'), findsOneWidget);
+  });
+
   testWidgets('key screens meet Android accessibility guidelines', (tester) async {
     phone(tester);
     final handle = tester.ensureSemantics();

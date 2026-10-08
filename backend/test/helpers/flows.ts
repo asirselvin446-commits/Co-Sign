@@ -43,14 +43,13 @@ export async function stepup(t: TestApp, u: TestUser, action: string, params: Re
   return { start, verify, id: start.body.request.id as string };
 }
 
-/** Invite, accept and fast-forward the 24-hour activation delay. */
+/** Invite and accept: the guardian starts at once. */
 export async function makeGuardian(t: TestApp, user: TestUser, guardian: TestUser): Promise<string> {
   const invite = await call(t, 'POST', '/v1/guardians/invites', { token: user.accessToken });
   const token = new URL(invite.body.url).pathname.split('/').pop()!;
   const accepted = await call(t, 'POST', '/v1/guardian/invites/accept', { token: guardian.accessToken, body: { token } });
   if (accepted.status !== 200) throw new Error(`accept failed ${JSON.stringify(accepted.body)}`);
-  await t.deps.prisma.guardianLink.update({ where: { id: accepted.body.linkId }, data: { activatesAt: new Date(Date.now() - 1000) } });
-  await t.ctx.services.guardians.applyDueChanges();
+  if (!accepted.body.active) throw new Error('guardian did not start at once');
   return accepted.body.linkId;
 }
 

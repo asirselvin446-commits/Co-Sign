@@ -102,13 +102,14 @@ class FakeRealtime implements Realtime {
 class FakePush extends NoPush {}
 
 class _Guardian {
-  _Guardian(this.linkId, this.name, this.handle, this.status, {this.activatesAt});
+  _Guardian(this.linkId, this.name, this.handle, this.status);
   final String linkId;
   final String name;
   final String handle;
   String status;
   DateTime? activatesAt;
   DateTime? removesAt;
+  DateTime? undoUntil;
 }
 
 class _Stepup {
@@ -145,7 +146,8 @@ class FakeCoSignApi implements CoSignApi {
   bool _consent = true;
   final List<_Guardian> _guardians = [
     _Guardian('link-ravi', 'Ravi Kumar', 'ravi', 'active'),
-    _Guardian('link-divya', 'Divya', 'divya', 'pending_activation', activatesAt: DateTime.now().add(const Duration(hours: 20))),
+    // Added an hour ago: can still be removed at once.
+    _Guardian('link-divya', 'Divya', 'divya', 'active')..undoUntil = DateTime.now().add(const Duration(hours: 23)),
   ];
   final List<DeviceView> _devices = [];
   final Map<String, _Stepup> _stepups = {};
@@ -415,7 +417,7 @@ class FakeCoSignApi implements CoSignApi {
   @override
   Future<GuardianList> guardians() => _later(() => GuardianList(5, [
         for (final g in _guardians)
-          GuardianView(linkId: g.linkId, displayName: g.name, handle: g.handle, status: g.status, activatesAt: g.activatesAt, removesAt: g.removesAt),
+          GuardianView(linkId: g.linkId, displayName: g.name, handle: g.handle, status: g.status, activatesAt: g.activatesAt, removesAt: g.removesAt, undoUntil: g.undoUntil),
       ]));
 
   @override
@@ -424,7 +426,7 @@ class FakeCoSignApi implements CoSignApi {
   @override
   Future<void> cancelGuardianChange(String linkId) => _later(() {
         final g = _guardians.firstWhere((x) => x.linkId == linkId);
-        if (g.status == 'pending_activation') {
+        if (g.status == 'pending_activation' || (g.undoUntil?.isAfter(DateTime.now()) ?? false)) {
           _guardians.remove(g);
         } else {
           g
@@ -440,7 +442,7 @@ class FakeCoSignApi implements CoSignApi {
       });
 
   @override
-  Future<DateTime> acceptInvite({String? token, String? code}) => _later(() => DateTime.now().add(const Duration(hours: 24)));
+  Future<DateTime> acceptInvite({String? token, String? code}) => _later(DateTime.now);
   @override
   Future<List<Person>> people() => _later(() {
         final now = DateTime.now();

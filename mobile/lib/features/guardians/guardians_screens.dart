@@ -79,10 +79,22 @@ class _GuardiansScreenState extends ConsumerState<GuardiansScreen> {
                       subtitle: Text(switch (x.status) {
                         'pending_activation' => l.pendingActivation(formatDate(x.activatesAt!, lang)),
                         'pending_removal' => l.pendingRemoval(formatDate(x.removesAt!, lang)),
+                        _ when x.canUndo => l.newGuardianNote(formatDate(x.undoUntil!, lang)),
                         _ => l.activeGuardian,
                       }),
                     ),
-                    if (x.status != 'active')
+                    if (x.canUndo)
+                      // Added in the last day: remove at once, no 24-hour wait ("I did not add them").
+                      SecondaryButton(
+                        label: l.undoNewGuardian,
+                        danger: true,
+                        onPressed: () => _guard(() async {
+                          if (!await confirmDialog(context, l.undoNewGuardianConfirm(x.displayName), confirmLabel: l.undoNewGuardian, danger: true)) return;
+                          await ref.read(apiProvider).cancelGuardianChange(x.linkId);
+                          ref.invalidate(guardiansProvider);
+                        }),
+                      )
+                    else if (x.status != 'active')
                       SecondaryButton(
                         label: l.stopChange,
                         onPressed: () => _guard(() async {
@@ -181,6 +193,7 @@ class _BecomeGuardianScreenState extends ConsumerState<BecomeGuardianScreen> {
   String? _token;
   String? _inviterName;
   String? _accepted;
+  DateTime? _startsAt;
   bool _busy = false;
   bool _scanning = false;
   AppFailure? _error;
@@ -225,8 +238,13 @@ class _BecomeGuardianScreenState extends ConsumerState<BecomeGuardianScreen> {
     setState(() => _busy = true);
     try {
       final r = _ref();
-      await ref.read(apiProvider).acceptInvite(token: r.token, code: r.code);
-      if (mounted) setState(() => _accepted = _inviterName);
+      final startsAt = await ref.read(apiProvider).acceptInvite(token: r.token, code: r.code);
+      if (mounted) {
+        setState(() {
+          _accepted = _inviterName;
+          _startsAt = startsAt;
+        });
+      }
       ref.invalidate(peopleProvider);
     } on AppFailure catch (f) {
       if (mounted) setState(() => _error = f);
@@ -252,7 +270,12 @@ class _BecomeGuardianScreenState extends ConsumerState<BecomeGuardianScreen> {
   Widget build(BuildContext context) {
     final l = context.l10n;
     if (_accepted != null) {
-      return AppPage(title: l.beGuardian, bottom: PrimaryButton(label: l.done, onPressed: () => context.go('/home')), children: [BodyText(l.acceptedBody(_accepted!), emphasis: true)]);
+      final later = _startsAt != null && _startsAt!.isAfter(DateTime.now().add(const Duration(minutes: 1)));
+      return AppPage(
+        title: l.beGuardian,
+        bottom: PrimaryButton(label: l.done, onPressed: () => context.go('/home?tab=family')),
+        children: [BodyText(later ? l.personPending(formatDate(_startsAt!, ref.read(settingsProvider).language)) : l.acceptedBody(_accepted!), emphasis: true)],
+      );
     }
     if (_inviterName != null) {
       return AppPage(

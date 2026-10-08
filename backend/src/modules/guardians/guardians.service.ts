@@ -40,8 +40,16 @@ export class GuardiansService {
     private readonly notifier: Notifier,
   ) {}
 
+  /** How long a removal waits. */
   private delayMs(): number {
     return this.deps.config.GUARDIAN_CHANGE_DELAY_SECONDS * 1000;
+  }
+
+  /** Until when the protected person can remove a newly started guardian instantly, or null. */
+  undoUntil(link: Pick<GuardianLink, 'status' | 'activatedAt'>): Date | null {
+    if (link.status !== 'active' || !link.activatedAt) return null;
+    const until = new Date(link.activatedAt.getTime() + this.deps.config.GUARDIAN_UNDO_WINDOW_SECONDS * 1000);
+    return until > new Date() ? until : null;
   }
 
   async guardianIds(userId: string): Promise<string[]> {
@@ -129,13 +137,19 @@ export class GuardiansService {
       const live = await tx.guardianLink.findMany({ where: { userId: invite.inviterId, status: { in: [...LIVE_STATUSES] } } });
       if (live.some((l) => l.guardianId === guardianId)) throw new AppError('ALREADY_GUARDIAN');
       if (live.length >= config.MAX_GUARDIANS) throw new AppError('GUARDIAN_LIMIT_REACHED');
+      // The person who invited them already chose them, so the guardian starts at once (unless a
+      // delay is configured). The person is alerted and can undo it instantly for a day.
+      const now = new Date();
+      const delayMs = config.GUARDIAN_ACTIVATION_DELAY_SECONDS * 1000;
+      const immediate = delayMs === 0;
       const created = await tx.guardianLink.create({
         data: {
           userId: invite.inviterId,
           guardianId,
           inviteId: invite.id,
-          status: 'pending_activation',
-          activatesAt: new Date(Date.now() + this.delayMs()),
+          status: immediate ? 'active' : 'pending_activation',
+          activatesAt: new Date(now.getTime() + delayMs),
+          ...(immediate ? { activatedAt: now } : {}),
         },
       });
       await log({
@@ -146,21 +160,48 @@ export class GuardiansService {
         subjectId: created.id,
         payload: { userId: invite.inviterId, activatesAt: created.activatesAt.toISOString() },
       });
+      if (immediate) {
+        await log({ actorType: 'system', action: 'guardian.activated', subjectType: 'guardian_link', subjectId: created.id, payload: { userId: invite.inviterId, guardianId } });
+      }
       return created;
     });
     await this.alertChange(link, 'guardian_added');
+    if (link.status === 'active') await this.tellOtherGuardians(link);
     return link;
   }
 
-  // ---------------------------------------------------------------- changes with a 24 h delay
+  /** The person's other guardians hear about a new guardian at once (a scammer adding themselves is caught). */
+  private async tellOtherGuardians(link: GuardianLink): Promise<void> {
+    const [person, guardian] = await Promise.all([
+      this.deps.prisma.user.findUnique({ where: { id: link.userId } }),
+      this.deps.prisma.user.findUnique({ where: { id: link.guardianId } }),
+    ]);
+    if (!person || !guardian) return;
+    const personName = this.users.displayName(person);
+    const guardianName = this.users.displayName(guardian);
+    const others = await this.deps.prisma.guardianLink.findMany({
+      where: { userId: link.userId, status: { in: [...GUARDING_STATUSES] }, guardianId: { not: link.guardianId } },
+      select: { id: true, guardianId: true },
+    });
+    for (const o of others) {
+      this.deps.realtime.toUser(o.guardianId, 'guarding.changed', { linkId: o.id });
+      await this.notifier.push(o.guardianId, 'guardian_joined', () => ({ name: personName, guardian: guardianName }), { screen: 'guardian_person', linkId: o.id });
+    }
+  }
+
+  // ---------------------------------------------------------------- changes (removals wait 24 h)
 
   async alertChange(link: GuardianLink, term: 'guardian_added' | 'guardian_removed'): Promise<void> {
     const guardian = await this.deps.prisma.user.findUnique({ where: { id: link.guardianId } });
     const name = guardian ? this.users.displayName(guardian) : '';
-    await this.notifier.push(link.userId, 'guardian_change', (lang) => ({ name, change: this.notifier.term(term, lang) }), {
-      screen: 'guardians',
-      linkId: link.id,
-    });
+    if (term === 'guardian_added' && link.status === 'active') {
+      await this.notifier.push(link.userId, 'guardian_started', () => ({ name }), { screen: 'guardians', linkId: link.id });
+    } else {
+      await this.notifier.push(link.userId, 'guardian_change', (lang) => ({ name, change: this.notifier.term(term, lang) }), {
+        screen: 'guardians',
+        linkId: link.id,
+      });
+    }
     this.deps.realtime.toUser(link.userId, 'guardians.changed', { linkId: link.id, status: link.status });
     this.deps.realtime.toUser(link.guardianId, 'guarding.changed', { linkId: link.id, status: link.status });
   }
@@ -188,21 +229,36 @@ export class GuardiansService {
     return link;
   }
 
-  /** The protected user may stop a pending change at once: cancelling only ever adds protection back. */
+  /**
+   * The protected user may stop a change at once: a pending addition, a pending removal, or a
+   * guardian who started less than a day ago ("I did not add them"). Cancelling a removal only ever
+   * adds protection back; undoing a brand-new guardian removes someone they may not have chosen.
+   */
   async cancelPendingChange(userId: string, linkId: string): Promise<void> {
-    await this.deps.audit.transaction(async (tx, log) => {
+    const undone = await this.deps.audit.transaction(async (tx, log) => {
       const link = await tx.guardianLink.findFirst({ where: { id: linkId, userId } });
       if (!link) throw new AppError('NOT_FOUND');
-      if (link.status === 'pending_activation') {
-        await tx.guardianLink.update({ where: { id: linkId }, data: { status: 'cancelled', endedAt: new Date() } });
+      if (link.status === 'pending_activation' || this.undoUntil(link) !== null) {
+        const r = await tx.guardianLink.updateMany({ where: { id: linkId, status: link.status }, data: { status: 'cancelled', endedAt: new Date() } });
+        if (r.count !== 1) throw new AppError('NOT_FOUND');
       } else if (link.status === 'pending_removal') {
         await tx.guardianLink.update({ where: { id: linkId }, data: { status: 'active', removalRequestedAt: null, removesAt: null } });
       } else {
         throw new AppError('NOT_FOUND');
       }
       await log({ actorType: 'user', actorId: userId, action: 'guardian.change_cancelled', subjectType: 'guardian_link', subjectId: linkId, payload: { from: link.status } });
+      return link.status === 'active';
     });
     this.deps.realtime.toUser(userId, 'guardians.changed', { linkId });
+    const link = await this.deps.prisma.guardianLink.findUnique({ where: { id: linkId } });
+    if (!link) return;
+    this.deps.realtime.toUser(link.guardianId, 'guarding.changed', { linkId, status: link.status });
+    if (undone) {
+      // The guardian always hears it, so a scammer on the phone cannot quietly drop a real guardian.
+      const person = await this.deps.prisma.user.findUnique({ where: { id: userId } });
+      const name = person ? this.users.displayName(person) : '';
+      await this.notifier.push(link.guardianId, 'guardian_undone', () => ({ name }), { screen: 'family' });
+    }
   }
 
   /** A guardian stepping down follows the same 24-hour delay so the user is warned in time. */

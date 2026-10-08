@@ -74,6 +74,8 @@ export async function guardianRoutes(app: ZApp, ctx: Ctx): Promise<void> {
                 activatesAt: z.string().nullable(),
                 removesAt: z.string().nullable(),
                 since: z.string(),
+                /** Until then, a newly started guardian can be removed instantly. */
+                undoUntil: z.string().nullable(),
               }),
             ),
           }),
@@ -98,6 +100,7 @@ export async function guardianRoutes(app: ZApp, ctx: Ctx): Promise<void> {
           activatesAt: l.status === 'pending_activation' ? l.activatesAt.toISOString() : null,
           removesAt: l.removesAt?.toISOString() ?? null,
           since: (l.activatedAt ?? l.createdAt).toISOString(),
+          undoUntil: guardians.undoUntil(l)?.toISOString() ?? null,
         })),
       };
     },
@@ -109,7 +112,7 @@ export async function guardianRoutes(app: ZApp, ctx: Ctx): Promise<void> {
       schema: {
         tags: ['guardians'],
         security: [{ bearer: [] }],
-        summary: 'Stop a pending guardian addition or removal immediately',
+        summary: 'Stop a pending guardian change, or remove a guardian who started in the last 24 hours, immediately',
         params: z.object({ linkId: z.uuid() }),
         response: { 204: z.null() },
       },
@@ -148,9 +151,9 @@ export async function guardianRoutes(app: ZApp, ctx: Ctx): Promise<void> {
       schema: {
         tags: ['guardian'],
         security: [{ bearer: [] }],
-        summary: 'Become a guardian. Takes effect after 24 hours; the protected user is alerted.',
+        summary: 'Become a guardian. Starts at once; the protected user and their other guardians are alerted.',
         body: inviteRef,
-        response: { 200: z.object({ linkId: z.string(), activatesAt: z.string() }) },
+        response: { 200: z.object({ linkId: z.string(), activatesAt: z.string(), active: z.boolean() }) },
       },
       preHandler: guards.requireUser,
       config: accountLimit(20, '15 minutes'),
@@ -158,7 +161,7 @@ export async function guardianRoutes(app: ZApp, ctx: Ctx): Promise<void> {
     async (req) => {
       const { userId } = userAuth(req);
       const link = await guardians.acceptInvite(userId, req.body as { token?: string; code?: string });
-      return { linkId: link.id, activatesAt: link.activatesAt.toISOString() };
+      return { linkId: link.id, activatesAt: link.activatesAt.toISOString(), active: link.status === 'active' };
     },
   );
 

@@ -134,7 +134,7 @@
       }
     }
   },
-  "changesTakeADay": "New guardians and removals take 24 hours, and you are alerted, so nobody can quietly change them.",
+  "changesTakeADay": "A new guardian starts at once and you are told. If you did not add them, you can remove them at once for the first day. After that, removing a guardian takes 24 hours, so nobody can quietly take your guardians away.",
   "beGuardian": "Become someone's guardian",
   "enterInviteCode": "Type invite code",
   "scanQr": "Scan QR code",
@@ -149,7 +149,7 @@
   },
   "acceptBody": "You will be asked to approve risky actions with your own passkey. You will not see their money or account.",
   "accept": "Accept",
-  "acceptedBody": "Done. You become {name}'s guardian in 24 hours.",
+  "acceptedBody": "Done. You are now {name}'s guardian.",
   "@acceptedBody": {
     "placeholders": {
       "name": {
@@ -506,5 +506,22 @@
   "confirmingNow": "Confirm with your fingerprint, face or screen lock.",
   "fpUnlockWatch": "Tell my guardian about wrong PIN attempts, and let them lock my screen",
   "catMessaging": "Chat app",
-  "myAccount": "Your account"
+  "myAccount": "Your account",
+  "undoNewGuardian": "Remove now: I did not add them",
+  "undoNewGuardianConfirm": "Remove {name} as your guardian now? They will be told.",
+  "@undoNewGuardianConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "newGuardianNote": "New guardian. You can remove them at once until {date}.",
+  "@newGuardianNote": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  }
 }

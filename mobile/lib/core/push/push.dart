@@ -34,6 +34,7 @@ String? routeForPush(Map<String, Object?> data, {String? actionId}) {
     'guardian_alert' when alertId is String => '/guardian/alerts/$alertId',
     'guardian_pause' when pauseId is String => '/guardian/pause/$pauseId',
     'guardian_person' when linkId is String => '/guardian/person/$linkId',
+    'family' => '/home?tab=family',
     'stepup' when requestId is String => '/stepup/$requestId',
     'recovery_alert' => '/home',
     'guardians' => '/guardians',

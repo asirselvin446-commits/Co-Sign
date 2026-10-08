@@ -17,7 +17,7 @@ describe('guardian invites', () => {
     await t.close();
   });
 
-  it('accepts by link or 8-digit code, and activation waits 24 hours with an alert', async () => {
+  it('accepts by link or 8-digit code, and the guardian starts at once with an alert', async () => {
     const g = await registerUser(t, 'raj');
     const invite = await call(t, 'POST', '/v1/guardians/invites', { token: user.accessToken });
     expect(invite.body.code).toMatch(/^\d{8}$/);
@@ -25,10 +25,17 @@ describe('guardian invites', () => {
     expect(preview.body.inviter.displayName).toBe('Lakshmi');
     const accept = await call(t, 'POST', '/v1/guardian/invites/accept', { token: g.accessToken, body: { code: invite.body.code } });
     expect(accept.status).toBe(200);
-    expect(new Date(accept.body.activatesAt).getTime()).toBeGreaterThan(Date.now() + 23 * 3600_000);
-    expect(t.push.forUser(user.id).some((m) => m.type === 'guardian_change')).toBe(true);
+    expect(accept.body.active).toBe(true);
+    expect(new Date(accept.body.activatesAt).getTime()).toBeLessThanOrEqual(Date.now());
+    // The person is told at once, in words that say it has already happened.
+    const told = t.push.forUser(user.id).find((m) => m.type === 'guardian_started');
+    expect(told?.title).toContain('is now your guardian');
     const list = await call(t, 'GET', '/v1/guardians', { token: user.accessToken });
-    expect(list.body.guardians[0]).toMatchObject({ handle: 'raj', status: 'pending_activation' });
+    expect(list.body.guardians[0]).toMatchObject({ handle: 'raj', status: 'active' });
+    expect(new Date(list.body.guardians[0].undoUntil).getTime()).toBeGreaterThan(Date.now() + 23 * 3600_000);
+    // They can act as a guardian straight away.
+    const people = await call(t, 'GET', '/v1/guardian/people', { token: g.accessToken });
+    expect(people.body.people[0]).toMatchObject({ displayName: 'Lakshmi', status: 'active' });
     // A link already used cannot be reused.
     const again = await call(t, 'POST', '/v1/guardian/invites/accept', { token: g.accessToken, body: { code: invite.body.code } });
     expect(again.status).toBe(400);
@@ -61,6 +68,32 @@ describe('guardian invites', () => {
     for (let i = 0; i < 4; i++) await makeGuardian(t, user, await registerUser(t, `g${i}x`));
     const full = await call(t, 'POST', '/v1/guardians/invites', { token: user.accessToken });
     expect(full.body.error.code).toBe('GUARDIAN_LIMIT_REACHED');
+  });
+
+  it('a new guardian can be undone instantly for a day, and everyone concerned is told', async () => {
+    const kamala = await registerUser(t, 'kamala', { displayName: 'Kamala' });
+    const first = await registerUser(t, 'firstg', { displayName: 'First' });
+    const second = await registerUser(t, 'secondg', { displayName: 'Second' });
+    await makeGuardian(t, kamala, first);
+    const secondLink = await makeGuardian(t, kamala, second);
+    // The existing guardian hears about the new one straight away.
+    const joined = t.push.forUser(first.id).find((m) => m.type === 'guardian_joined');
+    expect(joined?.body).toContain('Second');
+
+    // "I did not add them": removed at once, no 24-hour wait, and the removed guardian is told.
+    const undo = await call(t, 'POST', `/v1/guardians/${secondLink}/cancel-change`, { token: kamala.accessToken });
+    expect(undo.status).toBe(204);
+    expect((await t.deps.prisma.guardianLink.findUniqueOrThrow({ where: { id: secondLink } })).status).toBe('cancelled');
+    expect(t.push.forUser(second.id).some((m) => m.type === 'guardian_undone' && m.title.includes('Kamala'))).toBe(true);
+    expect((await call(t, 'GET', '/v1/guardian/people', { token: second.accessToken })).body.people).toHaveLength(0);
+
+    // After the first day, removing a guardian is a protected action with the usual 24-hour wait.
+    const firstLink = await t.deps.prisma.guardianLink.findFirstOrThrow({ where: { userId: kamala.id, guardianId: first.id } });
+    await t.deps.prisma.guardianLink.update({ where: { id: firstLink.id }, data: { activatedAt: new Date(Date.now() - 25 * 3600_000) } });
+    const late = await call(t, 'POST', `/v1/guardians/${firstLink.id}/cancel-change`, { token: kamala.accessToken });
+    expect(late.status).toBe(404);
+    const list = await call(t, 'GET', '/v1/guardians', { token: kamala.accessToken });
+    expect(list.body.guardians.find((g: { handle: string }) => g.handle === 'firstg').undoUntil).toBeNull();
   });
 
   it('expired codes are explained as expired', async () => {

@@ -66,7 +66,12 @@ const schema = z
     ADMIN_REFRESH_TOKEN_TTL_SECONDS: seconds(12 * 3600),
     STEPUP_GUARDIAN_WINDOW_SECONDS: seconds(600),
     COOLOFF_SECONDS: seconds(1800),
+    /** Removing a guardian waits this long, so nobody can quietly take a person's guardians away. */
     GUARDIAN_CHANGE_DELAY_SECONDS: seconds(24 * 3600),
+    /** A new guardian starts after this delay (0 = at once). */
+    GUARDIAN_ACTIVATION_DELAY_SECONDS: z.coerce.number().int().min(0).default(0),
+    /** For this long after a guardian starts, the protected person can remove them instantly. */
+    GUARDIAN_UNDO_WINDOW_SECONDS: seconds(24 * 3600),
     INVITE_TTL_SECONDS: seconds(48 * 3600),
     RECOVERY_APPROVAL_WINDOW_SECONDS: seconds(24 * 3600),
     RECOVERY_CANCEL_WINDOW_SECONDS: seconds(24 * 3600),

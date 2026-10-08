@@ -21,6 +21,7 @@ import { wellKnownRoutes } from './modules/wellknown/wellknown.routes.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { deviceRoutes } from './modules/devices/devices.routes.js';
 import { adminAuthRoutes } from './modules/admin/admin-auth.routes.js';
+import { adminRoutes } from './modules/admin/admin.routes.js';
 import { ledgerRoutes } from './modules/ledger/ledger.routes.js';
 import { stepupRoutes } from './modules/stepup/stepup.routes.js';
 import { guardianRoutes } from './modules/guardians/guardians.routes.js';
@@ -144,6 +145,7 @@ export async function buildApp(deps: Deps, opts: BuildOptions = {}): Promise<{ a
     recoveryRoutes,
     signalRoutes,
     adminAuthRoutes,
+    adminRoutes,
   ];
   for (const mod of routeModules) {
     await app.register(async (scope) => mod(scope as unknown as ZApp, ctx));

@@ -54,6 +54,10 @@ class ErrorCodes {
   static const String INVALID_INPUT = 'INVALID_INPUT';
   static const String NOT_FOUND = 'NOT_FOUND';
   static const String INSUFFICIENT_FUNDS = 'INSUFFICIENT_FUNDS';
+  static const String LIMIT_STEPUP_REQUIRED = 'LIMIT_STEPUP_REQUIRED';
+  static const String STEPUP_REQUIRED = 'STEPUP_REQUIRED';
+  static const String PAYEE_EXISTS = 'PAYEE_EXISTS';
+  static const String LIMIT_NOT_HIGHER = 'LIMIT_NOT_HIGHER';
   static const String HANDLE_TAKEN = 'HANDLE_TAKEN';
   static const String GUARDIAN_LIMIT_REACHED = 'GUARDIAN_LIMIT_REACHED';
   static const String INVITE_INVALID = 'INVITE_INVALID';
@@ -353,6 +357,58 @@ const Map<String, ErrorEntry> kErrorCatalog = <String, ErrorEntry>{
       'en': ErrorText("Your balance is too low for this transfer.", "Enter a smaller amount."),
       'ta': ErrorText("இந்தப் பரிமாற்றத்திற்கு உங்கள் இருப்பு போதவில்லை.", "குறைவான தொகையை உள்ளிடுங்கள்."),
       'hi': ErrorText("इस ट्रांसफ़र के लिए आपका बैलेंस कम है।", "कम रकम डालें।"),
+    },
+  ),
+  'LIMIT_STEPUP_REQUIRED': ErrorEntry(
+    code: 'LIMIT_STEPUP_REQUIRED',
+    http: 428,
+    tier: 'public',
+    generic: null,
+    origin: 'server',
+    params: <String>[],
+    text: <String, ErrorText>{
+      'en': ErrorText("This is more than your daily limit, so it needs an extra safety check.", "Tap Continue to confirm with your passkey."),
+      'ta': ErrorText("இது உங்கள் தினசரி வரம்பை விட அதிகம், அதனால் கூடுதல் பாதுகாப்புச் சோதனை தேவை.", "உங்கள் பாஸ்கீ மூலம் உறுதிசெய்ய தொடர் என்பதைத் தட்டுங்கள்."),
+      'hi': ErrorText("यह आपकी रोज़ की सीमा से ज़्यादा है, इसलिए इसके लिए एक अतिरिक्त सुरक्षा जाँच चाहिए।", "अपनी पासकी से पुष्टि करने के लिए आगे बढ़ें पर टैप करें।"),
+    },
+  ),
+  'STEPUP_REQUIRED': ErrorEntry(
+    code: 'STEPUP_REQUIRED',
+    http: 428,
+    tier: 'public',
+    generic: null,
+    origin: 'server',
+    params: <String>[],
+    text: <String, ErrorText>{
+      'en': ErrorText("This change needs an extra safety check.", "Tap Continue to confirm with your passkey."),
+      'ta': ErrorText("இந்த மாற்றத்திற்குக் கூடுதல் பாதுகாப்புச் சோதனை தேவை.", "உங்கள் பாஸ்கீ மூலம் உறுதிசெய்ய தொடர் என்பதைத் தட்டுங்கள்."),
+      'hi': ErrorText("इस बदलाव के लिए एक अतिरिक्त सुरक्षा जाँच चाहिए।", "अपनी पासकी से पुष्टि करने के लिए आगे बढ़ें पर टैप करें।"),
+    },
+  ),
+  'PAYEE_EXISTS': ErrorEntry(
+    code: 'PAYEE_EXISTS',
+    http: 409,
+    tier: 'public',
+    generic: null,
+    origin: 'server',
+    params: <String>[],
+    text: <String, ErrorText>{
+      'en': ErrorText("This person is already in your payees.", "Choose them from your payee list to send money."),
+      'ta': ErrorText("இவர் ஏற்கனவே உங்கள் பணம் பெறுபவர் பட்டியலில் உள்ளார்.", "பணம் அனுப்ப உங்கள் பட்டியலிலிருந்து இவரைத் தேர்ந்தெடுங்கள்."),
+      'hi': ErrorText("यह व्यक्ति पहले से आपकी प्राप्तकर्ता सूची में है।", "पैसे भेजने के लिए उन्हें अपनी सूची से चुनें।"),
+    },
+  ),
+  'LIMIT_NOT_HIGHER': ErrorEntry(
+    code: 'LIMIT_NOT_HIGHER',
+    http: 400,
+    tier: 'public',
+    generic: null,
+    origin: 'server',
+    params: <String>[],
+    text: <String, ErrorText>{
+      'en': ErrorText("The new limit must be higher than your current limit.", "Lowering a limit does not need a check. Enter a higher amount to raise it."),
+      'ta': ErrorText("புதிய வரம்பு தற்போதைய வரம்பை விட அதிகமாக இருக்க வேண்டும்.", "வரம்பைக் குறைக்கச் சோதனை தேவையில்லை. உயர்த்த, அதிகத் தொகையை உள்ளிடுங்கள்."),
+      'hi': ErrorText("नई सीमा मौजूदा सीमा से ज़्यादा होनी चाहिए।", "सीमा घटाने के लिए जाँच की ज़रूरत नहीं है। बढ़ाने के लिए ज़्यादा रकम डालें।"),
     },
   ),
   'HANDLE_TAKEN': ErrorEntry(

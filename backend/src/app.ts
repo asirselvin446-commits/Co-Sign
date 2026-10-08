@@ -21,6 +21,12 @@ import { wellKnownRoutes } from './modules/wellknown/wellknown.routes.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { deviceRoutes } from './modules/devices/devices.routes.js';
 import { adminAuthRoutes } from './modules/admin/admin-auth.routes.js';
+import { ledgerRoutes } from './modules/ledger/ledger.routes.js';
+import { stepupRoutes } from './modules/stepup/stepup.routes.js';
+import { guardianRoutes } from './modules/guardians/guardians.routes.js';
+import { recoveryRoutes } from './modules/recovery/recovery.routes.js';
+import { signalRoutes } from './modules/risk/signals.routes.js';
+import { enrolmentRoutes } from './modules/devices/enrolment.routes.js';
 
 export interface BuildOptions {
   /** Expose Swagger UI at /docs (on by default outside production). */
@@ -126,7 +132,19 @@ export async function buildApp(deps: Deps, opts: BuildOptions = {}): Promise<{ a
   );
   const ctx: Ctx = { deps, services, guards: makeAuthGuards(services.tokens) };
 
-  const routeModules = [healthRoutes, wellKnownRoutes, authRoutes, deviceRoutes, adminAuthRoutes];
+  const routeModules = [
+    healthRoutes,
+    wellKnownRoutes,
+    authRoutes,
+    deviceRoutes,
+    enrolmentRoutes,
+    ledgerRoutes,
+    stepupRoutes,
+    guardianRoutes,
+    recoveryRoutes,
+    signalRoutes,
+    adminAuthRoutes,
+  ];
   for (const mod of routeModules) {
     await app.register(async (scope) => mod(scope as unknown as ZApp, ctx));
   }

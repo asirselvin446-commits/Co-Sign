@@ -55,6 +55,12 @@ export async function createDeps(config: Config, overrides: DepOverrides = {}): 
   const log = overrides.log ?? createLogger(config);
   const prisma = new PrismaClient({ datasourceUrl: config.DATABASE_URL });
   await prisma.$connect();
+  // Tamil and Devanagari text (names, reasons, rule edits) must round-trip exactly.
+  const [enc] = await prisma.$queryRaw<Array<{ server_encoding: string }>>`SHOW server_encoding`;
+  if (enc?.server_encoding.toUpperCase() !== 'UTF8') {
+    await prisma.$disconnect();
+    throw new Error(`Database encoding is ${enc?.server_encoding}; Co-Sign requires a UTF8 database (createdb -E UTF8).`);
+  }
   const redis = new Redis(config.REDIS_URL, { maxRetriesPerRequest: 3, enableAutoPipelining: true });
   await redis.ping();
 

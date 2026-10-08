@@ -11,6 +11,8 @@ export const ADMIN_AUD = 'cosign:admin';
 export interface UserClaims {
   sub: string;
   did: string;
+  /** The user's chosen language, so server messages match the app. */
+  lng?: string;
 }
 export interface AdminClaims {
   sub: string;
@@ -50,7 +52,7 @@ export class TokenService {
     const payload = await this.verify(token, USER_AUD);
     if (typeof payload.did !== 'string') throw new AppError('SESSION_EXPIRED');
     if (await this.deps.redis.exists(revokedDeviceKey(payload.did))) throw new AppError('DEVICE_REVOKED');
-    return { sub: payload.sub!, did: payload.did };
+    return { sub: payload.sub!, did: payload.did, ...(typeof payload.lng === 'string' ? { lng: payload.lng } : {}) };
   }
 
   async verifyAdmin(token: string): Promise<AdminClaims> {
@@ -89,8 +91,9 @@ export class TokenService {
     await tx.refreshToken.create({
       data: { familyId, userId, deviceId, tokenHash: sha256B64url(refreshToken), expiresAt },
     });
+    const user = await tx.user.findUnique({ where: { id: userId }, select: { locale: true } });
     return {
-      accessToken: await this.sign(USER_AUD, userId, { did: deviceId }),
+      accessToken: await this.sign(USER_AUD, userId, { did: deviceId, lng: user?.locale ?? 'en' }),
       accessTokenExpiresIn: this.deps.config.ACCESS_TOKEN_TTL_SECONDS,
       refreshToken,
       refreshTokenExpiresAt: expiresAt.toISOString(),

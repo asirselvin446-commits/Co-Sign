@@ -27,6 +27,7 @@ export function makeAuthGuards(tokens: TokenService) {
     if (!token) throw new AppError('SESSION_EXPIRED');
     const claims = await tokens.verifyUser(token);
     req.auth = { kind: 'user', userId: claims.sub, deviceId: claims.did };
+    req.lang = pickLang(req.headers['x-cosign-lang'] as string | undefined, claims.lng, req.headers['accept-language']);
   }
 
   /** Optional user auth: used where unauthenticated callers get generic answers. */

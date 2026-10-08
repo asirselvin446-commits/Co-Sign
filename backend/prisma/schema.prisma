@@ -97,6 +97,7 @@ model User {
   emailHash      String?    @unique @map("email_hash")
   phoneEnc       String?    @map("phone_enc")
   phoneHash      String?    @unique @map("phone_hash")
+  phoneVerifiedAt DateTime? @map("phone_verified_at")
   createdAt      DateTime   @default(now()) @map("created_at")
   updatedAt      DateTime   @updatedAt @map("updated_at")
   deletedAt      DateTime?  @map("deleted_at")

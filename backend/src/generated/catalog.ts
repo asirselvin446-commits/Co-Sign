@@ -481,6 +481,90 @@ export const ERROR_CATALOG = {
       }
     }
   },
+  "LIMIT_STEPUP_REQUIRED": {
+    "http": 428,
+    "tier": "public",
+    "generic": null,
+    "origin": "server",
+    "params": [],
+    "text": {
+      "en": {
+        "cause": "This is more than your daily limit, so it needs an extra safety check.",
+        "next": "Tap Continue to confirm with your passkey."
+      },
+      "ta": {
+        "cause": "இது உங்கள் தினசரி வரம்பை விட அதிகம், அதனால் கூடுதல் பாதுகாப்புச் சோதனை தேவை.",
+        "next": "உங்கள் பாஸ்கீ மூலம் உறுதிசெய்ய தொடர் என்பதைத் தட்டுங்கள்."
+      },
+      "hi": {
+        "cause": "यह आपकी रोज़ की सीमा से ज़्यादा है, इसलिए इसके लिए एक अतिरिक्त सुरक्षा जाँच चाहिए।",
+        "next": "अपनी पासकी से पुष्टि करने के लिए आगे बढ़ें पर टैप करें।"
+      }
+    }
+  },
+  "STEPUP_REQUIRED": {
+    "http": 428,
+    "tier": "public",
+    "generic": null,
+    "origin": "server",
+    "params": [],
+    "text": {
+      "en": {
+        "cause": "This change needs an extra safety check.",
+        "next": "Tap Continue to confirm with your passkey."
+      },
+      "ta": {
+        "cause": "இந்த மாற்றத்திற்குக் கூடுதல் பாதுகாப்புச் சோதனை தேவை.",
+        "next": "உங்கள் பாஸ்கீ மூலம் உறுதிசெய்ய தொடர் என்பதைத் தட்டுங்கள்."
+      },
+      "hi": {
+        "cause": "इस बदलाव के लिए एक अतिरिक्त सुरक्षा जाँच चाहिए।",
+        "next": "अपनी पासकी से पुष्टि करने के लिए आगे बढ़ें पर टैप करें।"
+      }
+    }
+  },
+  "PAYEE_EXISTS": {
+    "http": 409,
+    "tier": "public",
+    "generic": null,
+    "origin": "server",
+    "params": [],
+    "text": {
+      "en": {
+        "cause": "This person is already in your payees.",
+        "next": "Choose them from your payee list to send money."
+      },
+      "ta": {
+        "cause": "இவர் ஏற்கனவே உங்கள் பணம் பெறுபவர் பட்டியலில் உள்ளார்.",
+        "next": "பணம் அனுப்ப உங்கள் பட்டியலிலிருந்து இவரைத் தேர்ந்தெடுங்கள்."
+      },
+      "hi": {
+        "cause": "यह व्यक्ति पहले से आपकी प्राप्तकर्ता सूची में है।",
+        "next": "पैसे भेजने के लिए उन्हें अपनी सूची से चुनें।"
+      }
+    }
+  },
+  "LIMIT_NOT_HIGHER": {
+    "http": 400,
+    "tier": "public",
+    "generic": null,
+    "origin": "server",
+    "params": [],
+    "text": {
+      "en": {
+        "cause": "The new limit must be higher than your current limit.",
+        "next": "Lowering a limit does not need a check. Enter a higher amount to raise it."
+      },
+      "ta": {
+        "cause": "புதிய வரம்பு தற்போதைய வரம்பை விட அதிகமாக இருக்க வேண்டும்.",
+        "next": "வரம்பைக் குறைக்கச் சோதனை தேவையில்லை. உயர்த்த, அதிகத் தொகையை உள்ளிடுங்கள்."
+      },
+      "hi": {
+        "cause": "नई सीमा मौजूदा सीमा से ज़्यादा होनी चाहिए।",
+        "next": "सीमा घटाने के लिए जाँच की ज़रूरत नहीं है। बढ़ाने के लिए ज़्यादा रकम डालें।"
+      }
+    }
+  },
   "HANDLE_TAKEN": {
     "http": 409,
     "tier": "public",

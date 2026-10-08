@@ -25,8 +25,8 @@ export type ChallengeRecord =
   | { purpose: 'admin_register'; inviteId: string; handle: string; displayName: string; webauthnUserId: string }
   | { purpose: 'admin_login' }
   | { purpose: 'stepup_user'; requestId: string; userId: string; deviceId: string }
-  | { purpose: 'guardian_decision'; requestId: string; guardianId: string; decision: 'approve' | 'deny' }
-  | { purpose: 'recovery_approval'; recoveryId: string; guardianId: string }
+  | { purpose: 'guardian_decision'; requestId: string; guardianId: string; decision: 'approve' | 'deny'; nonce: string }
+  | { purpose: 'recovery_approval'; recoveryId: string; guardianId: string; nonce: string }
   | { purpose: 'recovery_register'; recoveryId: string };
 
 export interface DeviceInfo {

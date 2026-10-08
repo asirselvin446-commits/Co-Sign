@@ -7,6 +7,7 @@ name: Android APK
 # Signing: add these repository secrets to sign with your release key (the SHA-256 must match
 # ANDROID_SHA256_CERT_FINGERPRINTS on the backend for passkeys to work):
 #   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+# Push notifications: add the Firebase app config as the secret GOOGLE_SERVICES_JSON (file contents).
 # Without them the APK is signed with a throwaway debug key that changes on every run.
 
 on:
@@ -86,6 +87,13 @@ jobs:
             echo "keyAlias=$KEY_ALIAS"
             echo "keyPassword=$KEY_PASSWORD"
           } > android/key.properties
+
+      - name: Firebase config
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON" ]; then echo "No GOOGLE_SERVICES_JSON secret: building without push notifications."; exit 0; fi
+          printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
 
       - run: flutter pub get
       - run: flutter analyze --no-fatal-infos

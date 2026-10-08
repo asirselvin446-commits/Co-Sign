@@ -80,6 +80,8 @@ const schema = z
 
     DISPLAY_TIMEZONE: z.string().default('Asia/Kolkata'),
     DASHBOARD_DIST: z.string().default(''),
+    /** While no staff account exists, log a one-time administrator invite at startup (hosts without a shell). */
+    BOOTSTRAP_ADMIN_INVITE: bool.default(false),
     JOBS_ENABLED: bool.default(true),
     JOB_INTERVAL_MS: z.coerce.number().int().positive().default(5000),
   })
@@ -106,8 +108,25 @@ const schema = z
 
 export type Config = z.infer<typeof schema>;
 
+/**
+ * Fill values a hosting platform already knows. On Render, PUBLIC_BASE_URL falls back to
+ * RENDER_EXTERNAL_URL; RP_ID and the web origins then default to that address, which also serves
+ * the dashboard. Explicit settings always win.
+ */
+export function withPlatformDefaults(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const out = { ...env };
+  if (!out.PUBLIC_BASE_URL && out.RENDER_EXTERNAL_URL) out.PUBLIC_BASE_URL = out.RENDER_EXTERNAL_URL;
+  if (out.PUBLIC_BASE_URL && URL.canParse(out.PUBLIC_BASE_URL)) {
+    const base = new URL(out.PUBLIC_BASE_URL);
+    if (!out.RP_ID) out.RP_ID = base.hostname;
+    if (!out.WEB_ORIGINS) out.WEB_ORIGINS = base.origin;
+    if (!out.CORS_ORIGINS) out.CORS_ORIGINS = base.origin;
+  }
+  return out;
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
-  const parsed = schema.safeParse(env);
+  const parsed = schema.safeParse(withPlatformDefaults(env));
   if (!parsed.success) {
     const lines = parsed.error.issues.map((i) => `  ${i.path.join('.')}: ${i.message}`);
     throw new Error(`Invalid configuration:\n${lines.join('\n')}`);

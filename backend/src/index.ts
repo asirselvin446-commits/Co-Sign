@@ -3,6 +3,7 @@ import { closeDeps, createDeps } from './deps.js';
 import { buildApp } from './app.js';
 import { attachRealtime } from './modules/realtime/socket.js';
 import { startJobs } from './jobs/scheduler.js';
+import { createAdminInvite } from './modules/admin/admin-auth.routes.js';
 
 async function main(): Promise<void> {
   const config = loadConfig();
@@ -27,6 +28,11 @@ async function main(): Promise<void> {
   process.on('SIGINT', () => void shutdown('SIGINT'));
 
   await app.listen({ host: config.HOST, port: config.PORT });
+
+  if (config.BOOTSTRAP_ADMIN_INVITE && (await deps.prisma.admin.count()) === 0) {
+    const { url, expiresAt } = await createAdminInvite(ctx, 'admin', null);
+    deps.log.warn({ url, expiresAt }, 'No staff accounts yet. Open this one-time link to create the first administrator.');
+  }
 }
 
 main().catch((err) => {

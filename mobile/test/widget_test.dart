@@ -2,13 +2,14 @@ import 'package:cosign/app.dart';
 import 'package:cosign/core/providers.dart';
 import 'package:cosign/core/settings/settings.dart';
 import 'package:cosign/core/voice/voice.dart';
-import 'package:cosign/demo/demo_mode.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
-/// Widget tests run the real screens against the in-memory backend used by the demo build.
+import 'support/fake_overrides.dart';
+
+/// Widget tests run the real screens against the in-memory fake backend in test/support.
 void main() {
   setUpAll(() async {
     await initializeDateFormatting('en_IN');
@@ -17,7 +18,7 @@ void main() {
 
   Widget app({String language = 'en', bool languageChosen = true}) => ProviderScope(
         overrides: [
-          ...demoOverrides(),
+          ...fakeOverrides(),
           initialSettingsProvider.overrideWithValue(AppSettings.defaults.copyWith(language: language, languageChosen: languageChosen, consentAsked: true)),
           settingsStoreProvider.overrideWithValue(MemorySettingsStore()),
           voiceProvider.overrideWithValue(SilentVoice()),

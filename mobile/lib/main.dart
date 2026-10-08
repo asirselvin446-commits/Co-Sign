@@ -5,7 +5,6 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'app.dart';
 import 'core/providers.dart';
 import 'core/settings/settings.dart';
-import 'demo/demo_mode.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,8 +12,8 @@ Future<void> main() async {
   final settings = await PrefsSettingsStore().load();
   runApp(
     ProviderScope(
-      overrides: [initialSettingsProvider.overrideWithValue(settings), if (kDemoMode) ...demoOverrides()],
-      child: const CoSignApp(enableDeepLinks: !kDemoMode),
+      overrides: [initialSettingsProvider.overrideWithValue(settings)],
+      child: const CoSignApp(),
     ),
   );
 }

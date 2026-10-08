@@ -1,25 +1,25 @@
 import 'dart:async';
 
-import '../core/api/cosign_api.dart';
-import '../core/api/models.dart';
-import '../core/errors/failure.dart';
-import '../core/passkeys/passkey_service.dart';
-import '../core/push/push.dart';
-import '../core/realtime/realtime.dart';
-import '../core/signals/signals_channel.dart';
-import '../generated/catalog.g.dart';
+import 'package:cosign/core/api/cosign_api.dart';
+import 'package:cosign/core/api/models.dart';
+import 'package:cosign/core/errors/failure.dart';
+import 'package:cosign/core/passkeys/passkey_service.dart';
+import 'package:cosign/core/push/push.dart';
+import 'package:cosign/core/realtime/realtime.dart';
+import 'package:cosign/core/signals/signals_channel.dart';
+import 'package:cosign/generated/catalog.g.dart';
 
-// DEMO BUILD ONLY (--dart-define=DEMO_MODE=true). An in-memory stand-in for the backend so the app
-// can be shown without a server. It is never used by normal builds; every screen shows a DEMO banner.
+// TEST ONLY. An in-memory stand-in for the backend so widget tests can drive the real screens
+// without a server. It lives under test/ and is never compiled into the app.
 
-/// What the demo phone "reports". Toggled from the demo banner to show the guardian co-sign flow.
-class DemoScenario {
+/// What the fake phone "reports". Tests flip it to drive the guardian co-sign flow.
+class FakeScenario {
   bool scamCall = false;
 }
 
-class DemoSignalsChannel implements SignalsChannel {
-  DemoSignalsChannel(this.scenario);
-  final DemoScenario scenario;
+class FakeSignalsChannel implements SignalsChannel {
+  FakeSignalsChannel(this.scenario);
+  final FakeScenario scenario;
 
   @override
   String get platform => 'android';
@@ -73,21 +73,21 @@ class DemoSignalsChannel implements SignalsChannel {
 }
 
 /// Stands in for the fingerprint / screen-lock prompt.
-class DemoPasskeyService implements PasskeyService {
+class FakePasskeyService implements PasskeyService {
   @override
   Future<Json> register(Json creationOptions) async {
     await Future<void>.delayed(const Duration(milliseconds: 700));
-    return {'demo': true};
+    return {'test': true};
   }
 
   @override
   Future<Json> authenticate(Json requestOptions) async {
     await Future<void>.delayed(const Duration(milliseconds: 700));
-    return {'demo': true};
+    return {'test': true};
   }
 }
 
-class DemoRealtime implements Realtime {
+class FakeRealtime implements Realtime {
   final _controller = StreamController<RealtimeEvent>.broadcast();
   void emit(String name, Json data) => _controller.add(RealtimeEvent(name, data));
   @override
@@ -98,7 +98,7 @@ class DemoRealtime implements Realtime {
   void disconnect() {}
 }
 
-class DemoPush extends NoPush {}
+class FakePush extends NoPush {}
 
 class _Payee {
   _Payee(this.id, this.nickname, this.handle, this.name);
@@ -135,18 +135,18 @@ class _Stepup {
   String? failureCode;
 }
 
-class DemoCoSignApi implements CoSignApi {
-  DemoCoSignApi({required this.language, required this.realtime});
+class FakeCoSignApi implements CoSignApi {
+  FakeCoSignApi({required this.language, required this.realtime});
 
   final String Function() language;
-  final DemoRealtime realtime;
+  final FakeRealtime realtime;
   static const currency = 'XTS';
   static const guardianDelay = Duration(seconds: 7);
 
   int _seq = 0;
   String _id(String p) => '$p-${++_seq}';
 
-  UserSummary _user = const UserSummary(id: 'demo-user', handle: 'asha', displayName: 'Asha', locale: 'en');
+  UserSummary _user = const UserSummary(id: 'test-user', handle: 'asha', displayName: 'Asha', locale: 'en');
   String? _email;
   String? _phone;
   BigInt _balance = BigInt.from(5000000);
@@ -260,9 +260,9 @@ class DemoCoSignApi implements CoSignApi {
   }
 
   AuthResult _auth({String? handle, String? name}) {
-    _user = UserSummary(id: 'demo-user', handle: handle ?? _user.handle, displayName: name ?? _user.displayName, locale: _lang);
+    _user = UserSummary(id: 'test-user', handle: handle ?? _user.handle, displayName: name ?? _user.displayName, locale: _lang);
     _seed();
-    return AuthResult(user: _user, deviceId: 'device-this', newDevice: false, session: const SessionTokens(accessToken: 'demo', refreshToken: 'demo-refresh-token'));
+    return AuthResult(user: _user, deviceId: 'device-this', newDevice: false, session: const SessionTokens(accessToken: 'test', refreshToken: 'test-refresh-token'));
   }
 
   Future<T> _later<T>(T Function() fn) async {
@@ -476,7 +476,7 @@ class DemoCoSignApi implements CoSignApi {
       ]));
 
   @override
-  Future<InviteInfo> createInvite() => _later(() => InviteInfo(url: 'https://cosign.example.com/invite/demo-invite-token', code: '27461958', expiresAt: DateTime.now().add(const Duration(hours: 48))));
+  Future<InviteInfo> createInvite() => _later(() => InviteInfo(url: 'https://cosign.example.com/invite/test-invite-token', code: '27461958', expiresAt: DateTime.now().add(const Duration(hours: 48))));
 
   @override
   Future<void> cancelGuardianChange(String linkId) => _later(() {
@@ -552,14 +552,14 @@ class DemoCoSignApi implements CoSignApi {
   @override
   Future<RecoveryStart> startRecovery(String handle, Json device) => _later(() {
         _recoveryPolls['rec-1'] = 0;
-        return const RecoveryStart('rec-1', 'demo-poll');
+        return const RecoveryStart('rec-1', 'test-poll');
       });
 
   @override
   Future<RecoveryStatus> recoveryStatus(String id, String pollToken) => _later(() {
         final n = (_recoveryPolls[id] ?? 0) + 1;
         _recoveryPolls[id] = n;
-        // Compressed timeline for the demo: two guardian approvals, a short cancel window, then ready.
+        // Compressed timeline for tests: two guardian approvals, a short cancel window, then ready.
         if (n == 1) return const RecoveryStatus('pending_approvals', 1, null);
         if (n == 2) return RecoveryStatus('cancel_window', 2, DateTime.now().add(const Duration(seconds: 10)));
         return const RecoveryStatus('ready', 2, null);
@@ -595,7 +595,7 @@ class DemoCoSignApi implements CoSignApi {
   Future<void> setConsent(bool granted, String version) => _later(() => _consent = granted);
   @override
   Future<Json> exportData() => _later(() => {
-        'demo': true,
+        'test': true,
         'profile': {'handle': _user.handle, 'displayName': _user.displayName, 'email': _email, 'phone': _phone},
         'payees': [for (final p in _payees) p.handle],
       });
@@ -622,7 +622,7 @@ class DemoCoSignApi implements CoSignApi {
   @override
   Future<String> issueMonitorToken() => _later(() {
         _monitorEnabled = true;
-        return 'demo-monitor-token';
+        return 'test-monitor-token';
       });
 
   @override

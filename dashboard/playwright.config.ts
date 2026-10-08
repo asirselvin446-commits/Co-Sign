@@ -1,7 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
 // The e2e suite runs the real backend (serving the built dashboard) against real Postgres and Redis.
-// Required env: DATABASE_URL and REDIS_URL pointing at a migrated database. Other values default below.
+// Required env: DATABASE_URL pointing at a migrated database and REDIS_URL at a Redis database the
+// suite may empty before each run. Other values default below.
 const port = Number(process.env.E2E_PORT ?? 8090);
 const baseURL = `http://localhost:${port}`;
 
@@ -26,6 +27,7 @@ export const backendEnv: Record<string, string> = {
 
 export default defineConfig({
   testDir: './e2e',
+  globalSetup: './e2e/global-setup.ts',
   fullyParallel: false,
   workers: 1,
   timeout: 60_000,

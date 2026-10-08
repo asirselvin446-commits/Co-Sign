@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/providers.dart';
 import 'core/session/session_controller.dart';
-import 'demo/demo_mode.dart';
 import 'features/protection/protection_screens.dart';
 import 'l10n/gen/app_localizations.dart';
 import 'router.dart';
@@ -86,8 +85,7 @@ class _CoSignAppState extends ConsumerState<CoSignApp> {
         // Respect the system font size and multiply it by the in-app text size setting.
         final mq = MediaQuery.of(context);
         final scaler = TextScaler.linear((mq.textScaler.scale(1) * settings.textScale).clamp(1.0, 3.0));
-        final page = MediaQuery(data: mq.copyWith(textScaler: scaler), child: child!);
-        return ref.watch(demoModeProvider) ? DemoOverlay(child: page) : page;
+        return MediaQuery(data: mq.copyWith(textScaler: scaler), child: child!);
       },
     );
   }

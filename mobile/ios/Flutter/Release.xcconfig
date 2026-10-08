@@ -1,4 +1,4 @@
 #include "Generated.xcconfig"
 
 // Your Co-Sign domain (same as RP_ID on the backend).
-COSIGN_DOMAIN=cosign.example.com
+COSIGN_DOMAIN=co-sign.onrender.com

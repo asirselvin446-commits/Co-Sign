@@ -1,0 +1,125 @@
+name: Android APK
+
+# Builds an installable release APK and attaches it to the run as an artifact.
+# Run it by hand (Actions -> Android APK -> Run workflow) to point the app at your server,
+# or set the repository variable API_BASE_URL so pushes build against it too.
+#
+# Signing: add these repository secrets to sign with your release key (the SHA-256 must match
+# ANDROID_SHA256_CERT_FINGERPRINTS on the backend for passkeys to work):
+#   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+# Without them the APK is signed with a throwaway debug key that changes on every run.
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: 'Backend URL the app talks to, e.g. https://cosign.example.com (blank = repository variable API_BASE_URL)'
+        required: false
+        default: ''
+  push:
+    paths:
+      - 'mobile/**'
+      - 'shared/catalog.json'
+      - '.github/workflows/android-apk.yml'
+
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: '3.47.6'
+
+jobs:
+  apk:
+    name: Build release APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Resolve server URL
+        id: cfg
+        env:
+          INPUT_URL: ${{ inputs.api_base_url }}
+          VAR_URL: ${{ vars.API_BASE_URL }}
+        run: |
+          url="${INPUT_URL:-$VAR_URL}"
+          url="${url%/}"
+          if [ -n "$url" ] && ! echo "$url" | grep -Eq '^https://[^/]+$'; then
+            echo "::error::API_BASE_URL must look like https://host (no path), got: $url"; exit 1
+          fi
+          host="${url#https://}"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "host=${host:-localhost}" >> "$GITHUB_OUTPUT"
+
+      - name: Release signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "No release keystore secrets: signing with a debug key." ; exit 0
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.jks
+          {
+            echo "storeFile=release.jks"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > android/key.properties
+
+      - run: flutter pub get
+      - run: flutter analyze --no-fatal-infos
+
+      - name: Build APK
+        env:
+          COSIGN_APP_LINK_HOST: ${{ steps.cfg.outputs.host }}
+        run: |
+          args=()
+          [ -n "${{ steps.cfg.outputs.url }}" ] && args+=(--dart-define=API_BASE_URL=${{ steps.cfg.outputs.url }})
+          flutter build apk --release "${args[@]}"
+
+      - name: Summary
+        run: |
+          apk=build/app/outputs/flutter-apk/app-release.apk
+          bt=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          sha=$("$bt/apksigner" verify --print-certs "$apk" | sed -n 's/.*SHA-256 digest: //p' | head -1 | tr a-f A-F | sed 's/../&:/g; s/:$//')
+          url="${{ steps.cfg.outputs.url }}"
+          {
+            echo "## Co-Sign APK"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Size | $(du -h "$apk" | cut -f1) |"
+            echo "| Server | ${url:-not set: the app opens on a 'server not configured' screen} |"
+            echo "| Signing certificate SHA-256 | \`$sha\` |"
+            echo ""
+            echo "Put the SHA-256 in the backend's ANDROID_SHA256_CERT_FINGERPRINTS so passkeys work."
+            [ -f android/key.properties ] || echo "Signed with a throwaway debug key: the fingerprint changes on every run."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cosign-apk
+          path: mobile/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 14
+          if-no-files-found: error

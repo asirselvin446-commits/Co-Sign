@@ -1,0 +1,49 @@
+# Local development stack: Postgres + Redis, and optionally the backend itself.
+#   docker compose -f infra/docker-compose.yml up -d postgres redis      # just the databases
+#   docker compose -f infra/docker-compose.yml --profile app up --build  # databases + backend
+name: co-sign
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: cosign
+      POSTGRES_PASSWORD: cosign
+      POSTGRES_DB: cosign
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cosign -d cosign"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports: ["6379:6379"]
+    volumes: [redisdata:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    profiles: ["app"]
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    env_file: ../backend/.env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://cosign:cosign@postgres:5432/cosign?schema=public
+      REDIS_URL: redis://redis:6379
+    ports: ["8080:8080"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+volumes:
+  pgdata:
+  redisdata:

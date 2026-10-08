@@ -1,25 +1,18 @@
 {
-  "name": "saathiauth",
-  "version": "1.0.0",
-  "description": "Scam-aware passkey login with guardian co-sign and voice explanations",
+  "name": "co-sign",
   "private": true,
-  "type": "module",
+  "description": "Co-Sign: scam-aware passkey authentication with guardian co-signing",
+  "license": "UNLICENSED",
+  "packageManager": "pnpm@11.15.1",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.12.0"
   },
   "scripts": {
-    "start": "node server/index.js",
-    "test": "playwright test"
-  },
-  "dependencies": {
-    "@simplewebauthn/browser": "^13.3.0",
-    "@simplewebauthn/server": "^13.3.3",
-    "connect-pg-simple": "^10.0.0",
-    "express": "^4.22.3",
-    "express-session": "^1.19.0",
-    "pg": "^8.23.1"
-  },
-  "devDependencies": {
-    "@playwright/test": "^1.64.0"
+    "catalog:gen": "node scripts/gen-catalog.mjs",
+    "catalog:check": "node scripts/gen-catalog.mjs --check",
+    "lint": "pnpm -r --if-present lint",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test",
+    "build": "pnpm -r --if-present build"
   }
 }

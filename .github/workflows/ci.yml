@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main, co-sign]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  catalog:
+    name: Shared catalogue
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: node scripts/gen-catalog.mjs --check
+
+  backend:
+    name: Backend (lint, types, unit, integration)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @co-sign/backend lint
+      - run: pnpm --filter @co-sign/backend typecheck
+      - run: pnpm --filter @co-sign/backend test:unit
+      # Integration tests start Postgres and Redis with Testcontainers (Docker is available on the runner).
+      - run: pnpm --filter @co-sign/backend test:integration
+      - name: Migrations match the Prisma schema
+        working-directory: backend
+        run: |
+          docker run -d --name shadow -e POSTGRES_PASSWORD=shadow -p 55432:5432 postgres:17-alpine
+          for i in $(seq 1 30); do docker exec shadow pg_isready -U postgres && break; sleep 1; done
+          out=$(pnpm exec prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma \
+            --shadow-database-url postgresql://postgres:shadow@localhost:55432/postgres --exit-code) || {
+            echo "$out"; echo "Schema and migrations differ. Run prisma migrate dev."; exit 1; }
+
+  docker:
+    name: Backend Docker image
+    runs-on: ubuntu-latest
+    needs: [backend]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: false
+          tags: co-sign-backend:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

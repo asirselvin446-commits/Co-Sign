@@ -1,0 +1,519 @@
+// Co-Sign data model.
+// Columns ending in "Enc" hold AES-256-GCM ciphertext produced by src/lib/crypto.ts.
+// Columns ending in "Hash" hold keyed HMAC-SHA256 blind indexes or SHA-256 token digests.
+
+generator client {
+  provider        = "prisma-client-js"
+  binaryTargets   = ["native", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  active
+  deleted
+}
+
+enum Platform {
+  android
+  ios
+  web
+}
+
+enum AdminRole {
+  admin
+  analyst
+}
+
+enum GuardianLinkStatus {
+  pending_activation
+  active
+  pending_removal
+  removed
+  cancelled
+}
+
+enum SensitiveAction {
+  add_device
+  add_passkey
+  remove_guardian
+  change_phone
+  change_email
+  raise_transfer_limit
+  add_payee
+  transfer_above_limit
+  view_recovery_codes
+  delete_account
+}
+
+enum StepupStatus {
+  pending_user
+  pending_guardians
+  cooloff
+  ready_to_confirm
+  approved
+  completed
+  denied
+  cancelled
+  expired
+  failed
+}
+
+enum Decision {
+  approve
+  deny
+}
+
+enum RecoveryStatus {
+  pending_approvals
+  cancel_window
+  ready
+  completed
+  cancelled
+  expired
+}
+
+enum RecoveryApprovalMethod {
+  guardian_passkey
+  recovery_code
+}
+
+enum TransferStatus {
+  completed
+  failed
+}
+
+model User {
+  id             String     @id @default(uuid()) @db.Uuid
+  handle         String     @unique
+  displayNameEnc String     @map("display_name_enc")
+  webauthnUserId Bytes      @unique @map("webauthn_user_id")
+  locale         String     @default("en")
+  status         UserStatus @default(active)
+  emailEnc       String?    @map("email_enc")
+  emailHash      String?    @unique @map("email_hash")
+  phoneEnc       String?    @map("phone_enc")
+  phoneHash      String?    @unique @map("phone_hash")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+  deletedAt      DateTime?  @map("deleted_at")
+
+  credentials       Credential[]
+  devices           Device[]
+  refreshTokens     RefreshToken[]
+  account           Account?
+  guardianLinks     GuardianLink[]     @relation("ProtectedUser")
+  guardingLinks     GuardianLink[]     @relation("Guardian")
+  invites           Invite[]           @relation("Inviter")
+  acceptedInvites   Invite[]           @relation("InviteAcceptor")
+  riskSignals       RiskSignal[]
+  stepupRequests    StepupRequest[]
+  guardianDecisions GuardianDecision[]
+  recoveries        Recovery[]
+  recoveryApprovals RecoveryApproval[]
+  recoveryCodes     RecoveryCode[]
+  payees            Payee[]            @relation("PayeeOwner")
+  payeeOf           Payee[]            @relation("PayeeTarget")
+  transfers         Transfer[]         @relation("TransferInitiator")
+  consents          Consent[]
+
+  @@map("users")
+}
+
+model Credential {
+  id         String    @id // base64url credential ID
+  userId     String    @map("user_id") @db.Uuid
+  deviceId   String?   @map("device_id") @db.Uuid
+  publicKey  Bytes     @map("public_key")
+  counter    BigInt    @default(0)
+  transports String[]
+  deviceType String    @map("device_type")
+  backedUp   Boolean   @map("backed_up")
+  aaguid     String?
+  nickname   String?
+  createdAt  DateTime  @default(now()) @map("created_at")
+  lastUsedAt DateTime? @map("last_used_at")
+  revokedAt  DateTime? @map("revoked_at")
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device Device? @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@map("credentials")
+}
+
+model Device {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  platform         Platform
+  nameEnc          String    @map("name_enc")
+  pushTokenEnc     String?   @map("push_token_enc")
+  appVersion       String?   @map("app_version")
+  simHash          String?   @map("sim_hash")
+  simChangedAt     DateTime? @map("sim_changed_at")
+  integrityVerdict String?   @map("integrity_verdict")
+  integrityAt      DateTime? @map("integrity_at")
+  enrolledAt       DateTime  @default(now()) @map("enrolled_at")
+  lastSeenAt       DateTime  @default(now()) @map("last_seen_at")
+  revokedAt        DateTime? @map("revoked_at")
+  revokeReason     String?   @map("revoke_reason")
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credentials    Credential[]
+  refreshTokens  RefreshToken[]
+  riskSignals    RiskSignal[]
+  stepupRequests StepupRequest[]
+
+  @@index([userId])
+  @@map("devices")
+}
+
+model RefreshToken {
+  id           String    @id @default(uuid()) @db.Uuid
+  familyId     String    @map("family_id") @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  deviceId     String    @map("device_id") @db.Uuid
+  tokenHash    String    @unique @map("token_hash")
+  expiresAt    DateTime  @map("expires_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  usedAt       DateTime? @map("used_at")
+  revokedAt    DateTime? @map("revoked_at")
+  revokeReason String?   @map("revoke_reason")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([familyId])
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model Admin {
+  id             String    @id @default(uuid()) @db.Uuid
+  handle         String    @unique
+  displayName    String    @map("display_name")
+  role           AdminRole
+  webauthnUserId Bytes     @unique @map("webauthn_user_id")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  disabledAt     DateTime? @map("disabled_at")
+
+  credentials   AdminCredential[]
+  refreshTokens AdminRefreshToken[]
+  invitesIssued AdminInvite[]       @relation("AdminInviteIssuer")
+  ruleSets      RiskRuleSet[]
+
+  @@map("admins")
+}
+
+model AdminCredential {
+  id         String    @id
+  adminId    String    @map("admin_id") @db.Uuid
+  publicKey  Bytes     @map("public_key")
+  counter    BigInt    @default(0)
+  transports String[]
+  deviceType String    @map("device_type")
+  backedUp   Boolean   @map("backed_up")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  lastUsedAt DateTime? @map("last_used_at")
+  revokedAt  DateTime? @map("revoked_at")
+
+  admin Admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@map("admin_credentials")
+}
+
+model AdminInvite {
+  id          String    @id @default(uuid()) @db.Uuid
+  tokenHash   String    @unique @map("token_hash")
+  role        AdminRole
+  issuedById  String?   @map("issued_by_id") @db.Uuid
+  expiresAt   DateTime  @map("expires_at")
+  usedAt      DateTime? @map("used_at")
+  usedByAdmin String?   @map("used_by_admin") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  issuedBy Admin? @relation("AdminInviteIssuer", fields: [issuedById], references: [id], onDelete: SetNull)
+
+  @@map("admin_invites")
+}
+
+model AdminRefreshToken {
+  id           String    @id @default(uuid()) @db.Uuid
+  familyId     String    @map("family_id") @db.Uuid
+  adminId      String    @map("admin_id") @db.Uuid
+  tokenHash    String    @unique @map("token_hash")
+  expiresAt    DateTime  @map("expires_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  usedAt       DateTime? @map("used_at")
+  revokedAt    DateTime? @map("revoked_at")
+  revokeReason String?   @map("revoke_reason")
+
+  admin Admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([familyId])
+  @@map("admin_refresh_tokens")
+}
+
+model GuardianLink {
+  id                 String             @id @default(uuid()) @db.Uuid
+  userId             String             @map("user_id") @db.Uuid
+  guardianId         String             @map("guardian_id") @db.Uuid
+  inviteId           String?            @unique @map("invite_id") @db.Uuid
+  status             GuardianLinkStatus
+  createdAt          DateTime           @default(now()) @map("created_at")
+  activatesAt        DateTime           @map("activates_at")
+  activatedAt        DateTime?          @map("activated_at")
+  removalRequestedAt DateTime?          @map("removal_requested_at")
+  removesAt          DateTime?          @map("removes_at")
+  endedAt            DateTime?          @map("ended_at")
+
+  user     User    @relation("ProtectedUser", fields: [userId], references: [id], onDelete: Cascade)
+  guardian User    @relation("Guardian", fields: [guardianId], references: [id], onDelete: Cascade)
+  invite   Invite? @relation(fields: [inviteId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([guardianId, status])
+  @@map("guardian_links")
+}
+
+model Invite {
+  id           String    @id @default(uuid()) @db.Uuid
+  inviterId    String    @map("inviter_id") @db.Uuid
+  tokenHash    String    @unique @map("token_hash")
+  codeHash     String    @unique @map("code_hash")
+  expiresAt    DateTime  @map("expires_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  acceptedAt   DateTime? @map("accepted_at")
+  acceptedById String?   @map("accepted_by_id") @db.Uuid
+  revokedAt    DateTime? @map("revoked_at")
+
+  inviter    User          @relation("Inviter", fields: [inviterId], references: [id], onDelete: Cascade)
+  acceptedBy User?         @relation("InviteAcceptor", fields: [acceptedById], references: [id], onDelete: SetNull)
+  link       GuardianLink?
+
+  @@index([inviterId])
+  @@map("invites")
+}
+
+model RiskSignal {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  deviceId        String   @map("device_id") @db.Uuid
+  context         String
+  payloadEnc      String   @map("payload_enc")
+  score           Int
+  matchedRules    String[] @map("matched_rules")
+  stepupRequestId String?  @map("stepup_request_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@map("risk_signals")
+}
+
+model RiskRuleSet {
+  id                String   @id @default(uuid()) @db.Uuid
+  version           Int      @unique
+  rules             Json
+  guardianThreshold Int      @map("guardian_threshold")
+  note              String?
+  createdById       String?  @map("created_by_id") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  createdBy Admin? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@map("risk_rule_sets")
+}
+
+model StepupRequest {
+  id             String          @id @default(uuid()) @db.Uuid
+  userId         String          @map("user_id") @db.Uuid
+  deviceId       String          @map("device_id") @db.Uuid
+  action         SensitiveAction
+  paramsEnc      String          @map("params_enc")
+  score          Int
+  reasons        Json
+  ruleSetVersion Int             @map("rule_set_version")
+  needsGuardian  Boolean         @map("needs_guardian")
+  status         StepupStatus
+  nonce          String
+  createdAt      DateTime        @default(now()) @map("created_at")
+  expiresAt      DateTime        @map("expires_at")
+  userVerifiedAt DateTime?       @map("user_verified_at")
+  coolOffUntil   DateTime?       @map("cool_off_until")
+  resolvedAt     DateTime?       @map("resolved_at")
+  resultEnc      String?         @map("result_enc")
+  failureCode    String?         @map("failure_code")
+
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device    Device             @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  decisions GuardianDecision[]
+
+  @@index([userId, status])
+  @@index([status, expiresAt])
+  @@index([status, coolOffUntil])
+  @@map("stepup_requests")
+}
+
+model GuardianDecision {
+  id           String   @id @default(uuid()) @db.Uuid
+  requestId    String   @map("request_id") @db.Uuid
+  guardianId   String   @map("guardian_id") @db.Uuid
+  decision     Decision
+  credentialId String   @map("credential_id")
+  responseMs   Int      @map("response_ms")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  request  StepupRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  guardian User          @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+
+  @@unique([requestId, guardianId])
+  @@map("guardian_decisions")
+}
+
+model Recovery {
+  id                 String         @id @default(uuid()) @db.Uuid
+  userId             String         @map("user_id") @db.Uuid
+  pollTokenHash      String         @unique @map("poll_token_hash")
+  status             RecoveryStatus
+  requiredApprovals  Int            @map("required_approvals")
+  nonce              String
+  newDevicePlatform  Platform       @map("new_device_platform")
+  newDeviceNameEnc   String         @map("new_device_name_enc")
+  createdAt          DateTime       @default(now()) @map("created_at")
+  expiresAt          DateTime       @map("expires_at")
+  thresholdReachedAt DateTime?      @map("threshold_reached_at")
+  completesAt        DateTime?      @map("completes_at")
+  cancelledAt        DateTime?      @map("cancelled_at")
+  cancelledByDevice  String?        @map("cancelled_by_device") @db.Uuid
+  completedAt        DateTime?      @map("completed_at")
+  newDeviceId        String?        @map("new_device_id") @db.Uuid
+
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  approvals RecoveryApproval[]
+
+  @@index([userId, status])
+  @@index([status, completesAt])
+  @@map("recoveries")
+}
+
+model RecoveryApproval {
+  id           String                 @id @default(uuid()) @db.Uuid
+  recoveryId   String                 @map("recovery_id") @db.Uuid
+  guardianId   String?                @map("guardian_id") @db.Uuid
+  method       RecoveryApprovalMethod
+  credentialId String?                @map("credential_id")
+  createdAt    DateTime               @default(now()) @map("created_at")
+
+  recovery Recovery @relation(fields: [recoveryId], references: [id], onDelete: Cascade)
+  guardian User?    @relation(fields: [guardianId], references: [id], onDelete: SetNull)
+
+  @@unique([recoveryId, guardianId])
+  @@map("recovery_approvals")
+}
+
+model RecoveryCode {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  codeHash  String    @unique @map("code_hash")
+  createdAt DateTime  @default(now()) @map("created_at")
+  usedAt    DateTime? @map("used_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("recovery_codes")
+}
+
+model Account {
+  id                 String   @id @default(uuid()) @db.Uuid
+  userId             String   @unique @map("user_id") @db.Uuid
+  currency           String
+  balanceMinor       BigInt   @map("balance_minor")
+  transferLimitMinor BigInt   @map("transfer_limit_minor")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  user          User       @relation(fields: [userId], references: [id], onDelete: Restrict)
+  transfersOut  Transfer[] @relation("TransferFrom")
+  transfersIn   Transfer[] @relation("TransferTo")
+
+  @@map("accounts")
+}
+
+model Payee {
+  id          String    @id @default(uuid()) @db.Uuid
+  ownerId     String    @map("owner_id") @db.Uuid
+  payeeUserId String    @map("payee_user_id") @db.Uuid
+  nickname    String
+  createdAt   DateTime  @default(now()) @map("created_at")
+  removedAt   DateTime? @map("removed_at")
+
+  owner     User @relation("PayeeOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  payeeUser User @relation("PayeeTarget", fields: [payeeUserId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerId, payeeUserId])
+  @@map("payees")
+}
+
+model Transfer {
+  id              String         @id @default(uuid()) @db.Uuid
+  fromAccountId   String         @map("from_account_id") @db.Uuid
+  toAccountId     String         @map("to_account_id") @db.Uuid
+  amountMinor     BigInt         @map("amount_minor")
+  currency        String
+  memoEnc         String?        @map("memo_enc")
+  status          TransferStatus
+  idempotencyKey  String         @map("idempotency_key")
+  initiatedById   String         @map("initiated_by_id") @db.Uuid
+  stepupRequestId String?        @map("stepup_request_id") @db.Uuid
+  createdAt       DateTime       @default(now()) @map("created_at")
+
+  fromAccount Account @relation("TransferFrom", fields: [fromAccountId], references: [id], onDelete: Restrict)
+  toAccount   Account @relation("TransferTo", fields: [toAccountId], references: [id], onDelete: Restrict)
+  initiatedBy User    @relation("TransferInitiator", fields: [initiatedById], references: [id], onDelete: Restrict)
+
+  @@unique([initiatedById, idempotencyKey])
+  @@index([fromAccountId, createdAt])
+  @@index([toAccountId, createdAt])
+  @@map("transfers")
+}
+
+model Consent {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  purpose   String
+  version   String
+  granted   Boolean
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose, createdAt])
+  @@map("consents")
+}
+
+model AuditEvent {
+  id          BigInt   @id @default(autoincrement())
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  actorType   String   @map("actor_type")
+  actorId     String?  @map("actor_id")
+  action      String
+  subjectType String?  @map("subject_type")
+  subjectId   String?  @map("subject_id")
+  payload     Json
+  prevHash    String   @map("prev_hash")
+  hash        String   @unique
+
+  @@index([createdAt])
+  @@index([action, createdAt])
+  @@index([subjectType, subjectId])
+  @@map("audit_events")
+}

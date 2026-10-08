@@ -8,6 +8,7 @@ import '../../core/api/models.dart';
 import '../../core/errors/failure.dart';
 import '../../core/providers.dart';
 import '../../core/signals/signal_collector.dart';
+import '../../core/voice/voice.dart';
 import '../../generated/catalog.g.dart';
 import '../../ui/widgets.dart';
 
@@ -32,10 +33,12 @@ class _StepupScreenState extends ConsumerState<StepupScreen> {
   StreamSubscription<Object>? _events;
   Timer? _poll;
   bool _popped = false;
+  late final Voice _voice = ref.read(voiceProvider);
 
   @override
   void initState() {
     super.initState();
+    _voice; // capture while the widget is mounted
     _view = widget.start?.request;
     _options = widget.start?.options;
     _session = SensitiveSession(collector: ref.read(signalCollectorProvider), api: ref.read(apiProvider), stepupId: widget.requestId);
@@ -54,7 +57,7 @@ class _StepupScreenState extends ConsumerState<StepupScreen> {
     _poll?.cancel();
     unawaited(_events?.cancel());
     unawaited(_session?.stop());
-    unawaited(ref.read(voiceProvider).stop());
+    unawaited(_voice.stop());
     super.dispose();
   }
 

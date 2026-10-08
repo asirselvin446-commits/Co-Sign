@@ -110,6 +110,7 @@ model User {
   consents          Consent[]
   monitorEvents     MonitorEvent[]
   pauses            DevicePause[]
+  signinRequests    SigninRequest[]
 
   @@map("users")
 }
@@ -158,6 +159,7 @@ model Device {
   credentials    Credential[]
   monitorEvents  MonitorEvent[]
   pauses         DevicePause[]
+  signinRequests SigninRequest[]
   refreshTokens  RefreshToken[]
   riskSignals    RiskSignal[]
   stepupRequests StepupRequest[]
@@ -518,4 +520,50 @@ model DevicePause {
   @@index([deviceId, status])
   @@index([userId, status])
   @@map("device_pauses")
+}
+
+enum SigninStatus {
+  pending
+  filled
+  denied
+  cancelled
+  expired
+  delivered
+}
+
+enum SigninMode {
+  fill
+  show
+}
+
+/// A person asking their guardian to sign them in to an app or website. The guardian's answer is
+/// end-to-end encrypted to a key that only the asking phone holds: the server stores ciphertext
+/// only, delivers it once, then wipes it.
+model SigninRequest {
+  id                String       @id @default(uuid()) @db.Uuid
+  userId            String       @map("user_id") @db.Uuid
+  deviceId          String       @map("device_id") @db.Uuid
+  mode              SigninMode
+  targetPackage     String?      @map("target_package")
+  targetHost        String?      @map("target_host")
+  registrableDomain String?      @map("registrable_domain")
+  appLabel          String       @map("app_label")
+  linkVerdict       String       @map("link_verdict")
+  brand             String?
+  publicKey         String       @map("public_key")
+  riskReasons       String[]     @map("risk_reasons")
+  status            SigninStatus @default(pending)
+  answeredBy        String?      @map("answered_by") @db.Uuid
+  ciphertext        String?
+  expiresAt         DateTime     @map("expires_at")
+  createdAt         DateTime     @default(now()) @map("created_at")
+  answeredAt        DateTime?    @map("answered_at")
+  deliveredAt       DateTime?    @map("delivered_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([status, expiresAt])
+  @@map("signin_requests")
 }

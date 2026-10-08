@@ -732,6 +732,90 @@ export const ERROR_CATALOG = {
         "next": "कुछ मिनट बाद फिर से कोशिश करें।"
       }
     }
+  },
+  "SIGNIN_BLOCKED_FAKE_SITE": {
+    "http": 422,
+    "tier": "public",
+    "generic": null,
+    "origin": "server",
+    "params": [],
+    "text": {
+      "en": {
+        "cause": "This looks like a fake website pretending to be a bank or a well-known company, so your guardian was not asked to sign you in.",
+        "next": "Close this page. Do not type any password. Call your guardian on a number you know."
+      },
+      "ta": {
+        "cause": "இது வங்கி அல்லது பிரபல நிறுவனம் போல நடிக்கும் போலி இணையதளம் போலத் தெரிகிறது. அதனால் உங்களை உள்நுழைய வைக்க உங்கள் பாதுகாவலரிடம் கேட்கப்படவில்லை.",
+        "next": "இந்தப் பக்கத்தை மூடுங்கள். எந்தக் கடவுச்சொல்லையும் தட்டச்சு செய்யாதீர்கள். உங்களுக்குத் தெரிந்த எண்ணில் உங்கள் பாதுகாவலரை அழையுங்கள்."
+      },
+      "hi": {
+        "cause": "यह किसी बैंक या जानी-मानी कंपनी होने का दिखावा करने वाली नकली वेबसाइट लगती है, इसलिए आपके संरक्षक से साइन-इन करवाने को नहीं कहा गया।",
+        "next": "यह पेज बंद करें। कोई पासवर्ड न डालें। किसी जाने-पहचाने नंबर पर अपने संरक्षक को कॉल करें।"
+      }
+    }
+  },
+  "SIGNIN_EXPIRED": {
+    "http": 410,
+    "tier": "public",
+    "generic": null,
+    "origin": "server",
+    "params": [],
+    "text": {
+      "en": {
+        "cause": "Your guardian did not answer in time.",
+        "next": "Try again, or call your guardian on a number you know."
+      },
+      "ta": {
+        "cause": "உங்கள் பாதுகாவலர் நேரத்தில் பதிலளிக்கவில்லை.",
+        "next": "மீண்டும் முயலுங்கள், அல்லது உங்களுக்குத் தெரிந்த எண்ணில் உங்கள் பாதுகாவலரை அழையுங்கள்."
+      },
+      "hi": {
+        "cause": "आपके संरक्षक ने समय पर जवाब नहीं दिया।",
+        "next": "फिर से कोशिश करें, या किसी जाने-पहचाने नंबर पर अपने संरक्षक को कॉल करें।"
+      }
+    }
+  },
+  "SIGNIN_SHOW_REFUSED_ON_CALL": {
+    "http": 409,
+    "tier": "public",
+    "generic": null,
+    "origin": "server",
+    "params": [],
+    "text": {
+      "en": {
+        "cause": "You are on a call with a number that is not in your contacts, so the password cannot be shown now. Scammers ask people to read passwords out.",
+        "next": "Hang up first. Then try again."
+      },
+      "ta": {
+        "cause": "உங்கள் தொடர்புகளில் இல்லாத எண்ணுடன் நீங்கள் அழைப்பில் இருக்கிறீர்கள், அதனால் இப்போது கடவுச்சொல்லைக் காட்ட முடியாது. மோசடிக்காரர்கள் கடவுச்சொல்லைப் படிக்கச் சொல்வார்கள்.",
+        "next": "முதலில் அழைப்பைத் துண்டியுங்கள். பிறகு மீண்டும் முயலுங்கள்."
+      },
+      "hi": {
+        "cause": "आप ऐसे नंबर से कॉल पर हैं जो आपके संपर्कों में नहीं है, इसलिए अभी पासवर्ड नहीं दिखाया जा सकता। धोखेबाज़ लोगों से पासवर्ड पढ़कर सुनाने को कहते हैं।",
+        "next": "पहले कॉल काटें। फिर से कोशिश करें।"
+      }
+    }
+  },
+  "SIGNIN_NO_GUARDIAN": {
+    "http": 409,
+    "tier": "public",
+    "generic": null,
+    "origin": "server",
+    "params": [],
+    "text": {
+      "en": {
+        "cause": "You do not have a guardian yet, so nobody can be asked to sign you in.",
+        "next": "Open Co-Sign, go to Guardians and invite someone you trust."
+      },
+      "ta": {
+        "cause": "உங்களுக்கு இன்னும் பாதுகாவலர் இல்லை, அதனால் உங்களை உள்நுழைய வைக்க யாரிடமும் கேட்க முடியாது.",
+        "next": "Co-Sign-ஐத் திறந்து, பாதுகாவலர்கள் பகுதிக்குச் சென்று, நீங்கள் நம்பும் ஒருவரை அழையுங்கள்."
+      },
+      "hi": {
+        "cause": "आपका अभी कोई संरक्षक नहीं है, इसलिए किसी से साइन-इन करवाने को नहीं कहा जा सकता।",
+        "next": "Co-Sign खोलें, संरक्षक में जाएँ और किसी भरोसेमंद व्यक्ति को आमंत्रित करें।"
+      }
+    }
   }
 } as const satisfies Record<string, ErrorEntry>;
 export type ErrorCode = keyof typeof ERROR_CATALOG;
@@ -1060,6 +1144,70 @@ export const MONITOR_RULES = {
       "ta": "உங்களைப் பாதுகாக்க உங்கள் பாதுகாவலர் இந்தப் போனைச் சில நிமிடங்கள் நிறுத்தி வைத்துள்ளார்.",
       "hi": "आपकी सुरक्षा के लिए आपके संरक्षक ने इस फ़ोन को कुछ मिनटों के लिए रोका है।"
     }
+  },
+  "scam_message": {
+    "weight": 30,
+    "reasons": {
+      "en": "A message used words scammers use, such as a blocked account, KYC, a prize or a police case.",
+      "ta": "ஒரு செய்தியில் மோசடிக்காரர்கள் பயன்படுத்தும் வார்த்தைகள் இருந்தன: கணக்கு முடக்கம், KYC, பரிசு அல்லது போலீஸ் வழக்கு போன்றவை.",
+      "hi": "एक संदेश में धोखेबाज़ों वाले शब्द थे, जैसे खाता बंद, KYC, इनाम या पुलिस केस।"
+    }
+  },
+  "suspicious_link": {
+    "weight": 30,
+    "reasons": {
+      "en": "A message had a risky link: a shortened link, a strange website ending, or a hidden address.",
+      "ta": "ஒரு செய்தியில் ஆபத்தான இணைப்பு இருந்தது: சுருக்கப்பட்ட இணைப்பு, விசித்திரமான இணையதள முடிவு, அல்லது மறைக்கப்பட்ட முகவரி.",
+      "hi": "एक संदेश में जोखिम भरा लिंक था: छोटा किया गया लिंक, अजीब वेबसाइट या छिपा हुआ पता।"
+    }
+  },
+  "lookalike_bank_link": {
+    "weight": 40,
+    "reasons": {
+      "en": "A message had a link to a fake website made to look like a bank or a well-known company.",
+      "ta": "ஒரு செய்தியில் வங்கி அல்லது பிரபல நிறுவனம் போலத் தோற்றமளிக்கும் போலி இணையதள இணைப்பு இருந்தது.",
+      "hi": "एक संदेश में ऐसी नकली वेबसाइट का लिंक था जो किसी बैंक या जानी-मानी कंपनी जैसी दिखती है।"
+    }
+  },
+  "apk_link": {
+    "weight": 40,
+    "reasons": {
+      "en": "A message asked to download an app file directly. Fake bank apps are spread this way.",
+      "ta": "ஒரு செய்தி ஒரு செயலிக் கோப்பை நேரடியாகப் பதிவிறக்கச் சொன்னது. போலி வங்கிச் செயலிகள் இப்படித்தான் பரப்பப்படுகின்றன.",
+      "hi": "एक संदेश में ऐप फ़ाइल सीधे डाउनलोड करने को कहा गया। नकली बैंक ऐप इसी तरह फैलाए जाते हैं।"
+    }
+  },
+  "scam_message_during_call": {
+    "weight": 30,
+    "reasons": {
+      "en": "The message arrived during a call with an unknown number.",
+      "ta": "அந்தச் செய்தி தெரியாத எண்ணுடனான அழைப்பின்போது வந்தது.",
+      "hi": "यह संदेश किसी अनजान नंबर से कॉल के दौरान आया।"
+    }
+  },
+  "login_after_scam_link": {
+    "weight": 60,
+    "reasons": {
+      "en": "A sign-in page opened a few minutes after a scam message with a link. It may be a fake page.",
+      "ta": "இணைப்புடன் கூடிய மோசடிச் செய்தி வந்த சில நிமிடங்களில் ஒரு உள்நுழைவுப் பக்கம் திறக்கப்பட்டது. அது போலிப் பக்கமாக இருக்கலாம்.",
+      "hi": "लिंक वाले धोखाधड़ी संदेश के कुछ मिनट बाद एक साइन-इन पेज खुला। यह नकली पेज हो सकता है।"
+    }
+  },
+  "browser_after_scam_link": {
+    "weight": 30,
+    "reasons": {
+      "en": "The web browser was opened a few minutes after a scam message with a link.",
+      "ta": "இணைப்புடன் கூடிய மோசடிச் செய்தி வந்த சில நிமிடங்களில் இணைய உலாவி திறக்கப்பட்டது.",
+      "hi": "लिंक वाले धोखाधड़ी संदेश के कुछ मिनट बाद वेब ब्राउज़र खोला गया।"
+    }
+  },
+  "phishing_login_page": {
+    "weight": 70,
+    "reasons": {
+      "en": "A password was about to be typed on a fake website that pretends to be a bank or a well-known company.",
+      "ta": "வங்கி அல்லது பிரபல நிறுவனம் போல நடிக்கும் போலி இணையதளத்தில் கடவுச்சொல் தட்டச்சு செய்யப்படவிருந்தது.",
+      "hi": "किसी बैंक या जानी-मानी कंपनी होने का दिखावा करने वाली नकली वेबसाइट पर पासवर्ड डाला जाने वाला था।"
+    }
   }
 } as const;
 export type MonitorRuleKey = keyof typeof MONITOR_RULES;
@@ -1347,6 +1495,32 @@ export const NOTIFICATIONS = {
       "title": "{name} ने आपको संरक्षक पद से हटा दिया",
       "body": "अब आपको उनके फ़ोन के बारे में नहीं बताया जाएगा। अगर यह गलत लगे, तो किसी जाने-पहचाने नंबर पर {name} को कॉल करें।"
     }
+  },
+  "signin_request": {
+    "en": {
+      "title": "{name} wants to sign in to {app}",
+      "body": "{what}Check with them first on a number you know. Co-Sign will fill the password on their phone; they will not see it.",
+      "actions": {
+        "fill": "Fill password",
+        "deny": "Deny"
+      }
+    },
+    "ta": {
+      "title": "{name} {app}-இல் உள்நுழைய விரும்புகிறார்",
+      "body": "{what}முதலில் உங்களுக்குத் தெரிந்த எண்ணில் அவரிடம் உறுதிசெய்யுங்கள். Co-Sign அவரது போனில் கடவுச்சொல்லை நிரப்பும்; அவருக்கு அது தெரியாது.",
+      "actions": {
+        "fill": "கடவுச்சொல்லை நிரப்பு",
+        "deny": "மறு"
+      }
+    },
+    "hi": {
+      "title": "{name} {app} में साइन इन करना चाहते हैं",
+      "body": "{what}पहले किसी जाने-पहचाने नंबर पर उनसे पुष्टि करें। Co-Sign उनके फ़ोन पर पासवर्ड भर देगा; उन्हें वह दिखेगा नहीं।",
+      "actions": {
+        "fill": "पासवर्ड भरें",
+        "deny": "मना करें"
+      }
+    }
   }
 } as const;
 export type NotificationKey = keyof typeof NOTIFICATIONS;
@@ -1361,5 +1535,623 @@ export const TERMS = {
     "en": "removed as a guardian",
     "ta": "பாதுகாவலர் பொறுப்பிலிருந்து நீக்கப்படுவார்",
     "hi": "संरक्षक पद से हटाए जाएँगे"
+  },
+  "signin_risky_call": {
+    "en": "They are on a call with a number that is not in their contacts.",
+    "ta": "அவர் தொடர்புகளில் இல்லாத எண்ணுடன் அழைப்பில் இருக்கிறார்.",
+    "hi": "वे ऐसे नंबर से कॉल पर हैं जो उनके संपर्कों में नहीं है।"
+  },
+  "signin_recent_alert": {
+    "en": "Something on their phone looked like a scam in the last 30 minutes.",
+    "ta": "கடந்த 30 நிமிடங்களில் அவரது போனில் ஏதோ மோசடி போலத் தெரிந்தது.",
+    "hi": "पिछले 30 मिनट में उनके फ़ोन पर कुछ धोखाधड़ी जैसा दिखा।"
+  },
+  "signin_suspicious_site": {
+    "en": "The website has warning signs (a strange address or ending). Make sure it is the real one.",
+    "ta": "இந்த இணையதளத்தில் எச்சரிக்கை அறிகுறிகள் உள்ளன (விசித்திரமான முகவரி அல்லது முடிவு). இது உண்மையானதா என்று உறுதிசெய்யுங்கள்.",
+    "hi": "इस वेबसाइट में चेतावनी के संकेत हैं (अजीब पता या अंत)। पक्का करें कि यह असली है।"
+  },
+  "signin_unknown_site": {
+    "en": "Co-Sign does not know this website. Make sure it is the one they meant to open.",
+    "ta": "Co-Sign-க்கு இந்த இணையதளம் தெரியாது. அவர் திறக்க நினைத்தது இதுதானா என்று உறுதிசெய்யுங்கள்.",
+    "hi": "Co-Sign इस वेबसाइट को नहीं जानता। पक्का करें कि वे यही खोलना चाहते थे।"
   }
 } as const;
+
+/** From shared/link-rules.json: fake-site, risky-link and scam-message rules. */
+export const LINK_RULES = {
+  "brands": {
+    "sbi": {
+      "name": "SBI",
+      "domains": [
+        "onlinesbi.sbi",
+        "sbi.co.in",
+        "onlinesbi.com",
+        "sbiyono.sbi",
+        "sbicard.com"
+      ],
+      "keywords": [
+        "sbi",
+        "yono",
+        "onlinesbi"
+      ]
+    },
+    "hdfc": {
+      "name": "HDFC Bank",
+      "domains": [
+        "hdfcbank.com",
+        "hdfc.com",
+        "payzapp.in"
+      ],
+      "keywords": [
+        "hdfc",
+        "hdfcbank"
+      ]
+    },
+    "icici": {
+      "name": "ICICI Bank",
+      "domains": [
+        "icicibank.com",
+        "icicidirect.com"
+      ],
+      "keywords": [
+        "icici",
+        "icicibank"
+      ]
+    },
+    "axis": {
+      "name": "Axis Bank",
+      "domains": [
+        "axisbank.com",
+        "axis.bank.in"
+      ],
+      "keywords": [
+        "axisbank"
+      ]
+    },
+    "kotak": {
+      "name": "Kotak Bank",
+      "domains": [
+        "kotak.com",
+        "kotaksecurities.com"
+      ],
+      "keywords": [
+        "kotak"
+      ]
+    },
+    "pnb": {
+      "name": "PNB",
+      "domains": [
+        "pnbindia.in",
+        "netpnb.com",
+        "pnb.co.in"
+      ],
+      "keywords": [
+        "pnb",
+        "pnbindia"
+      ]
+    },
+    "bob": {
+      "name": "Bank of Baroda",
+      "domains": [
+        "bankofbaroda.in",
+        "bobibanking.com",
+        "bankofbaroda.com"
+      ],
+      "keywords": [
+        "bankofbaroda",
+        "barodabank"
+      ]
+    },
+    "canara": {
+      "name": "Canara Bank",
+      "domains": [
+        "canarabank.com",
+        "canarabank.in"
+      ],
+      "keywords": [
+        "canara",
+        "canarabank"
+      ]
+    },
+    "indianbank": {
+      "name": "Indian Bank",
+      "domains": [
+        "indianbank.in",
+        "indianbank.net.in"
+      ],
+      "keywords": [
+        "indianbank"
+      ]
+    },
+    "union": {
+      "name": "Union Bank",
+      "domains": [
+        "unionbankofindia.co.in",
+        "unionbankonline.co.in"
+      ],
+      "keywords": [
+        "unionbank",
+        "unionbankofindia"
+      ]
+    },
+    "npci": {
+      "name": "UPI / BHIM",
+      "domains": [
+        "npci.org.in",
+        "bhimupi.org.in"
+      ],
+      "keywords": [
+        "npci",
+        "bhim",
+        "bhimupi"
+      ]
+    },
+    "paytm": {
+      "name": "Paytm",
+      "domains": [
+        "paytm.com",
+        "paytm.in",
+        "paytmbank.com"
+      ],
+      "keywords": [
+        "paytm"
+      ]
+    },
+    "phonepe": {
+      "name": "PhonePe",
+      "domains": [
+        "phonepe.com"
+      ],
+      "keywords": [
+        "phonepe"
+      ]
+    },
+    "gpay": {
+      "name": "Google Pay",
+      "domains": [
+        "pay.google.com"
+      ],
+      "keywords": [
+        "gpay",
+        "googlepay"
+      ]
+    },
+    "google": {
+      "name": "Google",
+      "domains": [
+        "google.com",
+        "google.co.in",
+        "gmail.com",
+        "youtube.com",
+        "googleapis.com",
+        "gstatic.com",
+        "android.com",
+        "googleusercontent.com",
+        "goo.gl",
+        "g.co"
+      ],
+      "keywords": [
+        "google",
+        "gmail"
+      ]
+    },
+    "microsoft": {
+      "name": "Microsoft",
+      "domains": [
+        "microsoft.com",
+        "live.com",
+        "outlook.com",
+        "office.com",
+        "microsoftonline.com"
+      ],
+      "keywords": [
+        "microsoft",
+        "outlook",
+        "hotmail"
+      ]
+    },
+    "amazon": {
+      "name": "Amazon",
+      "domains": [
+        "amazon.in",
+        "amazon.com",
+        "amazonpay.in",
+        "amzn.to",
+        "amzn.in"
+      ],
+      "keywords": [
+        "amazon",
+        "amazonpay"
+      ]
+    },
+    "flipkart": {
+      "name": "Flipkart",
+      "domains": [
+        "flipkart.com",
+        "fkrt.it"
+      ],
+      "keywords": [
+        "flipkart"
+      ]
+    },
+    "whatsapp": {
+      "name": "WhatsApp",
+      "domains": [
+        "whatsapp.com",
+        "whatsapp.net",
+        "wa.me"
+      ],
+      "keywords": [
+        "whatsapp"
+      ]
+    },
+    "meta": {
+      "name": "Facebook / Instagram",
+      "domains": [
+        "facebook.com",
+        "fb.com",
+        "instagram.com",
+        "messenger.com",
+        "meta.com"
+      ],
+      "keywords": [
+        "facebook",
+        "instagram"
+      ]
+    },
+    "incometax": {
+      "name": "Income Tax",
+      "domains": [
+        "incometax.gov.in",
+        "incometaxindia.gov.in"
+      ],
+      "keywords": [
+        "incometax",
+        "itrefund"
+      ]
+    },
+    "epfo": {
+      "name": "EPFO",
+      "domains": [
+        "epfindia.gov.in",
+        "epfo.gov.in"
+      ],
+      "keywords": [
+        "epfo",
+        "epfindia"
+      ]
+    },
+    "uidai": {
+      "name": "Aadhaar (UIDAI)",
+      "domains": [
+        "uidai.gov.in",
+        "myaadhaar.uidai.gov.in"
+      ],
+      "keywords": [
+        "uidai",
+        "aadhaar",
+        "aadhar"
+      ]
+    },
+    "indiapost": {
+      "name": "India Post",
+      "domains": [
+        "indiapost.gov.in",
+        "ippbonline.com"
+      ],
+      "keywords": [
+        "indiapost",
+        "ippb"
+      ]
+    },
+    "govin": {
+      "name": "Government of India",
+      "domains": [
+        "gov.in",
+        "nic.in",
+        "india.gov.in"
+      ],
+      "keywords": []
+    }
+  },
+  "multiPartSuffixes": [
+    "co.in",
+    "net.in",
+    "org.in",
+    "gov.in",
+    "nic.in",
+    "ac.in",
+    "edu.in",
+    "res.in",
+    "firm.in",
+    "gen.in",
+    "ind.in",
+    "bank.in",
+    "co.uk",
+    "org.uk",
+    "com.au",
+    "co.jp",
+    "com.br",
+    "com.sg"
+  ],
+  "shorteners": [
+    "bit.ly",
+    "tinyurl.com",
+    "cutt.ly",
+    "rb.gy",
+    "is.gd",
+    "t.ly",
+    "shorturl.at",
+    "rebrand.ly",
+    "tiny.cc",
+    "ow.ly",
+    "s.id",
+    "v.gd",
+    "shrtco.de",
+    "t.co",
+    "lnkd.in",
+    "bitly.com",
+    "u.to",
+    "clck.ru"
+  ],
+  "riskyTlds": [
+    "xyz",
+    "top",
+    "click",
+    "buzz",
+    "icu",
+    "cyou",
+    "rest",
+    "sbs",
+    "cfd",
+    "lol",
+    "monster",
+    "quest",
+    "bond",
+    "tk",
+    "ml",
+    "ga",
+    "cf",
+    "gq",
+    "zip",
+    "mov",
+    "country",
+    "kim",
+    "work",
+    "loan",
+    "win",
+    "bid",
+    "party",
+    "review",
+    "date",
+    "racing",
+    "stream",
+    "download",
+    "fit",
+    "gdn",
+    "vip",
+    "live",
+    "shop",
+    "online",
+    "site",
+    "fun",
+    "space",
+    "pw"
+  ],
+  "linkTlds": [
+    "com",
+    "in",
+    "net",
+    "org",
+    "co",
+    "info",
+    "io",
+    "me",
+    "app",
+    "dev",
+    "biz",
+    "us",
+    "uk",
+    "ly",
+    "gl",
+    "to",
+    "it",
+    "id",
+    "de",
+    "ru",
+    "cn",
+    "sbi",
+    "bank",
+    "gov",
+    "edu",
+    "xyz",
+    "top",
+    "click",
+    "buzz",
+    "icu",
+    "cyou",
+    "rest",
+    "sbs",
+    "cfd",
+    "lol",
+    "monster",
+    "quest",
+    "bond",
+    "tk",
+    "ml",
+    "ga",
+    "cf",
+    "gq",
+    "zip",
+    "mov",
+    "country",
+    "kim",
+    "work",
+    "loan",
+    "win",
+    "bid",
+    "party",
+    "review",
+    "date",
+    "racing",
+    "stream",
+    "download",
+    "fit",
+    "gdn",
+    "vip",
+    "live",
+    "shop",
+    "online",
+    "site",
+    "fun",
+    "space",
+    "pw",
+    "link",
+    "store",
+    "tech",
+    "cc",
+    "ws"
+  ],
+  "scamPhrases": {
+    "kyc_threat": [
+      "kyc",
+      "pan card update",
+      "pan update",
+      "update your pan",
+      "aadhaar link",
+      "link your aadhaar",
+      "re-kyc",
+      "ekyc",
+      "केवाईसी",
+      "पैन अपडेट",
+      "கேஒய்சி",
+      "பான் அப்டேட்"
+    ],
+    "account_blocked": [
+      "account will be blocked",
+      "account has been blocked",
+      "account is blocked",
+      "account suspended",
+      "account will be suspended",
+      "account will be closed",
+      "card blocked",
+      "card will be blocked",
+      "sim will be blocked",
+      "sim card will be deactivated",
+      "deactivated today",
+      "खाता बंद",
+      "खाता ब्लॉक",
+      "कार्ड ब्लॉक",
+      "கணக்கு முடக்கப்படும்",
+      "கணக்கு தடுக்கப்பட்டது",
+      "கணக்கு முடக்கப்பட்டது"
+    ],
+    "prize_lottery": [
+      "you have won",
+      "congratulations you",
+      "lottery",
+      "lucky draw",
+      "cash prize",
+      "jackpot",
+      "kbc",
+      "reward points expire",
+      "redeem your reward",
+      "लॉटरी",
+      "इनाम",
+      "आपने जीता",
+      "லாட்டரி",
+      "பரிசு வென்றீர்கள்",
+      "நீங்கள் வென்றீர்கள்"
+    ],
+    "refund": [
+      "refund of rs",
+      "refund is pending",
+      "claim your refund",
+      "tax refund",
+      "income tax refund",
+      "cashback of rs",
+      "रिफंड",
+      "ரீஃபண்ட்",
+      "பணத்தைத் திரும்பப் பெற"
+    ],
+    "job_offer": [
+      "work from home",
+      "part time job",
+      "part-time job",
+      "earn rs",
+      "daily income",
+      "earn daily",
+      "salary per day",
+      "like youtube videos",
+      "rate hotels",
+      "telegram task",
+      "घर बैठे कमाएं",
+      "पार्ट टाइम जॉब",
+      "வீட்டிலிருந்தே சம்பாதி",
+      "பகுதி நேர வேலை"
+    ],
+    "electricity_cut": [
+      "electricity will be disconnected",
+      "power will be disconnected",
+      "electricity connection will be",
+      "electricity bill not paid",
+      "bijli",
+      "बिजली कनेक्शन",
+      "बिजली काट",
+      "மின் இணைப்பு துண்டிக்கப்படும்",
+      "மின்சாரம் துண்டிக்கப்படும்"
+    ],
+    "parcel_customs": [
+      "parcel is on hold",
+      "parcel has been held",
+      "customs duty",
+      "courier is pending",
+      "delivery failed",
+      "your package could not be delivered",
+      "illegal items",
+      "पार्सल",
+      "பார்சல்"
+    ],
+    "police_threat": [
+      "digital arrest",
+      "cbi officer",
+      "narcotics",
+      "money laundering",
+      "arrest warrant",
+      "cyber crime department",
+      "police case against you",
+      "डिजिटल अरेस्ट",
+      "गिरफ्तारी",
+      "டிஜிட்டல் கைது",
+      "கைது வாரண்ட்"
+    ],
+    "urgent_action": [
+      "click the link",
+      "click here",
+      "click on the link",
+      "within 24 hours",
+      "immediately",
+      "urgent",
+      "last date today",
+      "verify now",
+      "update now",
+      "तुरंत",
+      "लिंक पर क्लिक",
+      "உடனடியாக",
+      "இணைப்பைக் கிளிக்"
+    ],
+    "share_code": [
+      "share the otp",
+      "share otp",
+      "tell the otp",
+      "send the otp",
+      "forward the code",
+      "ओटीपी बताएं",
+      "ओटीपी शेयर",
+      "ஓடிபியைப் பகிர",
+      "ஓடிபி சொல்லுங்கள்"
+    ]
+  }
+} as const;
+export type ScamPhraseKind = keyof typeof LINK_RULES.scamPhrases;

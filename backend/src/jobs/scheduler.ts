@@ -14,6 +14,7 @@ export const jobs: Job[] = [
   { name: 'guardian-changes', everyMs: 0, run: (c) => c.services.guardians.applyDueChanges() },
   { name: 'signal-retention', everyMs: 3600_000, run: (c) => c.services.privacy.purgeExpiredSignals() },
   { name: 'monitor-retention', everyMs: 3600_000, run: (c) => c.services.monitor.purgeExpired() },
+  { name: 'signin-timers', everyMs: 0, run: (c) => c.services.signin.runTimers() },
 ];
 
 /** Runs every job on a fixed tick (JOB_INTERVAL_MS). Returns a stop function. */

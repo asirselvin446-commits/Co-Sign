@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// Generates typed catalogue code for the backend (TypeScript) and the mobile app (Dart)
-// from shared/catalog.json. Run with --check in CI to fail when generated files are stale.
+// Generates typed catalogue code for the backend (TypeScript), the mobile app (Dart) and the
+// Android side (Kotlin, string resources) from shared/catalog.json and shared/link-rules.json.
+// Run with --check in CI to fail when generated files are stale.
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,7 +9,61 @@ import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const check = process.argv.includes('--check');
 const catalog = JSON.parse(readFileSync(join(root, 'shared/catalog.json'), 'utf8'));
+const linkRules = JSON.parse(readFileSync(join(root, 'shared/link-rules.json'), 'utf8'));
 const langs = catalog.languages;
+
+function validateLinkRules() {
+  const problems = [];
+  const domain = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/;
+  for (const [id, b] of Object.entries(linkRules.brands)) {
+    if (!/^[a-z0-9]+$/.test(id)) problems.push(`brand id ${id}`);
+    if (!b.name || !Array.isArray(b.domains) || b.domains.length === 0) problems.push(`brand ${id}: needs a name and domains`);
+    for (const d of b.domains) if (!domain.test(d)) problems.push(`brand ${id}: bad domain ${d}`);
+    for (const k of b.keywords) if (!/^[a-z0-9]+$/.test(k)) problems.push(`brand ${id}: bad keyword ${k}`);
+  }
+  for (const list of ['multiPartSuffixes', 'shorteners']) for (const d of linkRules[list]) if (!domain.test(d)) problems.push(`${list}: bad ${d}`);
+  for (const list of ['riskyTlds', 'linkTlds']) for (const t of linkRules[list]) if (!/^[a-z]+$/.test(t)) problems.push(`${list}: bad ${t}`);
+  for (const t of linkRules.riskyTlds) if (!linkRules.linkTlds.includes(t)) problems.push(`riskyTlds: ${t} must also be in linkTlds`);
+  for (const [kind, phrases] of Object.entries(linkRules.scamPhrases)) {
+    if (!/^[a-z_]+$/.test(kind)) problems.push(`scamPhrases kind ${kind}`);
+    for (const p of phrases) if (p !== p.toLowerCase() || p.trim() !== p || !p) problems.push(`scamPhrases.${kind}: "${p}" must be lowercase and trimmed`);
+  }
+  if (problems.length) {
+    console.error('link-rules.json is invalid:\n  ' + problems.join('\n  '));
+    process.exit(1);
+  }
+}
+
+/** Kotlin copy of shared/link-rules.json for the phone's link analyser. */
+function genKotlinLinkRules() {
+  const ks = (s) => JSON.stringify(s).replace(/\$/g, '\\$');
+  const list = (xs) => `listOf(${xs.map(ks).join(', ')})`;
+  const brands = Object.entries(linkRules.brands)
+    .map(([id, b]) => `        Brand(${ks(id)}, ${ks(b.name)}, ${list(b.domains)}, ${list(b.keywords)}),`)
+    .join('\n');
+  const phrases = Object.entries(linkRules.scamPhrases)
+    .map(([kind, ps]) => `        ${ks(kind)} to ${list(ps)},`)
+    .join('\n');
+  return `// GENERATED FILE. Do not edit by hand.
+// Source: shared/link-rules.json. Regenerate with \`pnpm catalog:gen\`.
+package app.cosign.mobile.generated
+
+object LinkRulesData {
+    data class Brand(val id: String, val name: String, val domains: List<String>, val keywords: List<String>)
+
+    val BRANDS: List<Brand> = listOf(
+${brands}
+    )
+    val MULTI_PART_SUFFIXES: Set<String> = setOf(${linkRules.multiPartSuffixes.map(ks).join(', ')})
+    val SHORTENERS: Set<String> = setOf(${linkRules.shorteners.map(ks).join(', ')})
+    val RISKY_TLDS: Set<String> = setOf(${linkRules.riskyTlds.map(ks).join(', ')})
+    val LINK_TLDS: Set<String> = setOf(${linkRules.linkTlds.map(ks).join(', ')})
+    val SCAM_PHRASES: Map<String, List<String>> = linkedMapOf(
+${phrases}
+    )
+}
+`;
+}
 
 function validate() {
   const problems = [];
@@ -100,6 +155,10 @@ export const NOTIFICATIONS = ${j(catalog.notifications)} as const;
 export type NotificationKey = keyof typeof NOTIFICATIONS;
 
 export const TERMS = ${j(catalog.terms)} as const;
+
+/** From shared/link-rules.json: fake-site, risky-link and scam-message rules. */
+export const LINK_RULES = ${j({ brands: linkRules.brands, multiPartSuffixes: linkRules.multiPartSuffixes, shorteners: linkRules.shorteners, riskyTlds: linkRules.riskyTlds, linkTlds: linkRules.linkTlds, scamPhrases: linkRules.scamPhrases })} as const;
+export type ScamPhraseKind = keyof typeof LINK_RULES.scamPhrases;
 `;
 }
 
@@ -190,8 +249,10 @@ function genAndroidStrings(lang) {
 }
 
 validate();
+validateLinkRules();
 const androidRes = join(root, 'mobile/android/app/src/main/res');
 const outputs = [
+  [join(root, 'mobile/android/app/src/main/kotlin/app/cosign/mobile/generated/LinkRulesData.kt'), genKotlinLinkRules()],
   [join(root, 'backend/src/generated/catalog.ts'), genTs()],
   [join(root, 'mobile/lib/generated/catalog.g.dart'), genDart()],
   [join(androidRes, 'values/monitor_rules.xml'), genAndroidStrings('en')],

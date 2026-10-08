@@ -8,6 +8,7 @@ import { PrivacyService } from './modules/privacy/privacy.service.js';
 import { Notifier } from './modules/push/notifier.js';
 import { RecoveryService } from './modules/recovery/recovery.service.js';
 import { RiskService } from './modules/risk/risk.service.js';
+import { SigninService } from './modules/signin/signin.service.js';
 import { createActions } from './modules/stepup/actions.js';
 import { StepupService } from './modules/stepup/stepup.service.js';
 import { PhoneService } from './modules/users/phone.service.js';
@@ -28,6 +29,7 @@ export interface Services {
   stepup: StepupService;
   recovery: RecoveryService;
   monitor: MonitorService;
+  signin: SigninService;
 }
 
 export function createServices(deps: Deps): Services {
@@ -47,5 +49,6 @@ export function createServices(deps: Deps): Services {
   services.stepup = new StepupService(deps, services, createActions(deps, services));
   services.recovery = new RecoveryService(deps, services);
   services.monitor = new MonitorService(deps, services);
+  services.signin = new SigninService(deps, services);
   return services;
 }

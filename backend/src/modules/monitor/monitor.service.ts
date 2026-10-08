@@ -16,13 +16,24 @@ const LOCK_COMMAND_TTL_SECONDS = 5 * 60;
 const lockKey = (deviceId: string) => `moncmd:lock:${deviceId}`;
 export const GUARDIAN_PAUSE_RULE = 'guardian_paused';
 
+/** The worrying website behind an alert, if the phone reported one (domain only). */
+function linkOf(detail: Prisma.JsonValue | null): { domain: string; verdict: string } | null {
+  const d = detail as { linkDomain?: string; linkVerdict?: string } | null;
+  return d?.linkDomain && d.linkVerdict ? { domain: d.linkDomain, verdict: d.linkVerdict } : null;
+}
+
 /** The extra, non-sensitive facts some event kinds carry. Null when there are none. */
 function eventDetail(e: MonitorEvent): Prisma.InputJsonObject | null {
-  const d: Record<string, string | number> = {};
+  const d: Record<string, string | number | string[]> = {};
   if (e.sinceOtpSec !== null) d.sinceOtpSec = e.sinceOtpSec;
   if (e.attempts !== null) d.attempts = e.attempts;
   if (e.installer !== null) d.installer = e.installer;
   if (e.grant !== null) d.grant = e.grant;
+  if (e.scamPhrases.length) d.scamPhrases = e.scamPhrases;
+  if (e.linkFlags.length) d.linkFlags = e.linkFlags;
+  if (e.linkVerdict !== null) d.linkVerdict = e.linkVerdict;
+  if (e.linkDomain !== null && (e.linkVerdict === 'lookalike' || e.linkVerdict === 'suspicious')) d.linkDomain = e.linkDomain;
+  if (e.sinceScamLinkSec !== null) d.sinceScamLinkSec = e.sinceScamLinkSec;
   return Object.keys(d).length > 0 ? d : null;
 }
 
@@ -427,6 +438,7 @@ export class MonitorService {
         kind: r.kind,
         app: r.appCategory ? { category: r.appCategory, package: r.appPackage } : null,
         amountBucket: r.amountBucket,
+        link: linkOf(r.detail),
         severity: r.severity,
         score: r.score,
         reasons: monitorReasons(r.rules, lang),

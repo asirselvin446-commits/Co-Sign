@@ -1,0 +1,10 @@
+{
+  "$comment": "A password sealed by the guardian side for a known recipient key. Kotlin SignInCrypto and the backend test helper must both open it to exactly this plaintext.",
+  "recipientPkcs8": "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgI8hQp6HVaXlkl9ufzuibhZx4RjIPxsQ4xA84Aby6CpKhRANCAAT22JtBU6iOz1tVNAeFzViiiU6euiY7+5QynjzWvLtCtXzrhSSh36H2Hj23Fvc5/2wmjF8f8qb4I8WeaGIJJv5s",
+  "recipientSpki": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE9tibQVOojs9bVTQHhc1YoolOnromO/uUMp481ry7QrV864Ukod+h9h49txb3Of9sJoxfH/Km+CPFnmhiCSb+bA==",
+  "requestId": "7f1c2a9e-3b4d-4c5e-8f60-112233445566",
+  "package": "com.android.chrome",
+  "host": "retail.onlinesbi.sbi",
+  "sealed": "eyJ2IjoxLCJlcGsiOiJNRmt3RXdZSEtvWkl6ajBDQVFZSUtvWkl6ajBEQVFjRFFnQUVrWXlERHZDZHIyb0tIR29ma3lRbTczWEtsaGwvbFYyeFJQZkk2NGxPRmVLb0l6c2NMamN6dEJHSCtkM0ptMGFpeStrdU1KdG9OaVpOWm1sdGlUWnZLUT09IiwiaXYiOiJ5bXFrekJ5WEEzdkU2a2k5IiwiY3QiOiJzd0U1amtZb3Z6Z04yZFFIQUhWaTYvZ2NaRlEyS3U4UldJNDFrRVNLNFlXM1BnVVhvM1h1eEFLcythNDcrMEdEZmVZb3IreVdLbmZYOEN6bElpTHVZU1B2U05DSkxBSSsrNjdQMlhkZzBIQjRGdz09In0=",
+  "plaintext": "{\"u\":\"amma.k\",\"p\":\"Pa55-வணக்கம்-नमस्ते\"}"
+}

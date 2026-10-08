@@ -31,4 +31,12 @@
     <string name="rule_failed_login_alert">एक ऐप ने बताया कि साइन-इन नहीं हो सका या गलत पासवर्ड या PIN डाला गया।</string>
     <string name="rule_repeated_failed_logins">थोड़े ही समय में कई बार साइन-इन न हो पाने की सूचना मिली।</string>
     <string name="rule_guardian_paused">आपकी सुरक्षा के लिए आपके संरक्षक ने इस फ़ोन को कुछ मिनटों के लिए रोका है।</string>
+    <string name="rule_scam_message">एक संदेश में धोखेबाज़ों वाले शब्द थे, जैसे खाता बंद, KYC, इनाम या पुलिस केस।</string>
+    <string name="rule_suspicious_link">एक संदेश में जोखिम भरा लिंक था: छोटा किया गया लिंक, अजीब वेबसाइट या छिपा हुआ पता।</string>
+    <string name="rule_lookalike_bank_link">एक संदेश में ऐसी नकली वेबसाइट का लिंक था जो किसी बैंक या जानी-मानी कंपनी जैसी दिखती है।</string>
+    <string name="rule_apk_link">एक संदेश में ऐप फ़ाइल सीधे डाउनलोड करने को कहा गया। नकली बैंक ऐप इसी तरह फैलाए जाते हैं।</string>
+    <string name="rule_scam_message_during_call">यह संदेश किसी अनजान नंबर से कॉल के दौरान आया।</string>
+    <string name="rule_login_after_scam_link">लिंक वाले धोखाधड़ी संदेश के कुछ मिनट बाद एक साइन-इन पेज खुला। यह नकली पेज हो सकता है।</string>
+    <string name="rule_browser_after_scam_link">लिंक वाले धोखाधड़ी संदेश के कुछ मिनट बाद वेब ब्राउज़र खोला गया।</string>
+    <string name="rule_phishing_login_page">किसी बैंक या जानी-मानी कंपनी होने का दिखावा करने वाली नकली वेबसाइट पर पासवर्ड डाला जाने वाला था।</string>
 </resources>

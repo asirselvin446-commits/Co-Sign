@@ -24,6 +24,9 @@ export const METRIC_ACTIONS = {
   monitorAlerts: ['monitor.alert', 'monitor.pause_started'],
   pauses: ['monitor.pause_started'],
   pausesReleased: ['monitor.pause_released'],
+  signinRequests: ['signin.created'],
+  signinsFilled: ['signin.answered'],
+  fakeSitesBlocked: ['signin.blocked_fake_site'],
 } as const;
 export type MetricKey = keyof typeof METRIC_ACTIONS;
 
@@ -130,7 +133,7 @@ export async function adminRoutes(app: ZApp, ctx: Ctx): Promise<void> {
     async (req) => {
       const { from, to } = window(req.query, req.query.bucket === 'hour' ? 2 : 30);
       const bucket = req.query.bucket;
-      const keys: MetricKey[] = ['logins', 'loginFailures', 'stepups', 'approvals', 'denials', 'cooloffs', 'recoveriesStarted', 'monitorAlerts'];
+      const keys: MetricKey[] = ['logins', 'loginFailures', 'stepups', 'approvals', 'denials', 'cooloffs', 'recoveriesStarted', 'monitorAlerts', 'signinRequests'];
       const actions = keys.flatMap((k) => [...METRIC_ACTIONS[k]]);
       const rows = await prisma.$queryRaw<Array<{ t: Date; action: string; n: bigint }>>`
         SELECT date_trunc(${bucket}, created_at AT TIME ZONE 'UTC') AS t, action, count(*) AS n FROM audit_events

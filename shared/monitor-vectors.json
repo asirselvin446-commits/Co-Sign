@@ -174,6 +174,60 @@
       "event": { "kind": "notification_failed_login", "app": { "package": "com.google.android.gm", "category": "email" }, "amountBucket": null, "call": null, "localHour": 11, "attempts": 1 },
       "context": { "usualMaxDebitBucket": null },
       "expect": { "score": 30, "severity": "warn", "rules": ["failed_login_alert"], "pause": false }
+    },
+    {
+      "name": "SMS pretending to be SBI, with a fake-site link",
+      "event": { "kind": "notification_scam", "app": null, "amountBucket": null, "call": null, "localHour": 11, "scamPhrases": ["account_blocked", "kyc_threat", "urgent_action"], "linkFlags": ["lookalike_brand", "risky_tld"], "linkVerdict": "lookalike", "linkDomain": "sbi-kyc-update.xyz" },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 70, "severity": "critical", "rules": ["lookalike_bank_link", "scam_message"], "pause": false }
+    },
+    {
+      "name": "prize message arriving during a call with an unknown number",
+      "event": { "kind": "notification_scam", "app": null, "amountBucket": null, "call": { "active": true, "durationSec": 300, "caller": "unknown", "repeatCount": 0 }, "localHour": 11, "scamPhrases": ["prize_lottery"] },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 60, "severity": "critical", "rules": ["scam_message", "scam_message_during_call"], "pause": false }
+    },
+    {
+      "name": "message with a downloadable app file",
+      "event": { "kind": "notification_scam", "app": null, "amountBucket": null, "call": null, "localHour": 11, "linkFlags": ["apk_download", "risky_tld"], "linkVerdict": "suspicious", "linkDomain": "get-reward.top" },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 70, "severity": "critical", "rules": ["apk_link", "suspicious_link"], "pause": false }
+    },
+    {
+      "name": "message with only urgent wording and an ordinary link is not reported",
+      "event": { "kind": "notification_scam", "app": null, "amountBucket": null, "call": null, "localHour": 11, "scamPhrases": ["urgent_action"], "linkVerdict": "unknown" },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 0, "severity": "info", "rules": [], "pause": false }
+    },
+    {
+      "name": "sign-in page opened two minutes after a scam link: pause",
+      "event": { "kind": "login_screen", "app": { "package": "com.android.chrome", "category": "browser" }, "amountBucket": null, "call": null, "localHour": 11, "sinceScamLinkSec": 120 },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 60, "severity": "critical", "rules": ["login_after_scam_link"], "pause": true }
+    },
+    {
+      "name": "browser opened soon after a scam link warns the guardian",
+      "event": { "kind": "app_foreground", "app": { "package": "com.android.chrome", "category": "browser" }, "amountBucket": null, "call": null, "localHour": 11, "sinceScamLinkSec": 200 },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 30, "severity": "warn", "rules": ["browser_after_scam_link"], "pause": false }
+    },
+    {
+      "name": "browser opened with no scam message before is ordinary",
+      "event": { "kind": "app_foreground", "app": { "package": "com.android.chrome", "category": "browser" }, "amountBucket": null, "call": null, "localHour": 11 },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 0, "severity": "info", "rules": [], "pause": false }
+    },
+    {
+      "name": "password field on a fake bank website: pause",
+      "event": { "kind": "phishing_page", "app": { "package": "com.android.chrome", "category": "browser" }, "amountBucket": null, "call": null, "localHour": 11, "linkFlags": ["lookalike_brand", "risky_tld"], "linkVerdict": "lookalike", "linkDomain": "sbi-kyc-update.xyz" },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 70, "severity": "critical", "rules": ["phishing_login_page"], "pause": true }
+    },
+    {
+      "name": "password field on an ordinary website is not phishing",
+      "event": { "kind": "phishing_page", "app": { "package": "com.android.chrome", "category": "browser" }, "amountBucket": null, "call": null, "localHour": 11, "linkVerdict": "unknown" },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 0, "severity": "info", "rules": [], "pause": false }
     }
   ]
 }

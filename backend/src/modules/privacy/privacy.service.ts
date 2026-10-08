@@ -29,6 +29,7 @@ export class PrivacyService {
         stepupRequests: { orderBy: { createdAt: 'desc' } },
         recoveries: true,
         monitorEvents: { orderBy: { createdAt: 'desc' } },
+        signinRequests: { orderBy: { createdAt: 'desc' } },
       },
     });
     const dec = (v: string | null, c: string) => (v ? cipher.decrypt(v, c) : null);
@@ -73,6 +74,8 @@ export class PrivacyService {
       })),
       safetyChecks: user.stepupRequests.map((r) => ({ action: r.action, status: r.status, score: r.score, createdAt: r.createdAt })),
       recoveries: user.recoveries.map((r) => ({ status: r.status, createdAt: r.createdAt, completedAt: r.completedAt })),
+      // Passwords are never stored here: only which app or site, when, and the outcome.
+      assistedSignIns: user.signinRequests.map((r) => ({ at: r.createdAt, app: r.appLabel, package: r.targetPackage, site: r.registrableDomain, status: r.status })),
       familyProtection: user.monitorEvents.map((m) => ({
         at: m.occurredAt,
         kind: m.kind,
@@ -98,6 +101,7 @@ export class PrivacyService {
     await tx.riskSignal.deleteMany({ where: { userId } });
     await tx.monitorEvent.deleteMany({ where: { userId } });
     await tx.devicePause.deleteMany({ where: { userId } });
+    await tx.signinRequest.deleteMany({ where: { userId } });
     await tx.recoveryCode.deleteMany({ where: { userId } });
     await tx.guardianLink.updateMany({
       where: { OR: [{ userId }, { guardianId: userId }], status: { in: ['pending_activation', 'active', 'pending_removal'] } },

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { MONITOR_RULES, type Lang, type MonitorRuleKey } from '../../generated/catalog.js';
+import { LINK_FLAGS, LINK_VERDICTS, SCAM_PHRASE_KINDS } from '../links/link.engine.js';
 
 /**
  * Family monitoring: events observed on a protected person's phone, scored by explainable rules.
@@ -10,7 +11,7 @@ import { MONITOR_RULES, type Lang, type MonitorRuleKey } from '../../generated/c
  * screen contents or exact amounts ever leave the phone.
  */
 
-export const APP_CATEGORIES = ['bank', 'upi', 'wallet', 'email', 'social', 'messaging', 'remote_access', 'other'] as const;
+export const APP_CATEGORIES = ['bank', 'upi', 'wallet', 'email', 'social', 'messaging', 'browser', 'remote_access', 'other'] as const;
 export const AMOUNT_BUCKETS = ['lt_1k', '1k_10k', '10k_50k', '50k_1l', 'gt_1l'] as const;
 export type AmountBucket = (typeof AMOUNT_BUCKETS)[number];
 
@@ -32,7 +33,15 @@ export const MONITOR_KINDS = [
   'access_granted',
   /** Wrong screen-lock PIN, pattern or password (counted on the phone). */
   'unlock_failed',
+  /** A message (SMS, chat, email) that looks like a scam: phrase kinds and link flags only, never the text. */
+  'notification_scam',
+  /** A password field on a fake or risky website (seen by Co-Sign's autofill service). */
+  'phishing_page',
 ] as const;
+
+/** Only domains of worrying links are ever reported, never the full address. */
+const DOMAIN = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/;
+export const SCAM_LINK_WINDOW_SEC = 600;
 
 export const INSTALLERS = ['store', 'unknown'] as const;
 export const GRANTS = ['accessibility', 'device_admin'] as const;
@@ -70,6 +79,16 @@ export const monitorEventSchema = z.object({
   installer: z.enum(INSTALLERS).nullable().default(null),
   /** What was granted (access_granted). */
   grant: z.enum(GRANTS).nullable().default(null),
+  /** Scam wording found in a message (notification_scam). */
+  scamPhrases: z.array(z.enum(SCAM_PHRASE_KINDS)).max(12).default([]),
+  /** Flags of the links in a message or page. */
+  linkFlags: z.array(z.enum(LINK_FLAGS)).max(12).default([]),
+  /** Verdict on the most worrying link or the page's website. */
+  linkVerdict: z.enum(LINK_VERDICTS).nullable().default(null),
+  /** Registrable domain, only when the verdict is suspicious or lookalike. */
+  linkDomain: z.string().max(253).regex(DOMAIN).nullable().default(null),
+  /** Seconds since a scam message with a link arrived, if within 10 minutes. */
+  sinceScamLinkSec: z.number().int().min(0).max(SCAM_LINK_WINDOW_SEC).nullable().default(null),
 });
 export type MonitorEvent = z.infer<typeof monitorEventSchema>;
 export type MonitorEventInput = z.input<typeof monitorEventSchema>;
@@ -117,6 +136,17 @@ export function assessMonitorEvent(e: MonitorEvent, ctx: MonitorContext): Monito
       break;
     case 'login_screen':
       if (onRiskyCall && category && LOGIN_SENSITIVE.includes(category)) hit.add('login_screen_during_call');
+      if (afterScamLink(e)) hit.add('login_after_scam_link');
+      break;
+    case 'notification_scam':
+      if (e.scamPhrases.some((p) => p !== 'urgent_action')) hit.add('scam_message');
+      if (e.linkVerdict === 'suspicious') hit.add('suspicious_link');
+      if (e.linkVerdict === 'lookalike') hit.add('lookalike_bank_link');
+      if (e.linkFlags.includes('apk_download')) hit.add('apk_link');
+      if (onRiskyCall && hit.size > 0) hit.add('scam_message_during_call');
+      break;
+    case 'phishing_page':
+      if (e.linkVerdict === 'lookalike' || e.linkVerdict === 'suspicious') hit.add('phishing_login_page');
       break;
     case 'app_foreground':
       if (category === 'remote_access') {
@@ -129,6 +159,7 @@ export function assessMonitorEvent(e: MonitorEvent, ctx: MonitorContext): Monito
         hit.add('chat_after_otp');
         if (onRiskyCall) hit.add('otp_shared_during_call');
       }
+      if (category === 'browser' && afterScamLink(e)) hit.add('browser_after_scam_link');
       break;
     case 'screen_share_prompt':
       hit.add('screen_share_started');
@@ -190,6 +221,11 @@ export function assessMonitorEvent(e: MonitorEvent, ctx: MonitorContext): Monito
   return { score, severity, rules, pause: severity === 'critical' && sensitiveMoment(e) };
 }
 
+/** Within ten minutes of a scam message with a link. */
+function afterScamLink(e: MonitorEvent): boolean {
+  return e.sinceScamLinkSec !== null && e.sinceScamLinkSec <= SCAM_LINK_WINDOW_SEC;
+}
+
 /** A chat app opened within a few minutes of a one-time code arriving. */
 export function chatAfterOtp(e: MonitorEvent): boolean {
   return e.kind === 'app_foreground' && e.app?.category === 'messaging' && e.sinceOtpSec !== null && e.sinceOtpSec <= OTP_SHARE_WINDOW_SEC;
@@ -202,7 +238,7 @@ export function chatAfterOtp(e: MonitorEvent): boolean {
  */
 function sensitiveMoment(e: MonitorEvent): boolean {
   const category = e.app?.category ?? null;
-  if (e.kind === 'payment_screen' || e.kind === 'login_screen' || e.kind === 'notification_otp' || e.kind === 'screen_share_prompt') return true;
+  if (e.kind === 'payment_screen' || e.kind === 'login_screen' || e.kind === 'notification_otp' || e.kind === 'screen_share_prompt' || e.kind === 'phishing_page') return true;
   return e.kind === 'app_foreground' && category !== null && category !== 'other';
 }
 

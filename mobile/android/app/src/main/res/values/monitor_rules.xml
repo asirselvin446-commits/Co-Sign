@@ -31,4 +31,12 @@
     <string name="rule_failed_login_alert">An app reported a failed sign-in or a wrong password or PIN.</string>
     <string name="rule_repeated_failed_logins">Several failed sign-ins were reported in a short time.</string>
     <string name="rule_guardian_paused">Your guardian paused this phone for a few minutes to keep you safe.</string>
+    <string name="rule_scam_message">A message used words scammers use, such as a blocked account, KYC, a prize or a police case.</string>
+    <string name="rule_suspicious_link">A message had a risky link: a shortened link, a strange website ending, or a hidden address.</string>
+    <string name="rule_lookalike_bank_link">A message had a link to a fake website made to look like a bank or a well-known company.</string>
+    <string name="rule_apk_link">A message asked to download an app file directly. Fake bank apps are spread this way.</string>
+    <string name="rule_scam_message_during_call">The message arrived during a call with an unknown number.</string>
+    <string name="rule_login_after_scam_link">A sign-in page opened a few minutes after a scam message with a link. It may be a fake page.</string>
+    <string name="rule_browser_after_scam_link">The web browser was opened a few minutes after a scam message with a link.</string>
+    <string name="rule_phishing_login_page">A password was about to be typed on a fake website that pretends to be a bank or a well-known company.</string>
 </resources>

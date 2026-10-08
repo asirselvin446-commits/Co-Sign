@@ -15,6 +15,7 @@ const alertView = z.object({
   kind: z.string(),
   app: z.object({ category: z.string(), package: z.string().nullable() }).nullable(),
   amountBucket: z.string().nullable(),
+  link: z.object({ domain: z.string(), verdict: z.string() }).nullable(),
   severity: z.string(),
   score: z.number(),
   reasons: z.array(reason),
@@ -23,18 +24,22 @@ const alertView = z.object({
   pause: z.object({ id: z.string(), status: z.string() }).nullable(),
 });
 
+/** Background services on the phone use the monitor token; the open app may use its session. */
+export function monitorDeviceResolver(ctx: Ctx) {
+  return async (req: FastifyRequest): Promise<{ userId: string; deviceId: string }> => {
+    const token = req.headers['x-monitor-token'];
+    if (typeof token === 'string' && token.length >= 20) return ctx.services.monitor.deviceForToken(token);
+    await ctx.guards.requireUser(req, undefined as never);
+    return userAuth(req);
+  };
+}
+
 export async function monitorRoutes(app: ZApp, ctx: Ctx): Promise<void> {
   const { deps, services, guards } = ctx;
   const monitor = services.monitor;
   const tag = { tags: ['family-monitor'] };
 
-  /** Background services on the phone use the monitor token; the open app may use its session. */
-  async function monitorDevice(req: FastifyRequest): Promise<{ userId: string; deviceId: string }> {
-    const token = req.headers['x-monitor-token'];
-    if (typeof token === 'string' && token.length >= 20) return monitor.deviceForToken(token);
-    await guards.requireUser(req, undefined as never);
-    return userAuth(req);
-  }
+  const monitorDevice = monitorDeviceResolver(ctx);
 
   // ---------------------------------------------------------------- protected person
 

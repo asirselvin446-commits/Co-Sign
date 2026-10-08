@@ -66,6 +66,10 @@ class ErrorCodes {
   static const String CONSENT_REQUIRED = 'CONSENT_REQUIRED';
   static const String PROTECTION_OFF = 'PROTECTION_OFF';
   static const String INTERNAL_ERROR = 'INTERNAL_ERROR';
+  static const String SIGNIN_BLOCKED_FAKE_SITE = 'SIGNIN_BLOCKED_FAKE_SITE';
+  static const String SIGNIN_EXPIRED = 'SIGNIN_EXPIRED';
+  static const String SIGNIN_SHOW_REFUSED_ON_CALL = 'SIGNIN_SHOW_REFUSED_ON_CALL';
+  static const String SIGNIN_NO_GUARDIAN = 'SIGNIN_NO_GUARDIAN';
 }
 
 const Map<String, ErrorEntry> kErrorCatalog = <String, ErrorEntry>{
@@ -511,6 +515,58 @@ const Map<String, ErrorEntry> kErrorCatalog = <String, ErrorEntry>{
       'hi': ErrorText("हमारी तरफ़ से कुछ गड़बड़ हो गई।", "कुछ मिनट बाद फिर से कोशिश करें।"),
     },
   ),
+  'SIGNIN_BLOCKED_FAKE_SITE': ErrorEntry(
+    code: 'SIGNIN_BLOCKED_FAKE_SITE',
+    http: 422,
+    tier: 'public',
+    generic: null,
+    origin: 'server',
+    params: <String>[],
+    text: <String, ErrorText>{
+      'en': ErrorText("This looks like a fake website pretending to be a bank or a well-known company, so your guardian was not asked to sign you in.", "Close this page. Do not type any password. Call your guardian on a number you know."),
+      'ta': ErrorText("இது வங்கி அல்லது பிரபல நிறுவனம் போல நடிக்கும் போலி இணையதளம் போலத் தெரிகிறது. அதனால் உங்களை உள்நுழைய வைக்க உங்கள் பாதுகாவலரிடம் கேட்கப்படவில்லை.", "இந்தப் பக்கத்தை மூடுங்கள். எந்தக் கடவுச்சொல்லையும் தட்டச்சு செய்யாதீர்கள். உங்களுக்குத் தெரிந்த எண்ணில் உங்கள் பாதுகாவலரை அழையுங்கள்."),
+      'hi': ErrorText("यह किसी बैंक या जानी-मानी कंपनी होने का दिखावा करने वाली नकली वेबसाइट लगती है, इसलिए आपके संरक्षक से साइन-इन करवाने को नहीं कहा गया।", "यह पेज बंद करें। कोई पासवर्ड न डालें। किसी जाने-पहचाने नंबर पर अपने संरक्षक को कॉल करें।"),
+    },
+  ),
+  'SIGNIN_EXPIRED': ErrorEntry(
+    code: 'SIGNIN_EXPIRED',
+    http: 410,
+    tier: 'public',
+    generic: null,
+    origin: 'server',
+    params: <String>[],
+    text: <String, ErrorText>{
+      'en': ErrorText("Your guardian did not answer in time.", "Try again, or call your guardian on a number you know."),
+      'ta': ErrorText("உங்கள் பாதுகாவலர் நேரத்தில் பதிலளிக்கவில்லை.", "மீண்டும் முயலுங்கள், அல்லது உங்களுக்குத் தெரிந்த எண்ணில் உங்கள் பாதுகாவலரை அழையுங்கள்."),
+      'hi': ErrorText("आपके संरक्षक ने समय पर जवाब नहीं दिया।", "फिर से कोशिश करें, या किसी जाने-पहचाने नंबर पर अपने संरक्षक को कॉल करें।"),
+    },
+  ),
+  'SIGNIN_SHOW_REFUSED_ON_CALL': ErrorEntry(
+    code: 'SIGNIN_SHOW_REFUSED_ON_CALL',
+    http: 409,
+    tier: 'public',
+    generic: null,
+    origin: 'server',
+    params: <String>[],
+    text: <String, ErrorText>{
+      'en': ErrorText("You are on a call with a number that is not in your contacts, so the password cannot be shown now. Scammers ask people to read passwords out.", "Hang up first. Then try again."),
+      'ta': ErrorText("உங்கள் தொடர்புகளில் இல்லாத எண்ணுடன் நீங்கள் அழைப்பில் இருக்கிறீர்கள், அதனால் இப்போது கடவுச்சொல்லைக் காட்ட முடியாது. மோசடிக்காரர்கள் கடவுச்சொல்லைப் படிக்கச் சொல்வார்கள்.", "முதலில் அழைப்பைத் துண்டியுங்கள். பிறகு மீண்டும் முயலுங்கள்."),
+      'hi': ErrorText("आप ऐसे नंबर से कॉल पर हैं जो आपके संपर्कों में नहीं है, इसलिए अभी पासवर्ड नहीं दिखाया जा सकता। धोखेबाज़ लोगों से पासवर्ड पढ़कर सुनाने को कहते हैं।", "पहले कॉल काटें। फिर से कोशिश करें।"),
+    },
+  ),
+  'SIGNIN_NO_GUARDIAN': ErrorEntry(
+    code: 'SIGNIN_NO_GUARDIAN',
+    http: 409,
+    tier: 'public',
+    generic: null,
+    origin: 'server',
+    params: <String>[],
+    text: <String, ErrorText>{
+      'en': ErrorText("You do not have a guardian yet, so nobody can be asked to sign you in.", "Open Co-Sign, go to Guardians and invite someone you trust."),
+      'ta': ErrorText("உங்களுக்கு இன்னும் பாதுகாவலர் இல்லை, அதனால் உங்களை உள்நுழைய வைக்க யாரிடமும் கேட்க முடியாது.", "Co-Sign-ஐத் திறந்து, பாதுகாவலர்கள் பகுதிக்குச் சென்று, நீங்கள் நம்பும் ஒருவரை அழையுங்கள்."),
+      'hi': ErrorText("आपका अभी कोई संरक्षक नहीं है, इसलिए किसी से साइन-इन करवाने को नहीं कहा जा सकता।", "Co-Sign खोलें, संरक्षक में जाएँ और किसी भरोसेमंद व्यक्ति को आमंत्रित करें।"),
+    },
+  ),
 };
 
 const Map<String, Map<String, String>> kRiskReasons = <String, Map<String, String>>{
@@ -558,6 +614,14 @@ const Map<String, int> kMonitorWeights = <String, int>{
   'failed_login_alert': 30,
   'repeated_failed_logins': 20,
   'guardian_paused': 0,
+  'scam_message': 30,
+  'suspicious_link': 30,
+  'lookalike_bank_link': 40,
+  'apk_link': 40,
+  'scam_message_during_call': 30,
+  'login_after_scam_link': 60,
+  'browser_after_scam_link': 30,
+  'phishing_login_page': 70,
 };
 
 const Map<String, Map<String, String>> kMonitorReasons = <String, Map<String, String>>{
@@ -591,6 +655,14 @@ const Map<String, Map<String, String>> kMonitorReasons = <String, Map<String, St
   'failed_login_alert': <String, String>{'en': "An app reported a failed sign-in or a wrong password or PIN.", 'ta': "ஒரு செயலி தோல்வியடைந்த உள்நுழைவு அல்லது தவறான கடவுச்சொல் அல்லது PIN பற்றித் தெரிவித்தது.", 'hi': "एक ऐप ने बताया कि साइन-इन नहीं हो सका या गलत पासवर्ड या PIN डाला गया।"},
   'repeated_failed_logins': <String, String>{'en': "Several failed sign-ins were reported in a short time.", 'ta': "குறுகிய நேரத்தில் பல உள்நுழைவுத் தோல்விகள் தெரிவிக்கப்பட்டன.", 'hi': "थोड़े ही समय में कई बार साइन-इन न हो पाने की सूचना मिली।"},
   'guardian_paused': <String, String>{'en': "Your guardian paused this phone for a few minutes to keep you safe.", 'ta': "உங்களைப் பாதுகாக்க உங்கள் பாதுகாவலர் இந்தப் போனைச் சில நிமிடங்கள் நிறுத்தி வைத்துள்ளார்.", 'hi': "आपकी सुरक्षा के लिए आपके संरक्षक ने इस फ़ोन को कुछ मिनटों के लिए रोका है।"},
+  'scam_message': <String, String>{'en': "A message used words scammers use, such as a blocked account, KYC, a prize or a police case.", 'ta': "ஒரு செய்தியில் மோசடிக்காரர்கள் பயன்படுத்தும் வார்த்தைகள் இருந்தன: கணக்கு முடக்கம், KYC, பரிசு அல்லது போலீஸ் வழக்கு போன்றவை.", 'hi': "एक संदेश में धोखेबाज़ों वाले शब्द थे, जैसे खाता बंद, KYC, इनाम या पुलिस केस।"},
+  'suspicious_link': <String, String>{'en': "A message had a risky link: a shortened link, a strange website ending, or a hidden address.", 'ta': "ஒரு செய்தியில் ஆபத்தான இணைப்பு இருந்தது: சுருக்கப்பட்ட இணைப்பு, விசித்திரமான இணையதள முடிவு, அல்லது மறைக்கப்பட்ட முகவரி.", 'hi': "एक संदेश में जोखिम भरा लिंक था: छोटा किया गया लिंक, अजीब वेबसाइट या छिपा हुआ पता।"},
+  'lookalike_bank_link': <String, String>{'en': "A message had a link to a fake website made to look like a bank or a well-known company.", 'ta': "ஒரு செய்தியில் வங்கி அல்லது பிரபல நிறுவனம் போலத் தோற்றமளிக்கும் போலி இணையதள இணைப்பு இருந்தது.", 'hi': "एक संदेश में ऐसी नकली वेबसाइट का लिंक था जो किसी बैंक या जानी-मानी कंपनी जैसी दिखती है।"},
+  'apk_link': <String, String>{'en': "A message asked to download an app file directly. Fake bank apps are spread this way.", 'ta': "ஒரு செய்தி ஒரு செயலிக் கோப்பை நேரடியாகப் பதிவிறக்கச் சொன்னது. போலி வங்கிச் செயலிகள் இப்படித்தான் பரப்பப்படுகின்றன.", 'hi': "एक संदेश में ऐप फ़ाइल सीधे डाउनलोड करने को कहा गया। नकली बैंक ऐप इसी तरह फैलाए जाते हैं।"},
+  'scam_message_during_call': <String, String>{'en': "The message arrived during a call with an unknown number.", 'ta': "அந்தச் செய்தி தெரியாத எண்ணுடனான அழைப்பின்போது வந்தது.", 'hi': "यह संदेश किसी अनजान नंबर से कॉल के दौरान आया।"},
+  'login_after_scam_link': <String, String>{'en': "A sign-in page opened a few minutes after a scam message with a link. It may be a fake page.", 'ta': "இணைப்புடன் கூடிய மோசடிச் செய்தி வந்த சில நிமிடங்களில் ஒரு உள்நுழைவுப் பக்கம் திறக்கப்பட்டது. அது போலிப் பக்கமாக இருக்கலாம்.", 'hi': "लिंक वाले धोखाधड़ी संदेश के कुछ मिनट बाद एक साइन-इन पेज खुला। यह नकली पेज हो सकता है।"},
+  'browser_after_scam_link': <String, String>{'en': "The web browser was opened a few minutes after a scam message with a link.", 'ta': "இணைப்புடன் கூடிய மோசடிச் செய்தி வந்த சில நிமிடங்களில் இணைய உலாவி திறக்கப்பட்டது.", 'hi': "लिंक वाले धोखाधड़ी संदेश के कुछ मिनट बाद वेब ब्राउज़र खोला गया।"},
+  'phishing_login_page': <String, String>{'en': "A password was about to be typed on a fake website that pretends to be a bank or a well-known company.", 'ta': "வங்கி அல்லது பிரபல நிறுவனம் போல நடிக்கும் போலி இணையதளத்தில் கடவுச்சொல் தட்டச்சு செய்யப்படவிருந்தது.", 'hi': "किसी बैंक या जानी-मानी कंपनी होने का दिखावा करने वाली नकली वेबसाइट पर पासवर्ड डाला जाने वाला था।"},
 };
 
 const Map<String, Map<String, String>> kActionLabels = <String, Map<String, String>>{

@@ -4,6 +4,10 @@ import { closeSocket } from '../realtime';
 
 const links: Array<{ to: string; label: string; adminOnly?: boolean }> = [
   { to: '/', label: 'Overview' },
+  { to: '/stepups', label: 'Step-ups' },
+  { to: '/users', label: 'Accounts' },
+  { to: '/risk-rules', label: 'Risk rules' },
+  { to: '/audit', label: 'Audit log' },
   { to: '/staff', label: 'Staff', adminOnly: true },
 ];
 

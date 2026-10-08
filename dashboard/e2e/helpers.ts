@@ -24,6 +24,9 @@ export function createInvite(role: 'admin' | 'analyst'): string {
  * user verification), the same capabilities a phone or laptop passkey provider offers.
  */
 export async function addVirtualAuthenticator(page: Page): Promise<{ cdp: CDPSession; authenticatorId: string }> {
+  // A distinct client address per test, so per-IP sign-in rate limits do not couple unrelated tests.
+  const ip = `10.${(Math.random() * 255) | 0}.${(Math.random() * 255) | 0}.${1 + ((Math.random() * 250) | 0)}`;
+  await page.setExtraHTTPHeaders({ 'x-forwarded-for': ip });
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('WebAuthn.enable');
   const { authenticatorId } = await cdp.send('WebAuthn.addVirtualAuthenticator', {

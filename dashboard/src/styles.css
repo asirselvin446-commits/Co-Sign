@@ -389,3 +389,97 @@ th {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* ------------------------------------------------------------------ console pages */
+
+.stack {
+  display: grid;
+  gap: 14px;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  margin-bottom: 14px;
+}
+.filters .field {
+  margin-bottom: 0;
+  flex: 0 1 220px;
+}
+
+.chart-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.chart-head p {
+  margin: 0;
+}
+.chart-head button {
+  white-space: nowrap;
+}
+
+button.link {
+  min-height: 32px;
+  padding: 0 4px;
+  border: none;
+  background: none;
+  color: var(--brand);
+  text-decoration: underline;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 18px;
+  margin: 12px 0 0;
+}
+.facts dt {
+  color: var(--text-2);
+}
+.facts dd {
+  margin: 0;
+}
+
+.payload {
+  white-space: pre-wrap;
+  max-width: 420px;
+  margin: 6px 0;
+  padding: 8px;
+  background: var(--surface-2);
+  border-radius: 6px;
+}
+
+details > summary {
+  cursor: pointer;
+}
+
+tr.changed > td {
+  background: color-mix(in srgb, var(--warn) 8%, transparent);
+}
+.warn-text {
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.preview span {
+  display: block;
+}
+
+.publish {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.publish .field {
+  flex: 1 1 360px;
+  margin-bottom: 0;
+}

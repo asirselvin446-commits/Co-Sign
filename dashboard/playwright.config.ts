@@ -10,6 +10,8 @@ export const backendEnv: Record<string, string> = {
   LOG_LEVEL: 'warn',
   PORT: String(port),
   HOST: '127.0.0.1',
+  // Like production behind Caddy: tests send X-Forwarded-For so each one has its own client address.
+  TRUST_PROXY: 'loopback',
   PUBLIC_BASE_URL: baseURL,
   DASHBOARD_URL: baseURL,
   DATABASE_URL: process.env.DATABASE_URL ?? '',

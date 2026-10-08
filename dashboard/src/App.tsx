@@ -6,6 +6,10 @@ import { LoginPage } from './pages/Login';
 import { OverviewPage } from './pages/Overview';
 import { RegisterPage } from './pages/Register';
 import { StaffPage } from './pages/Staff';
+import { StepupsPage } from './pages/Stepups';
+import { UsersPage } from './pages/Users';
+import { RiskRulesPage } from './pages/RiskRules';
+import { AuditPage } from './pages/Audit';
 
 function RequireAdmin({ children, role }: { children: ReactNode; role?: 'admin' }) {
   const { admin, ready } = useAuth();
@@ -30,6 +34,10 @@ export function App() {
             }
           >
             <Route index element={<OverviewPage />} />
+            <Route path="stepups" element={<StepupsPage />} />
+            <Route path="users" element={<UsersPage />} />
+            <Route path="risk-rules" element={<RiskRulesPage />} />
+            <Route path="audit" element={<AuditPage />} />
             <Route
               path="staff"
               element={

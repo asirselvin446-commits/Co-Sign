@@ -27,6 +27,9 @@ object MonitorHub {
     private const val QUEUE_MAX = 200
     private const val DEDUPE_MS = 30_000L
 
+    /** Link problems worth reporting even without scam wording. */
+    private val STRONG_LINK_FLAGS = setOf("apk_download", "hidden_host", "ip_address", "punycode", "upi_collect")
+
     @Volatile var context: Context? = null
         private set
     private lateinit var prefs: SharedPreferences
@@ -97,6 +100,7 @@ object MonitorHub {
     // ------------------------------------------------------------------ counters
 
     @Volatile private var lastOtpAt = 0L
+    @Volatile private var lastScamLinkAt = 0L
     private val failedLogins = AttemptCounter(30 * 60_000L)
     private val failedUnlocks = AttemptCounter(15 * 60_000L)
 
@@ -106,6 +110,50 @@ object MonitorHub {
         if (t == 0L) return null
         val s = ((now - t) / 1000).toInt()
         return if (s in 0..600) s else null
+    }
+
+    /** Seconds since a scam message with a link arrived, if it was in the last ten minutes. */
+    fun secondsSinceScamLink(now: Long = System.currentTimeMillis()): Int? {
+        val t = lastScamLinkAt
+        if (t == 0L) return null
+        val s = ((now - t) / 1000).toInt()
+        return if (s in 0..MonitorRules.SCAM_LINK_WINDOW_SEC) s else null
+    }
+
+    /**
+     * A message (SMS, chat, email) was checked on the phone. Only scam wording kinds, link flags and
+     * the domain of a worrying link are reported; the text itself is never kept or sent.
+     */
+    fun onMessage(text: String, packageName: String?, category: String?) {
+        val m = LinkAnalyzer.analyzeMessage(text)
+        val worst = m.worst
+        val dangerousLink = worst != null && (worst.verdict == LinkAnalyzer.LOOKALIKE || (worst.verdict == LinkAnalyzer.SUSPICIOUS && worst.flags.any { it in STRONG_LINK_FLAGS }))
+        if (!m.scam && !dangerousLink) return
+        if (worst != null && worst.verdict != LinkAnalyzer.OFFICIAL) lastScamLinkAt = System.currentTimeMillis()
+        val worrying = worst != null && (worst.verdict == LinkAnalyzer.LOOKALIKE || worst.verdict == LinkAnalyzer.SUSPICIOUS)
+        report(
+            "notification_scam",
+            packageName,
+            category,
+            scamPhrases = m.phrases,
+            linkFlags = m.linkFlags,
+            linkVerdict = worst?.verdict,
+            linkDomain = if (worrying) worst?.registrableDomain else null,
+            dedupeKey = "notification_scam|" + text.hashCode(),
+        )
+    }
+
+    /** Co-Sign autofill saw a password field on a fake or risky website. */
+    fun onPhishingPage(browserPackage: String, link: LinkAnalyzer.Link) {
+        report(
+            "phishing_page",
+            browserPackage,
+            AppCatalog.categoryOf(browserPackage) ?: AppCatalog.BROWSER,
+            linkFlags = link.flags,
+            linkVerdict = link.verdict,
+            linkDomain = link.registrableDomain,
+            dedupeKey = "phishing_page|" + link.registrableDomain,
+        )
     }
 
     /** A notification was classified on the phone. */
@@ -145,9 +193,14 @@ object MonitorHub {
         installer: String? = null,
         grant: String? = null,
         dedupe: Boolean = true,
+        scamPhrases: List<String> = emptyList(),
+        linkFlags: List<String> = emptyList(),
+        linkVerdict: String? = null,
+        linkDomain: String? = null,
+        dedupeKey: String? = null,
     ) {
         if (!enabled) return
-        val key = "$kind|$packageName"
+        val key = dedupeKey ?: "$kind|$packageName"
         val now = System.currentTimeMillis()
         if (dedupe) {
             synchronized(recent) {
@@ -158,7 +211,11 @@ object MonitorHub {
         val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
         val call = currentCall()
         val sinceOtp = if (kind == "app_foreground") secondsSinceOtp(now) else null
-        val assessment = MonitorRules.assess(MonitorRules.Event(kind, category, amountBucket, call, hour, sinceOtp, attempts, installer, grant), null)
+        val sinceScamLink = if (kind == "login_screen" || (kind == "app_foreground" && category == AppCatalog.BROWSER)) secondsSinceScamLink(now) else null
+        val assessment = MonitorRules.assess(
+            MonitorRules.Event(kind, category, amountBucket, call, hour, sinceOtp, attempts, installer, grant, scamPhrases, linkFlags, linkVerdict, sinceScamLink),
+            null,
+        )
         val clientId = newClientId()
         if (assessment.pause) PauseController.show(clientId, assessment.rules)
         val event = JSONObject()
@@ -178,6 +235,11 @@ object MonitorHub {
             .put("attempts", attempts ?: JSONObject.NULL)
             .put("installer", installer ?: JSONObject.NULL)
             .put("grant", grant ?: JSONObject.NULL)
+            .put("scamPhrases", JSONArray(scamPhrases))
+            .put("linkFlags", JSONArray(linkFlags))
+            .put("linkVerdict", linkVerdict ?: JSONObject.NULL)
+            .put("linkDomain", linkDomain ?: JSONObject.NULL)
+            .put("sinceScamLinkSec", sinceScamLink ?: JSONObject.NULL)
         enqueue(event)
         handler.post { upload() }
     }
@@ -286,4 +348,39 @@ object MonitorHub {
     }
 
     fun runOnWorker(block: () -> Unit) = handler.post(block)
+
+    /** A server reply: HTTP status and JSON body (also for errors, which carry text in the chosen language). */
+    data class Reply(val code: Int, val body: JSONObject?)
+
+    /** Call the server with this phone's monitor token. Null when protection is off or the phone is offline. */
+    fun call(method: String, path: String, body: JSONObject?): Reply? {
+        val base = baseUrl ?: return null
+        val tok = token ?: return null
+        return try {
+            val c = URL(base + path).openConnection() as HttpURLConnection
+            c.requestMethod = method
+            c.connectTimeout = 10_000
+            c.readTimeout = 15_000
+            c.setRequestProperty("x-monitor-token", tok)
+            c.setRequestProperty("x-cosign-lang", language)
+            c.setRequestProperty("accept", "application/json")
+            if (body != null) {
+                c.doOutput = true
+                c.setRequestProperty("content-type", "application/json")
+                c.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
+            }
+            val code = c.responseCode
+            if (code == 401) configure(baseUrl, null, false, language)
+            val stream = if (code in 200..299) c.inputStream else c.errorStream
+            val text = stream?.bufferedReader()?.use { it.readText() }
+            Reply(code, text?.takeIf { it.isNotBlank() }?.let { runCatching { JSONObject(it) }.getOrNull() })
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /** The current call as the server expects it, or null. */
+    fun currentCallJson(): Any = currentCall()?.let {
+        JSONObject().put("active", it.active).put("durationSec", it.durationSec).put("caller", it.caller).put("repeatCount", it.repeatCount)
+    } ?: JSONObject.NULL
 }

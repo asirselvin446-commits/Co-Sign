@@ -64,7 +64,34 @@
                 <data android:scheme="https" android:host="${appLinkHost}" android:pathPrefix="/invite/" />
                 <data android:scheme="https" android:host="${appLinkHost}" android:pathPrefix="/link/" />
             </intent-filter>
+            <!-- "Share" a message or link to Co-Sign to check whether it is a scam. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
         </activity>
+
+        <!-- Guardian-assisted sign-in: Co-Sign as the autofill service, and the screen shown while
+             the guardian answers. Co-Sign never saves passwords on this phone. -->
+        <service
+            android:name=".signin.CoSignAutofillService"
+            android:exported="true"
+            android:label="@string/autofill_label"
+            android:permission="android.permission.BIND_AUTOFILL_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.autofill.AutofillService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.autofill"
+                android:resource="@xml/autofill_service" />
+        </service>
+        <activity
+            android:name=".signin.AssistedSignInActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity="app.cosign.mobile.signin"
+            android:theme="@android:style/Theme.Material.NoActionBar" />
 
         <!-- Family protection services. Monitoring is always visible (ongoing notification). -->
         <service

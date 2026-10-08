@@ -19,4 +19,25 @@
     <string name="pause_ask_failed">உங்கள் பாதுகாவலரைத் தொடர்புகொள்ள முடியவில்லை. உங்களுக்குத் தெரிந்த எண்ணில் நீங்களே அவரை அழையுங்கள்.</string>
     <string name="device_admin_label">Co-Sign தவறான PIN கண்காணிப்பு</string>
     <string name="device_admin_description">திரைப் பூட்டின் தவறான PIN பலமுறை உள்ளிடப்பட்டால் Co-Sign உங்கள் பாதுகாவலருக்குத் தெரிவிக்கும். அவசரத்தில் உங்கள் பாதுகாவலர் திரையைப் பூட்டவும் முடியும். Co-Sign போனை அழிக்கவோ உங்கள் PIN-ஐ மாற்றவோ முடியாது.</string>
+    <string name="autofill_label">Co-Sign: என் பாதுகாவலர் மூலம் உள்நுழை</string>
+    <string name="signin_ask_title">🛡 என்னை உள்நுழைய வைக்க என் பாதுகாவலரிடம் கேள்</string>
+    <string name="signin_show_ask_title">இந்த உள்நுழைவுக்கு என் பாதுகாவலரிடம் கேள்</string>
+    <string name="signin_fake_title">⚠ நில்லுங்கள்: இது போலி இணையதளம் போலத் தெரிகிறது</string>
+    <string name="signin_fake_body">%1$s என்பது %2$s-இன் உண்மையான இணையதளம் அல்ல. இங்கே எந்தக் கடவுச்சொல்லையும் தட்டச்சு செய்யாதீர்கள். இந்தப் பக்கத்தை மூடி, உங்களுக்குத் தெரிந்த எண்ணில் உங்கள் பாதுகாவலரை அழையுங்கள். உங்கள் பாதுகாவலருக்குத் தெரிவிக்கப்பட்டது.</string>
+    <string name="signin_fake_brand_unknown">அது நடிக்கும் நிறுவனம்</string>
+    <string name="signin_they_see">நீங்கள் இதில் உள்நுழைய விரும்புவது உங்கள் பாதுகாவலருக்குத் தெரியும்: %1$s</string>
+    <string name="signin_asking">உங்கள் பாதுகாவலரிடம் கேட்கிறோம்…</string>
+    <string name="signin_waiting">உங்கள் பாதுகாவலருக்காகக் காத்திருக்கிறோம். காத்திருக்கும்போது நீங்கள் அவரை அழைக்கலாம்.</string>
+    <string name="signin_cancel">ரத்து செய்</string>
+    <string name="signin_close">மூடு</string>
+    <string name="signin_offline">Co-Sign-ஐத் தொடர்புகொள்ள முடியவில்லை. இணையத்தைச் சரிபார்த்து மீண்டும் முயலுங்கள்.</string>
+    <string name="signin_off">முதலில் Co-Sign செயலியில் குடும்பப் பாதுகாப்பை இயக்கி, பிறகு மீண்டும் முயலுங்கள்.</string>
+    <string name="signin_expired">உங்கள் பாதுகாவலர் நேரத்தில் பதிலளிக்கவில்லை. உங்களுக்குத் தெரிந்த எண்ணில் அவரை அழைத்து, பிறகு மீண்டும் முயலுங்கள்.</string>
+    <string name="signin_denied">%1$s மறுத்துவிட்டார். உங்களுக்குத் தெரிந்த எண்ணில் அவரை அழையுங்கள்.</string>
+    <string name="signin_your_guardian">உங்கள் பாதுகாவலர்</string>
+    <string name="signin_filled_by">%1$s நிரப்பினார்</string>
+    <string name="signin_show_title">உங்கள் உள்நுழைவு விவரம். தொலைபேசியில் யாரிடமும் இதைப் படித்துக் காட்டாதீர்கள்.</string>
+    <string name="signin_username">பயனர் பெயர்</string>
+    <string name="signin_password">கடவுச்சொல்</string>
+    <string name="signin_show_hides">%1$d வினாடிகளில் மீண்டும் மறைக்கப்படும்.</string>
 </resources>

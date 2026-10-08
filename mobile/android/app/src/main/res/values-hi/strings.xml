@@ -19,4 +19,25 @@
     <string name="pause_ask_failed">आपके संरक्षक तक नहीं पहुँच सके। किसी जाने-पहचाने नंबर पर ख़ुद उन्हें कॉल करें।</string>
     <string name="device_admin_label">Co-Sign गलत-PIN निगरानी</string>
     <string name="device_admin_description">अगर स्क्रीन लॉक का गलत PIN कई बार डाला जाए तो Co-Sign आपके संरक्षक को बताता है, और आपातकाल में आपके संरक्षक स्क्रीन लॉक कर सकते हैं। Co-Sign फ़ोन को मिटा नहीं सकता और आपका PIN नहीं बदल सकता।</string>
+    <string name="autofill_label">Co-Sign: मेरे संरक्षक से साइन इन</string>
+    <string name="signin_ask_title">🛡 मेरे संरक्षक से साइन इन करवाएँ</string>
+    <string name="signin_show_ask_title">इस साइन-इन के लिए मेरे संरक्षक से पूछें</string>
+    <string name="signin_fake_title">⚠ रुकिए: यह नकली वेबसाइट लगती है</string>
+    <string name="signin_fake_body">%1$s, %2$s की असली वेबसाइट नहीं है। यहाँ कोई पासवर्ड न डालें। यह पेज बंद करें और किसी जाने-पहचाने नंबर पर अपने संरक्षक को कॉल करें। आपके संरक्षक को बता दिया गया है।</string>
+    <string name="signin_fake_brand_unknown">जिस कंपनी का यह दिखावा करती है</string>
+    <string name="signin_they_see">आपके संरक्षक देखेंगे कि आप इसमें साइन इन करना चाहते हैं: %1$s</string>
+    <string name="signin_asking">आपके संरक्षक से पूछ रहे हैं…</string>
+    <string name="signin_waiting">आपके संरक्षक का इंतज़ार है। इंतज़ार करते हुए आप उन्हें कॉल कर सकते हैं।</string>
+    <string name="signin_cancel">रद्द करें</string>
+    <string name="signin_close">बंद करें</string>
+    <string name="signin_offline">Co-Sign तक नहीं पहुँच सके। इंटरनेट जाँचें और फिर कोशिश करें।</string>
+    <string name="signin_off">पहले Co-Sign ऐप में पारिवारिक सुरक्षा चालू करें, फिर कोशिश करें।</string>
+    <string name="signin_expired">आपके संरक्षक ने समय पर जवाब नहीं दिया। किसी जाने-पहचाने नंबर पर उन्हें कॉल करें, फिर कोशिश करें।</string>
+    <string name="signin_denied">%1$s ने मना कर दिया। किसी जाने-पहचाने नंबर पर उन्हें कॉल करें।</string>
+    <string name="signin_your_guardian">आपके संरक्षक</string>
+    <string name="signin_filled_by">%1$s ने भरा</string>
+    <string name="signin_show_title">आपका साइन-इन। फ़ोन पर किसी को इसे पढ़कर न सुनाएँ।</string>
+    <string name="signin_username">यूज़रनेम</string>
+    <string name="signin_password">पासवर्ड</string>
+    <string name="signin_show_hides">%1$d सेकंड में फिर छिप जाएगा।</string>
 </resources>

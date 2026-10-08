@@ -19,4 +19,25 @@
     <string name="pause_ask_failed">Could not reach your guardian. Call them yourself on a number you know.</string>
     <string name="device_admin_label">Co-Sign wrong-PIN watch</string>
     <string name="device_admin_description">Lets Co-Sign tell your guardian when the wrong screen-lock PIN is entered many times, and lets your guardian lock the screen in an emergency. Co-Sign cannot erase the phone or change your PIN.</string>
+    <string name="autofill_label">Co-Sign: sign in with my guardian</string>
+    <string name="signin_ask_title">🛡 Ask my guardian to sign me in</string>
+    <string name="signin_show_ask_title">Ask my guardian for this sign-in</string>
+    <string name="signin_fake_title">⚠ Stop: this looks like a fake website</string>
+    <string name="signin_fake_body">%1$s is not the real website of %2$s. Do not type any password here. Close this page and call your guardian on a number you know. Your guardian has been told.</string>
+    <string name="signin_fake_brand_unknown">the company it pretends to be</string>
+    <string name="signin_they_see">Your guardian will see that you want to sign in to: %1$s</string>
+    <string name="signin_asking">Asking your guardian…</string>
+    <string name="signin_waiting">Waiting for your guardian. You can call them while you wait.</string>
+    <string name="signin_cancel">Cancel</string>
+    <string name="signin_close">Close</string>
+    <string name="signin_offline">Could not reach Co-Sign. Check your internet and try again.</string>
+    <string name="signin_off">Turn on family protection in the Co-Sign app first, then try again.</string>
+    <string name="signin_expired">Your guardian did not answer in time. Call them on a number you know, then try again.</string>
+    <string name="signin_denied">%1$s said no. Please call them on a number you know.</string>
+    <string name="signin_your_guardian">Your guardian</string>
+    <string name="signin_filled_by">Filled by %1$s</string>
+    <string name="signin_show_title">Your sign-in. Do not read it out to anyone on the phone.</string>
+    <string name="signin_username">Username</string>
+    <string name="signin_password">Password</string>
+    <string name="signin_show_hides">Hidden again in %1$d seconds.</string>
 </resources>

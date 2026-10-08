@@ -94,6 +94,13 @@ class CoSignAccessibilityService : AccessibilityService() {
  * Only the category and an amount range are reported; the text is discarded immediately.
  */
 class CoSignNotificationListener : NotificationListenerService() {
+    /** The phone's default SMS app (any brand), which carries most scam messages. */
+    private fun isSmsApp(pkg: String): Boolean = try {
+        android.provider.Telephony.Sms.getDefaultSmsPackage(this) == pkg
+    } catch (_: Exception) {
+        false
+    }
+
     override fun onListenerConnected() {
         MonitorHub.init(this)
     }
@@ -104,9 +111,15 @@ class CoSignNotificationListener : NotificationListenerService() {
         val extras = sbn.notification?.extras ?: return
         val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()
         val text = (extras.getCharSequence(Notification.EXTRA_BIG_TEXT) ?: extras.getCharSequence(Notification.EXTRA_TEXT))?.toString()
+        val appCategory = AppCatalog.categoryOf(sbn.packageName)
+        // Scam messages and links arrive by SMS, chat apps and email: check every message, on the phone.
+        if (appCategory == null || appCategory == AppCatalog.MESSAGING || appCategory == AppCatalog.EMAIL || appCategory == AppCatalog.SOCIAL || isSmsApp(sbn.packageName)) {
+            val body = listOfNotNull(title, text).joinToString(" ")
+            if (body.isNotBlank()) MonitorHub.onMessage(body, sbn.packageName.takeIf { appCategory != null }, appCategory)
+        }
         val result = NotificationClassifier.classify(title, text) ?: return
         // SMS and chat apps carry bank messages; report the event without naming the messaging app.
-        val category = AppCatalog.categoryOf(sbn.packageName)?.takeIf { it != AppCatalog.MESSAGING }
+        val category = appCategory?.takeIf { it != AppCatalog.MESSAGING }
         MonitorHub.onNotification(result.kind, if (category != null) sbn.packageName else null, category, result.amountBucket)
     }
 }

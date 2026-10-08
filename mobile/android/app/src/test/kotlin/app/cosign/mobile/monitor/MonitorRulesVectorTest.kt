@@ -41,6 +41,10 @@ class MonitorRulesVectorTest {
                 attempts = if (e.isNull("attempts")) null else e.getInt("attempts"),
                 installer = if (e.isNull("installer")) null else e.getString("installer"),
                 grant = if (e.isNull("grant")) null else e.getString("grant"),
+                scamPhrases = e.optJSONArray("scamPhrases")?.let { arr -> (0 until arr.length()).map { arr.getString(it) } } ?: emptyList(),
+                linkFlags = e.optJSONArray("linkFlags")?.let { arr -> (0 until arr.length()).map { arr.getString(it) } } ?: emptyList(),
+                linkVerdict = if (e.isNull("linkVerdict")) null else e.getString("linkVerdict"),
+                sinceScamLinkSec = if (e.isNull("sinceScamLinkSec")) null else e.getInt("sinceScamLinkSec"),
             )
             val ctx = v.getJSONObject("context")
             val usual = if (ctx.isNull("usualMaxDebitBucket")) null else ctx.getString("usualMaxDebitBucket")

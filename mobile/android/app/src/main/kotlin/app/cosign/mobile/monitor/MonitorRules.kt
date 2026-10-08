@@ -37,12 +37,23 @@ object MonitorRules {
         "failed_login_alert" to 30,
         "repeated_failed_logins" to 20,
         "guardian_paused" to 0,
+        "scam_message" to 30,
+        "suspicious_link" to 30,
+        "lookalike_bank_link" to 40,
+        "apk_link" to 40,
+        "scam_message_during_call" to 30,
+        "login_after_scam_link" to 60,
+        "browser_after_scam_link" to 30,
+        "phishing_login_page" to 70,
     )
     private const val WARN_AT = 30
     private const val CRITICAL_AT = 60
 
     /** A chat app opened this soon after a one-time code is treated as possible code sharing. */
     const val OTP_SHARE_WINDOW_SEC = 180
+
+    /** A sign-in page or browser this soon after a scam message with a link is treated as a possible fake page. */
+    const val SCAM_LINK_WINDOW_SEC = 600
     val BUCKETS = listOf("lt_1k", "1k_10k", "10k_50k", "50k_1l", "gt_1l")
 
     data class Call(val active: Boolean, val durationSec: Long, val caller: String, val repeatCount: Int = 0)
@@ -61,11 +72,21 @@ object MonitorRules {
         val installer: String? = null,
         /** "accessibility" or "device_admin" (access_granted). */
         val grant: String? = null,
+        /** Scam wording kinds found in a message (notification_scam). */
+        val scamPhrases: List<String> = emptyList(),
+        /** Flags of the links in a message or page. */
+        val linkFlags: List<String> = emptyList(),
+        /** Verdict on the most worrying link, or the page website (notification_scam, phishing_page). */
+        val linkVerdict: String? = null,
+        /** Seconds since a scam message with a link, if within 10 minutes. */
+        val sinceScamLinkSec: Int? = null,
     )
 
     data class Assessment(val score: Int, val severity: String, val rules: List<String>, val pause: Boolean)
 
     fun riskyCall(c: Call?) = c != null && c.active && c.caller != CallerClassifier.KNOWN && c.durationSec >= 60
+
+    fun afterScamLink(e: Event) = e.sinceScamLinkSec != null && e.sinceScamLinkSec <= SCAM_LINK_WINDOW_SEC
 
     fun chatAfterOtp(e: Event) =
         e.kind == "app_foreground" && e.appCategory == AppCatalog.MESSAGING && e.sinceOtpSec != null && e.sinceOtpSec <= OTP_SHARE_WINDOW_SEC
@@ -76,7 +97,18 @@ object MonitorRules {
         val cat = e.appCategory
         when (e.kind) {
             "payment_screen" -> if (onRiskyCall) hit += "payment_screen_during_call"
-            "login_screen" -> if (onRiskyCall && cat in setOf("bank", "upi", "wallet", "email")) hit += "login_screen_during_call"
+            "login_screen" -> {
+                if (onRiskyCall && cat in setOf("bank", "upi", "wallet", "email")) hit += "login_screen_during_call"
+                if (afterScamLink(e)) hit += "login_after_scam_link"
+            }
+            "notification_scam" -> {
+                if (e.scamPhrases.any { it != "urgent_action" }) hit += "scam_message"
+                if (e.linkVerdict == LinkAnalyzer.SUSPICIOUS) hit += "suspicious_link"
+                if (e.linkVerdict == LinkAnalyzer.LOOKALIKE) hit += "lookalike_bank_link"
+                if ("apk_download" in e.linkFlags) hit += "apk_link"
+                if (onRiskyCall && hit.isNotEmpty()) hit += "scam_message_during_call"
+            }
+            "phishing_page" -> if (e.linkVerdict == LinkAnalyzer.LOOKALIKE || e.linkVerdict == LinkAnalyzer.SUSPICIOUS) hit += "phishing_login_page"
             "app_foreground" -> {
                 if (cat == AppCatalog.REMOTE_ACCESS) {
                     hit += "remote_access_active"
@@ -88,6 +120,7 @@ object MonitorRules {
                     hit += "chat_after_otp"
                     if (onRiskyCall) hit += "otp_shared_during_call"
                 }
+                if (cat == AppCatalog.BROWSER && afterScamLink(e)) hit += "browser_after_scam_link"
             }
             "screen_share_prompt" -> {
                 hit += "screen_share_started"
@@ -147,6 +180,6 @@ object MonitorRules {
      * code screen, an app that matters (money, email, chat, remote control), or a screen-share prompt.
      */
     private fun sensitiveMoment(e: Event): Boolean =
-        e.kind == "payment_screen" || e.kind == "login_screen" || e.kind == "notification_otp" || e.kind == "screen_share_prompt" ||
+        e.kind == "payment_screen" || e.kind == "login_screen" || e.kind == "notification_otp" || e.kind == "screen_share_prompt" || e.kind == "phishing_page" ||
             (e.kind == "app_foreground" && e.appCategory != null && e.appCategory != "other")
 }

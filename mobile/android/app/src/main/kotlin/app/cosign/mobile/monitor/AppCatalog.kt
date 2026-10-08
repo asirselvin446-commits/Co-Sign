@@ -12,6 +12,8 @@ object AppCatalog {
     const val SOCIAL = "social"
     /** Chat and SMS apps: where people are asked to send a one-time code. */
     const val MESSAGING = "messaging"
+    /** Web browsers: where fake bank pages are opened from scam links. */
+    const val BROWSER = "browser"
     const val REMOTE_ACCESS = "remote_access"
 
     private val builtIn: Map<String, String> = buildMap {
@@ -66,6 +68,21 @@ object AppCatalog {
             "com.android.mms",
             "com.facebook.orca", // Messenger
         ).forEach { put(it, MESSAGING) }
+        // Web browsers
+        listOf(
+            "com.android.chrome",
+            "org.mozilla.firefox",
+            "com.sec.android.app.sbrowser", // Samsung Internet
+            "com.microsoft.emmx", // Edge
+            "com.opera.browser",
+            "com.opera.mini.native",
+            "com.brave.browser",
+            "com.duckduckgo.mobile.android",
+            "com.mi.globalbrowser",
+            "com.heytap.browser",
+            "com.vivo.browser",
+            "com.UCMobile.intl",
+        ).forEach { put(it, BROWSER) }
         // Screen control
         listOf(
             "com.anydesk.anydeskandroid",
@@ -81,7 +98,7 @@ object AppCatalog {
 
     /** Server-delivered additions, e.g. "com.example.bank=bank". */
     fun setExtra(entries: Map<String, String>) {
-        extra = entries.filterValues { it in setOf(BANK, UPI, WALLET, EMAIL, SOCIAL, MESSAGING, REMOTE_ACCESS) }
+        extra = entries.filterValues { it in setOf(BANK, UPI, WALLET, EMAIL, SOCIAL, MESSAGING, BROWSER, REMOTE_ACCESS) }
     }
 
     fun categoryOf(packageName: String?): String? = packageName?.let { extra[it] ?: builtIn[it] }

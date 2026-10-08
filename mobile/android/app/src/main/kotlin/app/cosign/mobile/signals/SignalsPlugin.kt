@@ -22,7 +22,11 @@ import android.view.WindowManager
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import app.cosign.mobile.monitor.AppCatalog
+import app.cosign.mobile.generated.LinkRulesData
 import app.cosign.mobile.monitor.CallWatcher
+import app.cosign.mobile.monitor.LinkAnalyzer
+import app.cosign.mobile.signin.AssistedSignInActivity
+import app.cosign.mobile.signin.SignInCrypto
 import app.cosign.mobile.monitor.CoSignDeviceAdmin
 import app.cosign.mobile.monitor.MonitorForegroundService
 import app.cosign.mobile.monitor.MonitorHub
@@ -172,6 +176,40 @@ class SignalsPlugin :
                     result.success(true)
                 }
                 "monitorRequestCallScreening" -> requestCallScreeningRole(result)
+                "analyzeText" -> result.success(analyzeText(call.argument<String>("text") ?: ""))
+                "reportScamText" -> {
+                    MonitorHub.init(context)
+                    MonitorHub.onMessage(call.argument<String>("text") ?: "", null, null)
+                    MonitorHub.flush()
+                    result.success(true)
+                }
+                "takeSharedText" -> {
+                    val t = sharedText
+                    sharedText = null
+                    result.success(t)
+                }
+                "signinSeal" -> {
+                    val pub = call.argument<String>("publicKey") ?: return result.error("bad-args", "publicKey", null)
+                    val plain = call.argument<String>("plaintext") ?: return result.error("bad-args", "plaintext", null)
+                    val aad = SignInCrypto.aad(call.argument<String>("requestId") ?: "", call.argument<String>("package"), call.argument<String>("host"))
+                    // Sealing runs off the UI thread; the plaintext is never logged or kept.
+                    MonitorHub.init(context)
+                    MonitorHub.runOnWorker {
+                        val sealed = runCatching { SignInCrypto.seal(pub, plain, aad) }
+                        main.post { sealed.fold({ result.success(it) }, { result.error("seal-failed", it.message, null) }) }
+                    }
+                }
+                "autofillStatus" -> result.success(autofillStatus())
+                "openAutofillSettings" -> {
+                    openAutofillSettings()
+                    result.success(true)
+                }
+                "signInApps" -> result.success(signInApps())
+                "startShowSignIn" -> {
+                    MonitorHub.init(context)
+                    context.startActivity(AssistedSignInActivity.showIntent(context, call.argument<String>("package") ?: "", call.argument<String>("label") ?: ""))
+                    result.success(true)
+                }
                 "monitorFlush" -> {
                     MonitorHub.flush()
                     result.success(true)
@@ -345,6 +383,7 @@ class SignalsPlugin :
             "phoneState" to granted(Manifest.permission.READ_PHONE_STATE),
             "contacts" to granted(Manifest.permission.READ_CONTACTS),
             "deviceAdmin" to CoSignDeviceAdmin.isActive(context),
+            "autofill" to (context.getSystemService(android.view.autofill.AutofillManager::class.java)?.hasEnabledAutofillServices() == true),
         )
     }
 
@@ -451,5 +490,53 @@ class SignalsPlugin :
     companion object {
         private const val REQUEST_CODE = 0x5157
         private const val ROLE_REQUEST_CODE = 0x5158
+
+        @Volatile private var sharedText: String? = null
+
+        /** Text shared to Co-Sign ("Check a link"), kept until the app reads it. */
+        fun offerSharedText(text: String) {
+            sharedText = text
+        }
+    }
+
+    // ------------------------------------------------------------------ sign-in help and link checks
+
+    private fun linkMap(l: LinkAnalyzer.Link): Map<String, Any?> = mapOf(
+        "host" to l.host,
+        "domain" to l.registrableDomain,
+        "flags" to l.flags,
+        "brand" to l.brand,
+        "brandName" to LinkRulesData.BRANDS.firstOrNull { it.id == l.brand }?.name,
+        "verdict" to l.verdict,
+    )
+
+    private fun analyzeText(text: String): Map<String, Any?> {
+        val m = LinkAnalyzer.analyzeMessage(text)
+        return mapOf("phrases" to m.phrases, "scam" to m.scam, "links" to m.links.map(::linkMap), "worst" to m.worst?.let(::linkMap))
+    }
+
+    /** Co-Sign is the phone's autofill service (needed for guardian sign-in). */
+    private fun autofillStatus(): Map<String, Boolean> {
+        val am = context.getSystemService(android.view.autofill.AutofillManager::class.java)
+        return mapOf("supported" to (am?.isAutofillSupported == true), "enabled" to (am?.hasEnabledAutofillServices() == true))
+    }
+
+    private fun openAutofillSettings() {
+        val intent = Intent(Settings.ACTION_REQUEST_SET_AUTOFILL_SERVICE, Uri.parse("package:" + context.packageName)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            (activity ?: context).startActivity(intent)
+        } catch (_: Exception) {
+            context.startActivity(Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
+    }
+
+    /** Installed apps Co-Sign knows (banks, payments, email, social), for "Sign in with help". */
+    private fun signInApps(): List<Map<String, String>> {
+        val pm = context.packageManager
+        return pm.getInstalledApplications(0).mapNotNull { info ->
+            val cat = AppCatalog.categoryOf(info.packageName) ?: return@mapNotNull null
+            if (cat == AppCatalog.REMOTE_ACCESS || cat == AppCatalog.BROWSER || cat == AppCatalog.MESSAGING) return@mapNotNull null
+            mapOf("package" to info.packageName, "label" to pm.getApplicationLabel(info).toString(), "category" to cat)
+        }.sortedBy { it["label"] }
     }
 }

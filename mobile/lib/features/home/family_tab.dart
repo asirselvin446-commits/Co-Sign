@@ -9,13 +9,15 @@ import '../../ui/theme.dart';
 import '../../ui/widgets.dart';
 import '../guardians/guardians_screens.dart';
 import '../protection/protection_screens.dart';
+import '../signin/signin_screens.dart';
 import 'home_screen.dart';
 import 'protection_tab.dart';
 
 void refreshFamily(WidgetRef ref) => ref
   ..invalidate(peopleProvider)
   ..invalidate(inboxProvider)
-  ..invalidate(alertsProvider);
+  ..invalidate(alertsProvider)
+  ..invalidate(guardianSigninsProvider);
 
 /// The guardian's view: each person they protect, what needs an answer, and recent alerts.
 class FamilyTab extends ConsumerWidget {
@@ -28,6 +30,7 @@ class FamilyTab extends ConsumerWidget {
     final people = ref.watch(peopleProvider);
     final inbox = ref.watch(inboxProvider);
     final alerts = ref.watch(alertsProvider);
+    final signins = ref.watch(guardianSigninsProvider);
     return TabBody(
       onRefresh: () async {
         refreshFamily(ref);
@@ -38,6 +41,14 @@ class FamilyTab extends ConsumerWidget {
         }
       },
       children: [
+        // Sign-in requests come first: someone is waiting at a login screen.
+        ...switch (signins) {
+          AsyncData(:final value) when value.isNotEmpty => [
+              SectionTitle(l.signinRequests),
+              for (final s in value) ...[_SigninRequestRow(request: s, lang: lang), const Gap(12)],
+            ],
+          _ => const <Widget>[],
+        },
         AsyncBody<List<Person>>(
           value: people,
           onRetry: () => ref.invalidate(peopleProvider),
@@ -241,6 +252,40 @@ class _RequestRow extends StatelessWidget {
             ]),
           ]),
         ),
+      ),
+    );
+  }
+}
+
+class _SigninRequestRow extends StatelessWidget {
+  const _SigninRequestRow({required this.request, required this.lang});
+  final SigninRequestView request;
+  final String lang;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final r = request;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          InkWell(
+            onTap: () => context.push('/guardian/signin/${r.id}'),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(l.guardianSigninTitle(r.personName, r.target.display), style: Theme.of(context).textTheme.titleLarge),
+              const Gap(4),
+              for (final reason in r.reasons.take(2)) BodyText(reason),
+              Text(l.receivedAt(formatClock(r.createdAt, lang)), style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: context.safety.muted)),
+            ]),
+          ),
+          const Gap(12),
+          Row(children: [
+            Expanded(child: OutlinedButton(onPressed: () => context.push('/guardian/signin/${r.id}?act=deny'), child: Text(l.deny))),
+            const SizedBox(width: 12),
+            Expanded(child: FilledButton(onPressed: () => context.push('/guardian/signin/${r.id}?act=fill'), child: Text(l.signinFill))),
+          ]),
+        ]),
       ),
     );
   }

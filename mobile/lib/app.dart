@@ -20,12 +20,25 @@ class CoSignApp extends ConsumerStatefulWidget {
   ConsumerState<CoSignApp> createState() => _CoSignAppState();
 }
 
-class _CoSignAppState extends ConsumerState<CoSignApp> {
+class _CoSignAppState extends ConsumerState<CoSignApp> with WidgetsBindingObserver {
   StreamSubscription<Uri>? _links;
+
+  /// A message or link shared to Co-Sign opens "Check a link" (once signed in).
+  Future<void> _checkShared() async {
+    if (ref.read(sessionProvider).status != SessionStatus.signedIn) return;
+    final text = await ref.read(signalsChannelProvider).takeSharedText();
+    if (text != null && text.trim().isNotEmpty && mounted) unawaited(ref.read(routerProvider).push('/check-link', extra: text));
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) unawaited(_checkShared());
+  }
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     unawaited(ref.read(sessionProvider.notifier).restore());
     unawaited(
       ref.read(pushProvider).init(
@@ -47,6 +60,7 @@ class _CoSignAppState extends ConsumerState<CoSignApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     unawaited(_links?.cancel());
     super.dispose();
   }
@@ -58,6 +72,7 @@ class _CoSignAppState extends ConsumerState<CoSignApp> {
       ..listen(sessionProvider, (prev, next) {
         if (next.status == SessionStatus.signedIn && prev?.status != SessionStatus.signedIn) {
           unawaited(ref.read(protectionControllerProvider).sync());
+          unawaited(_checkShared());
         }
       })
       ..listen(settingsProvider.select((s) => s.language), (_, _) {

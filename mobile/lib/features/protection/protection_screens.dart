@@ -156,6 +156,7 @@ class _FamilyProtectionScreenState extends ConsumerState<FamilyProtectionScreen>
       _Item(l.fpContacts, null, (s.native['contacts'] ?? false) && (s.native['phoneState'] ?? false), () => _run(() async => channel.requestPermissions(['phone', 'callLog', 'contacts']))),
       _Item(l.fpScreens, l.fpScreensHelp, s.native['accessibility'] ?? false, () => channel.monitorOpen('accessibility')),
       _Item(l.fpPause, null, (s.native['overlay'] ?? false) || (s.native['accessibility'] ?? false), () => channel.monitorOpen('overlay')),
+      _Item(l.fpSignInHelp, null, s.native['autofill'] ?? false, channel.openAutofillSettings),
       _Item(l.fpUnlockWatch, null, s.native['deviceAdmin'] ?? false, () => channel.monitorOpen('deviceAdmin')),
       _Item(l.fpBattery, null, s.native['batteryUnrestricted'] ?? false, () => channel.monitorOpen('battery')),
     ];
@@ -206,6 +207,7 @@ String categoryLabel(AppLocalizations l, String? category) => switch (category) 
       'email' => l.catEmail,
       'social' => l.catSocial,
       'messaging' => l.catMessaging,
+      'browser' => l.catBrowser,
       'remote_access' => l.catRemote,
       _ => '',
     };
@@ -285,6 +287,7 @@ class _AlertDetailScreenState extends ConsumerState<AlertDetailScreen> {
               const Gap(8),
               BodyText(formatClock(a.occurredAt, lang)),
               if (label.isNotEmpty) BodyText(l.appInvolved(label)),
+              if (a.linkDomain != null) BodyText(l.alertSite(a.linkDomain!), emphasis: true),
               SectionTitle(l.whyPaused),
               ReasonList(reasons: a.reasons),
               const Gap(8),
@@ -335,6 +338,8 @@ class PersonScreen extends ConsumerWidget {
             final mine = alerts.value?.where((a) => a.personLinkId == linkId).toList() ?? const <GuardianAlert>[];
             return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               PersonCard(person: p, lang: lang),
+              const Gap(),
+              SecondaryButton(label: l.savedSignins, icon: Icons.key, onPressed: () => context.push('/guardian/person/${p.linkId}/signins', extra: p.displayName)),
               const Gap(),
               Card(child: Padding(padding: const EdgeInsets.all(16), child: BodyText(l.callFirst(p.displayName), emphasis: true))),
               if (act == 'pause' && p.protection != null && p.protection!.on && !p.protection!.paused) ...[

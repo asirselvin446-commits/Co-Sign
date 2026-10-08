@@ -25,6 +25,8 @@ String? routeForPush(Map<String, Object?> data, {String? actionId}) {
   final alertId = data['alertId'];
   final pauseId = data['pauseId'];
   final linkId = data['linkId'];
+  final signinId = data['signinId'];
+  if ((actionId == 'fill' || actionId == 'deny') && signinId is String) return '/guardian/signin/$signinId?act=$actionId';
   if (actionId == 'release' && pauseId is String) return '/guardian/pause/$pauseId?act=release';
   if (actionId == 'pause' && linkId is String) return '/guardian/person/$linkId?act=pause';
   return switch (screen) {
@@ -33,6 +35,7 @@ String? routeForPush(Map<String, Object?> data, {String? actionId}) {
     'guardian_recovery' when recoveryId is String => '/guardian/recovery/$recoveryId',
     'guardian_alert' when alertId is String => '/guardian/alerts/$alertId',
     'guardian_pause' when pauseId is String => '/guardian/pause/$pauseId',
+    'guardian_signin' when signinId is String => '/guardian/signin/$signinId',
     'guardian_person' when linkId is String => '/guardian/person/$linkId',
     'family' => '/home?tab=family',
     'stepup' when requestId is String => '/stepup/$requestId',

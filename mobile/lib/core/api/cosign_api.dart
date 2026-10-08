@@ -81,6 +81,13 @@ abstract class CoSignApi {
   Future<void> lockPhone(String linkId);
   Future<List<MyAlert>> myAlerts();
   Future<void> askForHelp();
+
+  // guardian-assisted sign-in
+  Future<List<MySignin>> mySignins();
+  Future<List<SigninRequestView>> guardianSignins();
+  Future<SigninRequestView> guardianSignin(String id);
+  Future<Json> signinOptions(String id, String decision, String? ciphertextSha256);
+  Future<String> signinAnswer(String id, Json response, String? ciphertext);
 }
 
 class HttpCoSignApi implements CoSignApi {
@@ -293,4 +300,22 @@ class HttpCoSignApi implements CoSignApi {
 
   @override
   Future<void> askForHelp() => http.post('/v1/monitor/help');
+
+  @override
+  Future<List<MySignin>> mySignins() async => ((await http.get('/v1/signin'))['requests']! as List<Object?>).cast<Json>().map(MySignin.fromJson).toList();
+
+  @override
+  Future<List<SigninRequestView>> guardianSignins() async =>
+      ((await http.get('/v1/guardian/signin'))['requests']! as List<Object?>).cast<Json>().map(SigninRequestView.fromJson).toList();
+
+  @override
+  Future<SigninRequestView> guardianSignin(String id) async => SigninRequestView.fromJson(await http.get('/v1/guardian/signin/$id'));
+
+  @override
+  Future<Json> signinOptions(String id, String decision, String? ciphertextSha256) async =>
+      (await http.post('/v1/guardian/signin/$id/options', {'decision': decision, 'ciphertextSha256': ?ciphertextSha256}))['options']! as Json;
+
+  @override
+  Future<String> signinAnswer(String id, Json response, String? ciphertext) async =>
+      (await http.post('/v1/guardian/signin/$id/answer', {'response': response, 'ciphertext': ?ciphertext}))['status']! as String;
 }

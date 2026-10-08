@@ -397,6 +397,7 @@ class GuardianAlert {
     required this.appCategory,
     required this.appPackage,
     required this.amountBucket,
+    this.linkDomain,
     required this.severity,
     required this.score,
     required this.reasons,
@@ -416,6 +417,7 @@ class GuardianAlert {
       appCategory: app?['category'] as String?,
       appPackage: app?['package'] as String?,
       amountBucket: j['amountBucket'] as String?,
+      linkDomain: (j['link'] as Json?)?['domain'] as String?,
       severity: j['severity']! as String,
       score: (j['score']! as num).toInt(),
       reasons: _list(j['reasons']).map(Reason.fromJson).toList(),
@@ -432,6 +434,9 @@ class GuardianAlert {
   final String? appCategory;
   final String? appPackage;
   final String? amountBucket;
+
+  /// The fake or risky website involved, if any (domain only).
+  final String? linkDomain;
   final String severity;
   final int score;
   final List<Reason> reasons;
@@ -484,4 +489,137 @@ class PauseView {
   final DateTime expiresAt;
 
   bool get active => status == 'active';
+}
+
+// ----------------------------------------------------------------------------- links and scam messages
+
+/// One link, as judged on the phone by the shared rules (shared/link-rules.json).
+class LinkInfo {
+  const LinkInfo({required this.host, required this.domain, required this.flags, required this.brandName, required this.verdict});
+  factory LinkInfo.fromJson(Json j) => LinkInfo(
+        host: j['host'] as String?,
+        domain: j['domain'] as String?,
+        flags: (j['flags'] as List<Object?>? ?? const []).cast<String>(),
+        brandName: j['brandName'] as String?,
+        verdict: j['verdict']! as String,
+      );
+  final String? host;
+  final String? domain;
+  final List<String> flags;
+
+  /// The brand the site is (official) or pretends to be (lookalike).
+  final String? brandName;
+
+  /// official, unknown, suspicious or lookalike.
+  final String verdict;
+
+  bool get fake => verdict == 'lookalike';
+  bool get risky => verdict == 'suspicious';
+  bool get official => verdict == 'official';
+}
+
+class LinkCheck {
+  const LinkCheck({required this.phrases, required this.scam, required this.links, required this.worst});
+  factory LinkCheck.fromJson(Json j) => LinkCheck(
+        phrases: (j['phrases'] as List<Object?>? ?? const []).cast<String>(),
+        scam: j['scam'] == true,
+        links: _list(j['links']).map(LinkInfo.fromJson).toList(),
+        worst: j['worst'] == null ? null : LinkInfo.fromJson(j['worst']! as Json),
+      );
+
+  /// Scam wording kinds found (kyc_threat, prize_lottery, police_threat...).
+  final List<String> phrases;
+  final bool scam;
+  final List<LinkInfo> links;
+  final LinkInfo? worst;
+}
+
+// ----------------------------------------------------------------------------- guardian-assisted sign-in
+
+class SigninTarget {
+  const SigninTarget({required this.package, required this.host, required this.domain, required this.appLabel, required this.verdict});
+  factory SigninTarget.fromJson(Json j) => SigninTarget(
+        package: j['package'] as String?,
+        host: j['host'] as String?,
+        domain: j['domain'] as String?,
+        appLabel: j['appLabel']! as String,
+        verdict: j['verdict']! as String,
+      );
+  final String? package;
+  final String? host;
+  final String? domain;
+  final String appLabel;
+
+  /// app (a native app), official, unknown or suspicious (fake sites are refused by the server).
+  final String verdict;
+
+  bool get isWebsite => host != null;
+
+  /// What the guardian is told: the website, or the app's name.
+  String get display => domain ?? appLabel;
+}
+
+/// A sign-in request as the guardian sees it.
+class SigninRequestView {
+  const SigninRequestView({
+    required this.id,
+    required this.mode,
+    required this.status,
+    required this.target,
+    required this.personName,
+    required this.personLinkId,
+    required this.publicKey,
+    required this.reasons,
+    required this.createdAt,
+    required this.expiresAt,
+    required this.answeredByMe,
+  });
+  factory SigninRequestView.fromJson(Json j) {
+    final p = j['person']! as Json;
+    return SigninRequestView(
+      id: j['id']! as String,
+      mode: j['mode']! as String,
+      status: j['status']! as String,
+      target: SigninTarget.fromJson(j['target']! as Json),
+      personName: p['displayName']! as String,
+      personLinkId: p['linkId'] as String?,
+      publicKey: j['publicKey'] as String?,
+      reasons: _list(j['reasons']).map((r) => r['reason']! as String).toList(),
+      createdAt: _date(j['createdAt']),
+      expiresAt: _date(j['expiresAt']),
+      answeredByMe: j['answeredByMe'] == true,
+    );
+  }
+  final String id;
+
+  /// fill (typed into their sign-in screen) or show (shown to them for one minute).
+  final String mode;
+  final String status;
+  final SigninTarget target;
+  final String personName;
+  final String? personLinkId;
+  final String? publicKey;
+  final List<String> reasons;
+  final DateTime createdAt;
+  final DateTime expiresAt;
+  final bool answeredByMe;
+
+  bool get open => status == 'pending' && expiresAt.isAfter(DateTime.now());
+}
+
+/// One of my own assisted sign-ins (no secrets).
+class MySignin {
+  const MySignin({required this.id, required this.status, required this.target, required this.guardianName, required this.createdAt});
+  factory MySignin.fromJson(Json j) => MySignin(
+        id: j['id']! as String,
+        status: j['status']! as String,
+        target: SigninTarget.fromJson(j['target']! as Json),
+        guardianName: j['guardianName'] as String?,
+        createdAt: _date(j['createdAt']),
+      );
+  final String id;
+  final String status;
+  final SigninTarget target;
+  final String? guardianName;
+  final DateTime createdAt;
 }

@@ -64,6 +64,7 @@ class FakeSignalsChannel implements SignalsChannel {
         'overlay': true,
         'batteryUnrestricted': false,
         'deviceAdmin': false,
+        'autofill': autofillOn,
       };
 
   @override
@@ -71,6 +72,54 @@ class FakeSignalsChannel implements SignalsChannel {
 
   @override
   Future<bool> requestCallScreening() async => true;
+
+  bool autofillOn = false;
+  String? sharedText;
+  final List<String> reported = [];
+
+  /// What the guardian side last sealed (the fake does no real crypto; the Kotlin tests do).
+  String? lastSealedPlaintext;
+
+  /// Test stand-in for the phone's link analyser (the real rules are tested in Kotlin and TS).
+  @override
+  Future<LinkCheck> analyzeText(String text) async {
+    final t = text.toLowerCase();
+    if (t.contains('sbi-kyc-update.xyz')) {
+      return const LinkCheck(phrases: ['kyc_threat'], scam: true, links: [], worst: LinkInfo(host: 'sbi-kyc-update.xyz', domain: 'sbi-kyc-update.xyz', flags: ['lookalike_brand'], brandName: 'SBI', verdict: 'lookalike'));
+    }
+    if (t.contains('onlinesbi.sbi')) {
+      return const LinkCheck(phrases: [], scam: false, links: [], worst: LinkInfo(host: 'www.onlinesbi.sbi', domain: 'onlinesbi.sbi', flags: [], brandName: 'SBI', verdict: 'official'));
+    }
+    return const LinkCheck(phrases: [], scam: false, links: [], worst: null);
+  }
+
+  @override
+  Future<void> reportScamText(String text) async => reported.add(text);
+
+  @override
+  Future<String?> takeSharedText() async {
+    final t = sharedText;
+    sharedText = null;
+    return t;
+  }
+
+  @override
+  Future<String> signinSeal({required String publicKey, required String plaintext, required String requestId, required String? package, required String? host}) async {
+    lastSealedPlaintext = plaintext;
+    return 'sealed-for-$requestId';
+  }
+
+  @override
+  Future<({bool supported, bool enabled})> autofillStatus() async => (supported: true, enabled: autofillOn);
+
+  @override
+  Future<void> openAutofillSettings() async => autofillOn = true;
+
+  @override
+  Future<List<({String package, String label, String category})>> signInApps() async => const [(package: 'com.sbi.lotusintouch', label: 'YONO SBI', category: 'bank')];
+
+  @override
+  Future<void> startShowSignIn(String package, String label) async {}
 }
 
 /// Stands in for the fingerprint / screen-lock prompt.
@@ -659,4 +708,79 @@ class FakeCoSignApi implements CoSignApi {
 
   @override
   Future<void> askForHelp() => _later(() => helpRequests++);
+
+  // ------------------------------------------------------------------ guardian-assisted sign-in
+
+  final Map<String, SigninRequestView> _signins = {};
+  final List<String> answeredSignins = [];
+
+  void _seedSignins() {
+    final now = DateTime.now();
+    _signins['signin-1'] = SigninRequestView(
+      id: 'signin-1',
+      mode: 'fill',
+      status: 'pending',
+      target: const SigninTarget(package: 'com.sbi.lotusintouch', host: null, domain: null, appLabel: 'YONO SBI', verdict: 'app'),
+      personName: 'Amma',
+      personLinkId: 'link-amma',
+      publicKey: 'test-public-key',
+      reasons: const [],
+      createdAt: now.subtract(const Duration(seconds: 30)),
+      expiresAt: now.add(const Duration(minutes: 4)),
+      answeredByMe: false,
+    );
+  }
+
+  @override
+  Future<List<MySignin>> mySignins() => _later(
+        () => [
+          MySignin(
+            id: 'mine-1',
+            status: 'delivered',
+            target: const SigninTarget(package: 'com.google.android.gm', host: null, domain: null, appLabel: 'Gmail', verdict: 'app'),
+            guardianName: 'Ravi Kumar',
+            createdAt: DateTime.now().subtract(const Duration(hours: 2)),
+          ),
+        ],
+      );
+
+  @override
+  Future<List<SigninRequestView>> guardianSignins() => _later(() {
+        if (_signins.isEmpty) _seedSignins();
+        return [for (final r in _signins.values) if (r.open) r];
+      });
+
+  @override
+  Future<SigninRequestView> guardianSignin(String id) => _later(() {
+        if (_signins.isEmpty) _seedSignins();
+        return _signins[id] ?? (throw AppFailure(ErrorCodes.NOT_FOUND));
+      });
+
+  @override
+  Future<Json> signinOptions(String id, String decision, String? ciphertextSha256) => _later(() {
+        _pendingSigninDecision = decision;
+        return <String, Object?>{};
+      });
+  String? _pendingSigninDecision;
+
+  @override
+  Future<String> signinAnswer(String id, Json response, String? ciphertext) => _later(() {
+        final r = _signins[id]!;
+        final status = _pendingSigninDecision == 'fill' ? 'filled' : 'denied';
+        _signins[id] = SigninRequestView(
+          id: r.id,
+          mode: r.mode,
+          status: status,
+          target: r.target,
+          personName: r.personName,
+          personLinkId: r.personLinkId,
+          publicKey: null,
+          reasons: r.reasons,
+          createdAt: r.createdAt,
+          expiresAt: r.expiresAt,
+          answeredByMe: true,
+        );
+        answeredSignins.add('$id:$status:${ciphertext ?? ''}');
+        return status;
+      });
 }

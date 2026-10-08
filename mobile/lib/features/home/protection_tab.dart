@@ -11,6 +11,7 @@ import '../../ui/theme.dart';
 import '../../ui/widgets.dart';
 import '../guardians/guardians_screens.dart';
 import '../protection/protection_screens.dart';
+import '../signin/signin_screens.dart';
 import 'home_screen.dart';
 
 /// Everything the Protection tab shows, loaded together.
@@ -51,7 +52,9 @@ void refreshProtection(WidgetRef ref) => ref
   ..invalidate(guardiansProvider)
   ..invalidate(myAlertsProvider)
   ..invalidate(openChecksProvider)
-  ..invalidate(activeRecoveryProvider);
+  ..invalidate(activeRecoveryProvider)
+  ..invalidate(autofillStatusProvider)
+  ..invalidate(mySigninsProvider);
 
 enum SafetyState { protected, warning, paused, off, noGuardian }
 
@@ -132,6 +135,8 @@ class _ProtectionTabState extends ConsumerState<ProtectionTab> with WidgetsBindi
               if (h.recovery != null) ...[RecoveryBanner(recovery: h.recovery!, onChanged: () => refreshProtection(ref)), const Gap()],
               StatusBand(state: state, home: h, lang: lang),
               const Gap(),
+              // Co-Sign is sign-in software first: the guardian signs the person in, safely.
+              if (state != SafetyState.noGuardian) ...[SignInHelpCard(protectionOn: h.protection.on), const Gap()],
               if (state == SafetyState.noGuardian)
                 PrimaryButton(label: l.inviteGuardian, icon: Icons.person_add_alt_1, onPressed: () => context.push('/guardians/invite'))
               else if (state == SafetyState.off)
@@ -241,6 +246,7 @@ class _WatchList extends StatelessWidget {
     final l = context.l10n;
     final rows = [
       (l.watchCodes, _has('notificationAccess') && (_has('accessibility') || _has('usageAccess'))),
+      (l.watchFakeSites, _has('notificationAccess') || _has('autofill')),
       (l.watchScreens, _has('accessibility') || _has('usageAccess')),
       (l.watchPins, _has('deviceAdmin')),
       (l.watchMoney, _has('notificationAccess')),

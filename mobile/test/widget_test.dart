@@ -138,7 +138,7 @@ void main() {
     expect(find.text('Pause released.'), findsOneWidget);
   });
 
-  testWidgets('family protection is explained, needs consent, and lists 8 protections', (tester) async {
+  testWidgets('family protection is explained, needs consent, and lists 9 protections', (tester) async {
     phone(tester);
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
@@ -151,7 +151,7 @@ void main() {
     await tester.tap(find.text('Turn on family protection'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Protection is on'), findsOneWidget);
-    expect(find.text('5 of 8 protections ready'), findsOneWidget);
+    expect(find.text('5 of 9 protections ready'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('Tell my guardian about wrong PIN attempts, and let them lock my screen'), 200, scrollable: find.byType(Scrollable).first);
     expect(find.text('Tell my guardian about wrong PIN attempts, and let them lock my screen'), findsOneWidget);
   });

@@ -523,5 +523,172 @@
         "type": "String"
       }
     }
-  }
+  },
+  "signinCardTitle": "Sign in with your guardian's help",
+  "signinCardOff": "Turn this on so that on any sign-in screen you can tap \"Ask my guardian to sign me in\". Your guardian fills in the password; you never need to remember it or type it.",
+  "signinCardOn": "Ready. On any sign-in screen, tap \"Ask my guardian to sign me in\".",
+  "signinTurnOn": "Turn on",
+  "signinWithHelp": "Sign in to an app with help",
+  "signinWithHelpBody": "For apps where the sign-in box does not offer help. Your guardian can let you see the password for one minute.",
+  "signinPickApp": "Which app?",
+  "signinNoApps": "No bank, payment or email apps found on this phone.",
+  "recentSignins": "Recent sign-ins with help",
+  "signinFilledBy": "Filled by {name}",
+  "@signinFilledBy": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "signinDeniedBy": "{name} said no",
+  "@signinDeniedBy": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "signinWaitingShort": "Waiting for an answer",
+  "signinNoAnswer": "No answer",
+  "guardianSigninTitle": "{name} wants to sign in to {app}",
+  "@guardianSigninTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "signinWebsite": "Website: {site}",
+  "@signinWebsite": {
+    "placeholders": {
+      "site": {
+        "type": "String"
+      }
+    }
+  },
+  "signinAppName": "App: {app}",
+  "@signinAppName": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "signinVerdictOfficial": "This is a known, real website.",
+  "signinVerdictUnknown": "Co-Sign does not know this website. Make sure it is the one they meant to open.",
+  "signinVerdictSuspicious": "Warning: this website has a strange address. Call them before you fill anything.",
+  "signinVerdictApp": "This is an app on their phone.",
+  "savedSigninLabel": "Saved sign-in: {label}",
+  "@savedSigninLabel": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "useAnotherSignin": "Type a different one",
+  "signinUsername": "Username, email or phone",
+  "signinPassword": "Password or PIN",
+  "signinSave": "Save on my phone for next time",
+  "signinSaveNote": "Saved only on your phone, locked by your screen lock. Co-Sign's server never sees it.",
+  "signinAllowShow": "Let them see it for 1 minute (this app does not accept autofill)",
+  "signinConfirmSite": "I have called them and this is the right website",
+  "signinFill": "Fill password",
+  "signinShowButton": "Let them see it",
+  "signinFilled": "Done. It has been filled in on {name}'s phone.",
+  "@signinFilled": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "signinShown": "Done. {name} can see it for one minute.",
+  "@signinShown": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "signinDeniedDone": "You said no. {name} has been told.",
+  "@signinDeniedDone": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "signinClosed": "This request is closed.",
+  "signinRequests": "Sign-in requests",
+  "savedSignins": "Saved sign-ins",
+  "savedSigninsEmpty": "Nothing saved yet. When you fill a sign-in for them, tick \"Save\" to keep it on your phone.",
+  "savedSigninFor": "For: {target}",
+  "@savedSigninFor": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "savedSigninAny": "Not tied to an app yet",
+  "addSavedSignin": "Add a sign-in",
+  "signinLabelField": "Name (for example: SBI YONO)",
+  "deleteSignin": "Delete",
+  "deleteSigninConfirm": "Delete this saved sign-in from your phone?",
+  "checkLink": "Check a message or link",
+  "checkLinkHint": "Paste the message or link here",
+  "checkLinkButton": "Check",
+  "checkLinkNote": "Checked on this phone only. You can also \"Share\" any message to Co-Sign.",
+  "checkFake": "Fake website: do not open it",
+  "checkFakeBody": "{site} pretends to be {brand}. Do not type any password or PIN there.",
+  "@checkFakeBody": {
+    "placeholders": {
+      "site": {
+        "type": "String"
+      },
+      "brand": {
+        "type": "String"
+      }
+    }
+  },
+  "checkRisky": "Risky link: do not open it",
+  "checkRiskyBody": "{site} has warning signs: a hidden, shortened or strange address, or an app download.",
+  "@checkRiskyBody": {
+    "placeholders": {
+      "site": {
+        "type": "String"
+      }
+    }
+  },
+  "checkScam": "This message looks like a scam",
+  "checkScamBody": "It uses words scammers use. Do not call back, click, pay or share any code.",
+  "checkOfficial": "This is the real website of {brand}",
+  "@checkOfficial": {
+    "placeholders": {
+      "brand": {
+        "type": "String"
+      }
+    }
+  },
+  "checkUnknown": "Co-Sign does not know this website",
+  "checkUnknownBody": "Ask your guardian before you sign in or pay there.",
+  "checkNothing": "No link or scam words found.",
+  "tellGuardian": "Tell my guardian",
+  "toldGuardian": "Your guardians have been told.",
+  "fpSignInHelp": "Let my guardian sign me in (Co-Sign fills the password)",
+  "catBrowser": "Web browser",
+  "alertSite": "Website: {site}",
+  "@alertSite": {
+    "placeholders": {
+      "site": {
+        "type": "String"
+      }
+    }
+  },
+  "watchFakeSites": "Fake bank websites and scam messages"
 }

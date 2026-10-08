@@ -12,6 +12,7 @@ import 'features/onboarding/onboarding_screens.dart';
 import 'features/protection/protection_screens.dart';
 import 'features/recovery/recovery_screen.dart';
 import 'features/settings/settings_screen.dart';
+import 'features/signin/signin_screens.dart';
 import 'features/stepup/stepup_screen.dart';
 import 'ui/widgets.dart';
 
@@ -74,6 +75,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/guardian/inbox', redirect: (_, _) => '/home?tab=family'),
       GoRoute(path: '/guardian/request/:id', builder: (_, s) => GuardianRequestScreen(requestId: s.pathParameters['id']!, act: s.uri.queryParameters['act'])),
       GoRoute(path: '/guardian/person/:linkId', builder: (_, s) => PersonScreen(linkId: s.pathParameters['linkId']!, act: s.uri.queryParameters['act'])),
+      GoRoute(path: '/guardian/signin/:id', builder: (_, s) => GuardianSigninScreen(signinId: s.pathParameters['id']!, act: s.uri.queryParameters['act'])),
+      GoRoute(
+        path: '/guardian/person/:linkId/signins',
+        builder: (_, s) => SavedSigninsScreen(linkId: s.pathParameters['linkId']!, personName: s.extra as String? ?? ''),
+      ),
+      GoRoute(path: '/check-link', builder: (_, s) => CheckLinkScreen(initialText: s.extra as String?)),
       GoRoute(path: '/guardian/pause/:id', builder: (_, s) => PauseRequestScreen(pauseId: s.pathParameters['id']!, act: s.uri.queryParameters['act'])),
       GoRoute(path: '/guardian/recovery/:id', builder: (_, s) => GuardianRecoveryScreen(recoveryId: s.pathParameters['id']!)),
       GoRoute(path: '/stepup/:id', builder: (_, s) => StepupScreen(requestId: s.pathParameters['id']!, start: s.extra as StepupStart?)),

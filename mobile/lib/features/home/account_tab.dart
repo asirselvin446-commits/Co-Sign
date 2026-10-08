@@ -18,6 +18,7 @@ class AccountTab extends ConsumerWidget {
       (Icons.diversity_1_outlined, l.guardians, l.guardiansIntro, '/guardians'),
       (Icons.shield_outlined, l.familyProtection, l.fpWho, '/protection'),
       (Icons.phone_android, l.phones, null, '/devices'),
+      (Icons.travel_explore, l.checkLink, l.checkLinkNote, '/check-link'),
       (Icons.volunteer_activism_outlined, l.beGuardian, null, '/guardian/accept'),
       (Icons.settings_outlined, l.settings, null, '/settings'),
     ];

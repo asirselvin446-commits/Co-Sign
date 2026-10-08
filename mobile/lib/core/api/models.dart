@@ -380,3 +380,76 @@ class ConsentState {
   final bool granted;
   final String currentVersion;
 }
+
+// ----------------------------------------------------------------------------- family protection
+
+class MonitorStatus {
+  const MonitorStatus({required this.consented, required this.consentVersion, required this.enabledOnThisPhone, required this.guardians, required this.eventsLast24h, required this.activePauseId});
+  factory MonitorStatus.fromJson(Json j) => MonitorStatus(
+        consented: j['consented']! as bool,
+        consentVersion: j['consentVersion']! as String,
+        enabledOnThisPhone: j['enabledOnThisPhone']! as bool,
+        guardians: (j['guardians']! as num).toInt(),
+        eventsLast24h: (j['eventsLast24h']! as num).toInt(),
+        activePauseId: (j['activePause'] as Json?)?['id'] as String?,
+      );
+  final bool consented;
+  final String consentVersion;
+  final bool enabledOnThisPhone;
+  final int guardians;
+  final int eventsLast24h;
+  final String? activePauseId;
+}
+
+class GuardianAlert {
+  const GuardianAlert({
+    required this.id,
+    required this.personName,
+    required this.kind,
+    required this.appCategory,
+    required this.appPackage,
+    required this.amountBucket,
+    required this.severity,
+    required this.score,
+    required this.reasons,
+    required this.occurredAt,
+    required this.acknowledged,
+    required this.pauseId,
+    required this.pauseStatus,
+  });
+  factory GuardianAlert.fromJson(Json j) {
+    final app = j['app'] as Json?;
+    final pause = j['pause'] as Json?;
+    return GuardianAlert(
+      id: j['id']! as String,
+      personName: (j['person']! as Json)['displayName']! as String,
+      kind: j['kind']! as String,
+      appCategory: app?['category'] as String?,
+      appPackage: app?['package'] as String?,
+      amountBucket: j['amountBucket'] as String?,
+      severity: j['severity']! as String,
+      score: (j['score']! as num).toInt(),
+      reasons: _list(j['reasons']).map(Reason.fromJson).toList(),
+      occurredAt: _date(j['occurredAt']),
+      acknowledged: j['acknowledged']! as bool,
+      pauseId: pause?['id'] as String?,
+      pauseStatus: pause?['status'] as String?,
+    );
+  }
+  final String id;
+  final String personName;
+  final String kind;
+  final String? appCategory;
+  final String? appPackage;
+  final String? amountBucket;
+  final String severity;
+  final int score;
+  final List<Reason> reasons;
+  final DateTime occurredAt;
+  final bool acknowledged;
+  final String? pauseId;
+  final String? pauseStatus;
+
+  bool get critical => severity == 'critical';
+  bool get pauseActive => pauseStatus == 'active';
+}

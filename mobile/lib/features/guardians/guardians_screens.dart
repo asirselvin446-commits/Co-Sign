@@ -12,6 +12,7 @@ import '../../core/errors/failure.dart';
 import '../../core/providers.dart';
 import '../../core/signals/signal_collector.dart';
 import '../../ui/widgets.dart';
+import '../protection/protection_screens.dart';
 import '../stepup/stepup_flow.dart';
 
 final guardiansProvider = FutureProvider.autoDispose<GuardianList>((ref) => ref.watch(apiProvider).guardians());
@@ -320,11 +321,12 @@ class _GuardianInboxScreenState extends ConsumerState<GuardianInboxScreen> {
   @override
   void initState() {
     super.initState();
-    const names = {'guardian.request', 'guardian.request.closed', 'guardian.recovery', 'guarding.changed'};
+    const names = {'guardian.request', 'guardian.request.closed', 'guardian.recovery', 'guarding.changed', 'guardian.alert'};
     _events = ref.read(realtimeProvider).events.where((e) => names.contains(e.name)).listen((_) {
       ref
         ..invalidate(inboxProvider)
-        ..invalidate(peopleProvider);
+        ..invalidate(peopleProvider)
+        ..invalidate(alertsProvider);
     });
   }
 
@@ -340,10 +342,18 @@ class _GuardianInboxScreenState extends ConsumerState<GuardianInboxScreen> {
     final lang = ref.watch(settingsProvider).language;
     final inbox = ref.watch(inboxProvider);
     final people = ref.watch(peopleProvider);
+    final alerts = ref.watch(alertsProvider);
     return AppPage(
       title: l.inboxTitle,
       bottom: SecondaryButton(label: l.beGuardian, icon: Icons.volunteer_activism, onPressed: () => context.push('/guardian/accept')),
       children: [
+        SectionTitle(l.alertsTitle),
+        AsyncBody<List<GuardianAlert>>(
+          value: alerts,
+          onRetry: () => ref.invalidate(alertsProvider),
+          builder: (list) => list.isEmpty ? BodyText(l.noAlerts) : Column(children: [for (final a in list.take(10)) AlertTile(alert: a)]),
+        ),
+        SectionTitle(l.guardianRequests),
         AsyncBody<GuardianInbox>(
           value: inbox,
           onRetry: () => ref.invalidate(inboxProvider),

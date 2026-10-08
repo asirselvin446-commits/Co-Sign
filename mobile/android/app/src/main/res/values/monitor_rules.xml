@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- GENERATED from shared/catalog.json by scripts/gen-catalog.mjs. Do not edit. -->
+<resources>
+    <string name="rule_payment_screen_during_call">A payment PIN screen was opened while on a call with an unknown number.</string>
+    <string name="rule_login_screen_during_call">A bank, payment or email sign-in screen was opened while on a call with an unknown number.</string>
+    <string name="rule_otp_during_call">A one-time code arrived while on a call with an unknown number. Scammers ask people to read these out.</string>
+    <string name="rule_sensitive_app_during_call">A bank or payment app was opened while on a call with an unknown number.</string>
+    <string name="rule_remote_access_active">An app that lets someone else control this phone is in use.</string>
+    <string name="rule_remote_access_during_call">The screen-control app is being used during a call with an unknown number.</string>
+    <string name="rule_new_login_alert">An app reported a new sign-in to one of this person\'s accounts.</string>
+    <string name="rule_login_alert_during_call">The new sign-in happened during a call with an unknown number.</string>
+    <string name="rule_unusual_debit">Money left an account in an amount much larger than usual for this person.</string>
+    <string name="rule_long_unknown_call">A call with an unknown, hidden or foreign number has lasted more than 15 minutes.</string>
+    <string name="rule_large_debit">A bank or payment app reported a large amount leaving an account.</string>
+    <string name="rule_very_long_unknown_call">The call has gone on for more than 45 minutes. Fake \'arrest\' and \'police\' scams keep people on long calls.</string>
+    <string name="rule_repeated_unknown_caller">The same unknown number has called three or more times in two hours.</string>
+    <string name="rule_hidden_or_international_caller">The caller\'s number is hidden or from another country.</string>
+    <string name="rule_late_night_activity">This happened between midnight and 5 a.m.</string>
+</resources>

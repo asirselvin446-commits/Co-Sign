@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pause_title">रुकिए। आगे बढ़ने से पहले जाँच लें।</string>
+    <string name="pause_body">यह धोखेबाज़ों के तरीके जैसा लग रहा है:</string>
+    <string name="pause_advice">अगर कोई आपको बता रहा है कि क्या करना है, तो कॉल काट दें। आपके संरक्षक को बता दिया गया है। बैंक और पुलिस कभी कॉल पर पैसे भेजने या कोड बताने को नहीं कहते।</string>
+    <string name="pause_wait">आप %1$d सेकंड में आगे बढ़ सकते हैं।</string>
+    <string name="pause_can_continue">अगर आप पक्का हैं तो अब आगे बढ़ सकते हैं।</string>
+    <string name="pause_continue">फिर भी आगे बढ़ें</string>
+    <string name="pause_open_app">Co-Sign खोलें</string>
+    <string name="pause_released">आपके संरक्षक ने यह रोक हटा दी है।</string>
+    <string name="monitor_channel">फ़ैमिली प्रोटेक्शन</string>
+    <string name="monitor_notification_title">Co-Sign इस फ़ोन की सुरक्षा कर रहा है</string>
+    <string name="monitor_notification_body">कुछ धोखाधड़ी जैसा लगे तो आपके संरक्षकों को बताया जाता है। सेटिंग बदलने के लिए टैप करें।</string>
+    <string name="accessibility_description">अनजान नंबर से कॉल के दौरान बैंक, पेमेंट या ईमेल की साइन-इन स्क्रीन खुलने पर Co-Sign फ़ैमिली प्रोटेक्शन इसे पहचानता है और रोक देता है ताकि आप पहले जाँच सकें। यह सिर्फ़ जानता है कि किस तरह की स्क्रीन खुली है। स्क्रीन पर क्या है या आप क्या टाइप करते हैं, यह कभी नहीं पढ़ता।</string>
+</resources>

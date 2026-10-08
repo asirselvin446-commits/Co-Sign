@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- GENERATED from shared/catalog.json by scripts/gen-catalog.mjs. Do not edit. -->
+<resources>
+    <string name="rule_payment_screen_during_call">किसी अनजान नंबर से कॉल के दौरान पेमेंट PIN वाली स्क्रीन खोली गई।</string>
+    <string name="rule_login_screen_during_call">किसी अनजान नंबर से कॉल के दौरान बैंक, पेमेंट या ईमेल की साइन-इन स्क्रीन खोली गई।</string>
+    <string name="rule_otp_during_call">किसी अनजान नंबर से कॉल के दौरान एक बार वाला कोड आया। धोखेबाज़ ऐसे कोड पढ़कर सुनाने को कहते हैं।</string>
+    <string name="rule_sensitive_app_during_call">किसी अनजान नंबर से कॉल के दौरान बैंक या पेमेंट ऐप खोला गया।</string>
+    <string name="rule_remote_access_active">ऐसा ऐप इस्तेमाल हो रहा है जिससे कोई और इस फ़ोन को चला सकता है।</string>
+    <string name="rule_remote_access_during_call">अनजान नंबर से कॉल के दौरान स्क्रीन चलाने वाला ऐप इस्तेमाल हो रहा है।</string>
+    <string name="rule_new_login_alert">एक ऐप ने बताया कि इनके किसी खाते में नया साइन-इन हुआ है।</string>
+    <string name="rule_login_alert_during_call">यह नया साइन-इन किसी अनजान नंबर से कॉल के दौरान हुआ।</string>
+    <string name="rule_unusual_debit">इनके खाते से आम तौर से बहुत ज़्यादा रकम निकली है।</string>
+    <string name="rule_long_unknown_call">अनजान, छिपे हुए या विदेशी नंबर से कॉल 15 मिनट से ज़्यादा चल रही है।</string>
+    <string name="rule_large_debit">बैंक या पेमेंट ऐप ने बताया कि खाते से बड़ी रकम निकली है।</string>
+    <string name="rule_very_long_unknown_call">कॉल 45 मिनट से ज़्यादा चल रही है। नकली \'गिरफ़्तारी\' और \'पुलिस\' वाले धोखेबाज़ लोगों को लंबी कॉल पर रखते हैं।</string>
+    <string name="rule_repeated_unknown_caller">एक ही अनजान नंबर से दो घंटे में तीन या ज़्यादा बार कॉल आई है।</string>
+    <string name="rule_hidden_or_international_caller">कॉल करने वाले का नंबर छिपा है या किसी दूसरे देश का है।</string>
+    <string name="rule_late_night_activity">यह आधी रात से सुबह 5 बजे के बीच हुआ।</string>
+</resources>

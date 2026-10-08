@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/providers.dart';
 import 'core/session/session_controller.dart';
 import 'demo/demo_mode.dart';
+import 'features/protection/protection_screens.dart';
 import 'l10n/gen/app_localizations.dart';
 import 'router.dart';
 import 'ui/theme.dart';
@@ -53,6 +54,16 @@ class _CoSignAppState extends ConsumerState<CoSignApp> {
 
   @override
   Widget build(BuildContext context) {
+    // Keep the background monitor's token and language in step with the app.
+    ref
+      ..listen(sessionProvider, (prev, next) {
+        if (next.status == SessionStatus.signedIn && prev?.status != SessionStatus.signedIn) {
+          unawaited(ref.read(protectionControllerProvider).sync());
+        }
+      })
+      ..listen(settingsProvider.select((s) => s.language), (_, _) {
+        if (ref.read(sessionProvider).status == SessionStatus.signedIn) unawaited(ref.read(protectionControllerProvider).sync());
+      });
     final settings = ref.watch(settingsProvider);
     final router = ref.watch(routerProvider);
     return MaterialApp.router(
@@ -76,7 +87,7 @@ class _CoSignAppState extends ConsumerState<CoSignApp> {
         final mq = MediaQuery.of(context);
         final scaler = TextScaler.linear((mq.textScaler.scale(1) * settings.textScale).clamp(1.0, 3.0));
         final page = MediaQuery(data: mq.copyWith(textScaler: scaler), child: child!);
-        return kDemoMode ? DemoOverlay(child: page) : page;
+        return ref.watch(demoModeProvider) ? DemoOverlay(child: page) : page;
       },
     );
   }

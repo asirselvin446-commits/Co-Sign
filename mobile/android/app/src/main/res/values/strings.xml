@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pause_title">Stop. Check before you continue.</string>
+    <string name="pause_body">This looks like the way scammers work:</string>
+    <string name="pause_advice">Hang up if someone is telling you what to do. Your guardian has been told. Banks and police never ask you to pay or share a code on a call.</string>
+    <string name="pause_wait">You can continue in %1$d seconds.</string>
+    <string name="pause_can_continue">You can continue now if you are sure.</string>
+    <string name="pause_continue">Continue anyway</string>
+    <string name="pause_open_app">Open Co-Sign</string>
+    <string name="pause_released">Your guardian has released this pause.</string>
+    <string name="monitor_channel">Family protection</string>
+    <string name="monitor_notification_title">Co-Sign is protecting this phone</string>
+    <string name="monitor_notification_body">Your guardians are told if something looks like a scam. Tap to change settings.</string>
+    <string name="accessibility_description">Co-Sign family protection notices when a bank, payment or email sign-in screen opens during a call with an unknown number, and pauses it so you can check first. It only sees what kind of screen is open. It never reads what is on the screen or what you type.</string>
+</resources>

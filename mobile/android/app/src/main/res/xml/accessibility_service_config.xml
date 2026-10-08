@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Only window changes and focus events. canRetrieveWindowContent is false: Co-Sign cannot read
+     what is on screen; it only learns the app, the screen class and whether a password field has focus. -->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeViewFocused"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagDefault"
+    android:canRetrieveWindowContent="false"
+    android:notificationTimeout="250"
+    android:isAccessibilityTool="false"
+    android:description="@string/accessibility_description"
+    android:summary="@string/monitor_notification_title" />

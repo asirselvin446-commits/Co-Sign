@@ -24,6 +24,8 @@ const realtimeEvents = [
   'guardian.request.closed',
   'guardian.request.live',
   'guardian.recovery',
+  'guardian.alert',
+  'monitor.pause',
   'recovery.alert',
   'recovery.updated',
   'guardians.changed',

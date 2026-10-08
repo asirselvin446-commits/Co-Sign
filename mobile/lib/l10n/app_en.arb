@@ -1,7 +1,6 @@
 {
   "@@locale": "en",
   "appName": "Co-Sign",
-
   "continueLabel": "Continue",
   "cancel": "Cancel",
   "close": "Close",
@@ -13,17 +12,14 @@
   "readAloud": "Read aloud",
   "stopReading": "Stop reading",
   "back": "Back",
-
   "languageTitle": "Choose your language",
   "languageSubtitle": "You can change this later in Settings.",
-
   "welcomeTitle": "Sign in safely",
   "welcomeBody": "Sign in with your fingerprint, face or screen lock. If it looks like someone is tricking you, a person you trust is asked to approve first.",
   "createAccount": "Create account",
   "signIn": "Sign in",
   "lostPhone": "I lost my phone",
   "linkPhone": "Add this phone with a code",
-
   "consentTitle": "Safety checks",
   "consentBody": "To spot scams, Co-Sign can check, only while you use protected features:",
   "consentCall": "Whether you are on a call with a number that is not in your contacts",
@@ -33,7 +29,6 @@
   "consentPrivacy": "Only yes or no answers and call durations are sent. Phone numbers, contact names and your app list never leave your phone. These checks are deleted after 30 days. You can turn them off at any time in Settings.",
   "consentAllow": "Allow safety checks",
   "consentDecline": "Not now",
-
   "permissionsTitle": "Help Co-Sign notice scam calls",
   "permissionsNote": "You can say no. Co-Sign still works, with fewer checks.",
   "permPhone": "Phone status: tells us if you are on a call and if your SIM changed.",
@@ -44,26 +39,48 @@
   "openSettings": "Open settings",
   "skip": "Skip",
   "granted": "Allowed",
-
   "registerTitle": "Create your account",
   "handleLabel": "Account name",
   "handleHint": "Small letters and numbers, for example asha.k",
   "nameLabel": "Your name",
   "createPasskey": "Create passkey",
   "passkeyExplain": "Your phone will ask for your fingerprint, face or screen lock. That is your password from now on. There is nothing to remember.",
-
   "homeTitle": "Home",
   "balance": "Balance",
   "dailyLimit": "Daily limit {amount}",
-  "@dailyLimit": { "placeholders": { "amount": { "type": "String" } } },
+  "@dailyLimit": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "remainingToday": "{amount} left to send today",
-  "@remainingToday": { "placeholders": { "amount": { "type": "String" } } },
+  "@remainingToday": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "recentActivity": "Recent activity",
   "noActivity": "No money moved yet.",
   "sentTo": "Sent to {name}",
-  "@sentTo": { "placeholders": { "name": { "type": "String" } } },
+  "@sentTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "receivedFrom": "Received from {name}",
-  "@receivedFrom": { "placeholders": { "name": { "type": "String" } } },
+  "@receivedFrom": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "sendMoney": "Send money",
   "payees": "Payees",
   "guardians": "Guardians",
@@ -74,10 +91,15 @@
   "openCheckAction": "Open",
   "recoveryBannerTitle": "Someone is moving your account to a new phone",
   "recoveryBannerBody": "New phone: {device}. If this is not you, cancel now.",
-  "@recoveryBannerBody": { "placeholders": { "device": { "type": "String" } } },
+  "@recoveryBannerBody": {
+    "placeholders": {
+      "device": {
+        "type": "String"
+      }
+    }
+  },
   "cancelRecovery": "Cancel recovery",
   "recoveryCancelled": "Recovery cancelled. Your account stays on this phone.",
-
   "transferTitle": "Send money",
   "toPayee": "To",
   "choosePayee": "Choose a payee",
@@ -88,22 +110,41 @@
   "send": "Send",
   "aboveLimitNote": "This is above your daily limit, so it needs an extra safety check.",
   "sentSuccess": "Sent {amount} to {name}.",
-  "@sentSuccess": { "placeholders": { "amount": { "type": "String" }, "name": { "type": "String" } } },
+  "@sentSuccess": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "invalidAmount": "Enter an amount like 250 or 250.50.",
-
   "payeesTitle": "Payees",
   "addPayee": "Add payee",
   "payeeHandle": "Their account name",
   "payeeNickname": "Name to show",
   "remove": "Remove",
   "payeeAdded": "Payee added.",
-
   "phonesTitle": "Phones",
   "thisPhone": "This phone",
   "addedOn": "Added {date}",
-  "@addedOn": { "placeholders": { "date": { "type": "String" } } },
+  "@addedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "lastUsedOn": "Last used {date}",
-  "@lastUsedOn": { "placeholders": { "date": { "type": "String" } } },
+  "@lastUsedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "addPhone": "Add another phone",
   "addPasskey": "Add a passkey on this phone",
   "passkeyAdded": "Passkey added.",
@@ -114,7 +155,6 @@
   "linkPhoneBody": "On your old phone, open Co-Sign, go to Phones and choose \"Add another phone\". Type the 8-digit code it shows.",
   "codeLabel": "Code",
   "convertDigits": "Convert to 0–9",
-
   "guardiansTitle": "Guardians",
   "guardiansIntro": "Guardians are people you trust. When something looks like a scam, they are asked to approve with their own passkey. They never see your money.",
   "inviteGuardian": "Invite a guardian",
@@ -124,47 +164,108 @@
   "linkCopied": "Link copied.",
   "inviteCode": "Invite code",
   "expires": "Expires {date}",
-  "@expires": { "placeholders": { "date": { "type": "String" } } },
+  "@expires": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "pendingActivation": "Becomes a guardian {date}",
-  "@pendingActivation": { "placeholders": { "date": { "type": "String" } } },
+  "@pendingActivation": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "pendingRemoval": "Will be removed {date}",
-  "@pendingRemoval": { "placeholders": { "date": { "type": "String" } } },
+  "@pendingRemoval": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "activeGuardian": "Active guardian",
   "stopChange": "Stop this change",
   "noGuardians": "No guardians yet. Without one, risky actions wait 30 minutes instead.",
   "guardiansMax": "You can have up to {max} guardians.",
-  "@guardiansMax": { "placeholders": { "max": { "type": "int" } } },
+  "@guardiansMax": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
   "changesTakeADay": "New guardians and removals take 24 hours, and you are alerted, so nobody can quietly change them.",
-
   "beGuardian": "Become someone's guardian",
   "enterInviteCode": "Type invite code",
   "scanQr": "Scan QR code",
   "scanHint": "Point the camera at the QR code on their phone.",
   "acceptTitle": "Become {name}'s guardian?",
-  "@acceptTitle": { "placeholders": { "name": { "type": "String" } } },
+  "@acceptTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "acceptBody": "You will be asked to approve risky actions with your own passkey. You will not see their money or account.",
   "accept": "Accept",
   "acceptedBody": "Done. You become {name}'s guardian in 24 hours.",
-  "@acceptedBody": { "placeholders": { "name": { "type": "String" } } },
+  "@acceptedBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "peopleIGuard": "People you guard",
   "stepDown": "Step down",
   "stepDownConfirm": "Stop being a guardian? This takes 24 hours and they will be told.",
-
   "stepupTitle": "Safety check",
   "whyPaused": "Why we paused this",
   "noWarnings": "No warning signs right now.",
   "riskScore": "Risk score {score}",
-  "@riskScore": { "placeholders": { "score": { "type": "int" } } },
+  "@riskScore": {
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    }
+  },
   "confirmWithPasskey": "Confirm with passkey",
   "waitingGuardian": "Waiting for your guardian",
   "waitingGuardianBody": "We asked your guardians to approve. This screen updates by itself. You can keep waiting or cancel.",
   "guardiansAnswered": "{responded} of {total} guardians answered",
-  "@guardiansAnswered": { "placeholders": { "responded": { "type": "int" }, "total": { "type": "int" } } },
+  "@guardiansAnswered": {
+    "placeholders": {
+      "responded": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "requestExpiresAt": "Request expires at {time}",
-  "@requestExpiresAt": { "placeholders": { "time": { "type": "String" } } },
+  "@requestExpiresAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "cooloffTitle": "Safety pause",
   "cooloffBody": "Nobody approved in time, so this waits until {time}. If anyone is pressuring you, hang up now.",
-  "@cooloffBody": { "placeholders": { "time": { "type": "String" } } },
+  "@cooloffBody": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "readyToConfirmTitle": "The pause is over",
   "readyToConfirmBody": "Confirm only if you still want to do this and nobody is telling you to.",
   "completedTitle": "Done",
@@ -174,39 +275,84 @@
   "failedTitle": "This could not be completed",
   "cancelAction": "Cancel this action",
   "hangUpAdvice": "Banks, police and government offices never ask you to move money, install apps or read out codes on a call.",
-
   "recoveryTitle": "I lost my phone",
   "recoveryIntro": "Type your account name. Your guardians will be asked to confirm it is really you.",
   "recoveryStart": "Ask my guardians",
   "recoveryWaiting": "Waiting for your guardians",
   "recoveryWaitingBody": "Call your guardians yourself and ask them to approve in Co-Sign. This screen updates by itself.",
   "recoveryApprovals": "{count} approved so far",
-  "@recoveryApprovals": { "placeholders": { "count": { "type": "int" } } },
+  "@recoveryApprovals": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "recoveryCancelWindow": "Approved. For your safety, the move finishes at {time}. Your old phone can still cancel it until then.",
-  "@recoveryCancelWindow": { "placeholders": { "time": { "type": "String" } } },
+  "@recoveryCancelWindow": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "recoveryReady": "Ready. Create a passkey on this phone to finish.",
   "recoveryCodeOption": "I have no guardians. Use a recovery code.",
   "recoveryCodeLabel": "Recovery code",
-
   "inboxTitle": "Requests",
   "inboxEmpty": "Nothing to approve right now.",
   "approveTitle": "{name} needs your approval",
-  "@approveTitle": { "placeholders": { "name": { "type": "String" } } },
+  "@approveTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "callFirst": "Before you decide, call {name} yourself on a number you already know. Do not use a number from a message.",
-  "@callFirst": { "placeholders": { "name": { "type": "String" } } },
+  "@callFirst": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "approve": "Approve",
   "deny": "Deny",
   "youApproved": "You approved this.",
   "youDenied": "You denied this. {name} has been told.",
-  "@youDenied": { "placeholders": { "name": { "type": "String" } } },
+  "@youDenied": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "recoveryRequestTitle": "{name} is moving to a new phone",
-  "@recoveryRequestTitle": { "placeholders": { "name": { "type": "String" } } },
+  "@recoveryRequestTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "newPhone": "New phone: {device}",
-  "@newPhone": { "placeholders": { "device": { "type": "String" } } },
+  "@newPhone": {
+    "placeholders": {
+      "device": {
+        "type": "String"
+      }
+    }
+  },
   "stillRisky": "Live: the warning signs are still there.",
   "receivedAt": "Asked at {time}",
-  "@receivedAt": { "placeholders": { "time": { "type": "String" } } },
-
+  "@receivedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "settingsTitle": "Settings",
   "language": "Language",
   "voice": "Read messages aloud",
@@ -240,7 +386,59 @@
   "deleteConfirm": "This deletes your account and signs out every phone. It cannot be undone. Continue?",
   "signOut": "Sign out",
   "about": "About Co-Sign",
-
   "configMissingTitle": "App not configured",
-  "configMissingBody": "This build has no server address. Rebuild with --dart-define=API_BASE_URL=https://your.domain."
+  "configMissingBody": "This build has no server address. Rebuild with --dart-define=API_BASE_URL=https://your.domain.",
+  "familyProtection": "Family protection",
+  "fpIntro": "Co-Sign can watch for the tricks scammers use on this phone and tell your guardians straight away. You choose each part, and this phone always shows that protection is on.",
+  "fpWho": "Helpful for parents, grandparents and children.",
+  "fpConsentBody": "If you turn this on, Co-Sign may notice: which bank, payment and email apps open; bank, one-time code and sign-in alerts (only the type and a rough amount, never the message); who is calling (saved contact or not, never the number); and when a sign-in or payment PIN screen opens. Your guardians see these alerts. Nothing is kept longer than 30 days. You can turn this off at any time.",
+  "fpTurnOn": "Turn on family protection",
+  "fpTurnOff": "Turn off family protection",
+  "fpOn": "Protection is on. Your guardians are alerted if something looks wrong.",
+  "fpOff": "Protection is off on this phone.",
+  "fpNeedsGuardian": "Add a guardian first, so someone can be alerted.",
+  "fpChecklist": "Choose what to watch",
+  "fpAppWatch": "See which bank, payment and email apps open",
+  "fpAlerts": "Read bank, one-time code and sign-in alerts",
+  "fpCalls": "Check who is calling",
+  "fpContacts": "Recognise saved contacts",
+  "fpScreens": "Notice sign-in and payment PIN screens",
+  "fpScreensHelp": "Uses accessibility. Only the type of screen is noticed: what is on screen and what you type are never read.",
+  "fpPause": "Show a safety pause over payment apps",
+  "fpBattery": "Keep protection running in the background",
+  "fpSetUp": "Set up",
+  "fpReady": "Ready",
+  "fpCoverage": "{count} of {total} protections ready",
+  "@fpCoverage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "alertsTitle": "Alerts",
+  "noAlerts": "No alerts in the last 7 days.",
+  "alertUrgent": "Urgent",
+  "alertWarning": "Warning",
+  "alertPaused": "Their phone is paused right now. Call them, then release the pause.",
+  "releasePause": "Release the pause",
+  "pauseReleased": "Pause released.",
+  "markSeen": "Mark as seen",
+  "appInvolved": "App: {app}",
+  "@appInvolved": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "catBank": "Bank app",
+  "catUpi": "Payment app",
+  "catWallet": "Money app",
+  "catEmail": "Email",
+  "catSocial": "Social app",
+  "catRemote": "Screen-control app"
 }

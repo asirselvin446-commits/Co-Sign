@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- GENERATED from shared/catalog.json by scripts/gen-catalog.mjs. Do not edit. -->
+<resources>
+    <string name="rule_payment_screen_during_call">தெரியாத எண்ணுடன் அழைப்பில் இருக்கும்போது பணம் செலுத்தும் PIN திரை திறக்கப்பட்டது.</string>
+    <string name="rule_login_screen_during_call">தெரியாத எண்ணுடன் அழைப்பில் இருக்கும்போது வங்கி, பணம் செலுத்தும் அல்லது மின்னஞ்சல் உள்நுழைவுத் திரை திறக்கப்பட்டது.</string>
+    <string name="rule_otp_during_call">தெரியாத எண்ணுடன் அழைப்பில் இருக்கும்போது ஒருமுறைக் குறியீடு வந்தது. மோசடிக்காரர்கள் இதைப் படிக்கச் சொல்வார்கள்.</string>
+    <string name="rule_sensitive_app_during_call">தெரியாத எண்ணுடன் அழைப்பில் இருக்கும்போது வங்கி அல்லது பணம் செலுத்தும் செயலி திறக்கப்பட்டது.</string>
+    <string name="rule_remote_access_active">வேறொருவர் இந்தத் தொலைபேசியைக் கட்டுப்படுத்த உதவும் செயலி பயன்பாட்டில் உள்ளது.</string>
+    <string name="rule_remote_access_during_call">தெரியாத எண்ணுடனான அழைப்பின்போது திரையைக் கட்டுப்படுத்தும் செயலி பயன்படுத்தப்படுகிறது.</string>
+    <string name="rule_new_login_alert">இவரின் கணக்குகளில் ஒன்றில் புதிய உள்நுழைவு நடந்ததாக ஒரு செயலி தெரிவித்தது.</string>
+    <string name="rule_login_alert_during_call">அந்தப் புதிய உள்நுழைவு தெரியாத எண்ணுடனான அழைப்பின்போது நடந்தது.</string>
+    <string name="rule_unusual_debit">இவருக்கு வழக்கத்தை விட மிக அதிகமான தொகை கணக்கிலிருந்து சென்றுள்ளது.</string>
+    <string name="rule_long_unknown_call">தெரியாத, மறைக்கப்பட்ட அல்லது வெளிநாட்டு எண்ணுடனான அழைப்பு 15 நிமிடங்களுக்கு மேல் நீடிக்கிறது.</string>
+    <string name="rule_large_debit">ஒரு கணக்கிலிருந்து பெரிய தொகை சென்றதாக வங்கி அல்லது பணம் செலுத்தும் செயலி தெரிவித்தது.</string>
+    <string name="rule_very_long_unknown_call">அழைப்பு 45 நிமிடங்களுக்கு மேல் நீடிக்கிறது. போலி \'கைது\', \'காவல்துறை\' மோசடிகள் மக்களை நீண்ட நேரம் அழைப்பில் வைத்திருக்கும்.</string>
+    <string name="rule_repeated_unknown_caller">அதே தெரியாத எண் இரண்டு மணி நேரத்தில் மூன்று முறை அல்லது அதற்கு மேல் அழைத்துள்ளது.</string>
+    <string name="rule_hidden_or_international_caller">அழைப்பவரின் எண் மறைக்கப்பட்டுள்ளது அல்லது வேறு நாட்டைச் சேர்ந்தது.</string>
+    <string name="rule_late_night_activity">இது நள்ளிரவு முதல் அதிகாலை 5 மணிக்குள் நடந்தது.</string>
+</resources>

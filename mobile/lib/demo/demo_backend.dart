@@ -46,6 +46,30 @@ class DemoSignalsChannel implements SignalsChannel {
   Future<bool?> isDeviceSecure() async => true;
   @override
   Stream<Json> get events => const Stream.empty();
+
+  bool monitorOn = false;
+
+  @override
+  Future<bool> monitorConfigure({required String baseUrl, required String? token, required bool enabled, required String lang}) async => monitorOn = enabled && token != null;
+
+  @override
+  Future<Map<String, bool>> monitorStatus() async => {
+        'enabled': monitorOn,
+        'usageAccess': true,
+        'notificationAccess': true,
+        'callScreening': true,
+        'contacts': true,
+        'phoneState': true,
+        'accessibility': false,
+        'overlay': true,
+        'batteryUnrestricted': false,
+      };
+
+  @override
+  Future<void> monitorOpen(String what) async {}
+
+  @override
+  Future<bool> requestCallScreening() async => true;
 }
 
 /// Stands in for the fingerprint / screen-lock prompt.
@@ -141,6 +165,9 @@ class DemoCoSignApi implements CoSignApi {
   final Map<String, _Stepup> _stepups = {};
   final Map<String, GuardianRequest> _requests = {};
   final Map<String, int> _recoveryPolls = {};
+  bool _monitorConsent = false;
+  bool _monitorEnabled = false;
+  final List<GuardianAlert> _alerts = [];
 
   void _seed() {
     final now = DateTime.now();
@@ -156,6 +183,13 @@ class DemoCoSignApi implements CoSignApi {
       ..addAll([
         DeviceView(id: 'device-this', platform: 'android', name: 'This phone', enrolledAt: now.subtract(const Duration(days: 40)), lastSeenAt: now, current: true),
         DeviceView(id: 'device-tab', platform: 'android', name: 'Samsung Galaxy Tab', enrolledAt: now.subtract(const Duration(days: 12)), lastSeenAt: now.subtract(const Duration(days: 2)), current: false),
+      ]);
+    _alerts
+      ..clear()
+      ..addAll([
+        _alert('alert-1', 'Amma', 'payment_screen', 'upi', 'com.phonepe.app', 'critical', ['payment_screen_during_call', 'long_unknown_call'], now.subtract(const Duration(minutes: 4)), pause: 'active'),
+        _alert('alert-2', 'Arun (grandson)', 'notification_login', 'social', 'com.instagram.android', 'warn', ['new_login_alert', 'late_night_activity'], now.subtract(const Duration(hours: 9))),
+        _alert('alert-3', 'Amma', 'call_update', null, null, 'critical', ['long_unknown_call', 'repeated_unknown_caller', 'very_long_unknown_call'], now.subtract(const Duration(days: 1)), acknowledged: true),
       ]);
     // Someone this person guards needs help: shows the guardian approval screen.
     _requests['guard-req-1'] = GuardianRequest(
@@ -173,6 +207,23 @@ class DemoCoSignApi implements CoSignApi {
       myDecision: null,
     );
   }
+
+  GuardianAlert _alert(String id, String name, String kind, String? category, String? package, String severity, List<String> rules, DateTime at, {String? pause, bool acknowledged = false}) =>
+      GuardianAlert(
+        id: id,
+        personName: name,
+        kind: kind,
+        appCategory: category,
+        appPackage: package,
+        amountBucket: null,
+        severity: severity,
+        score: rules.fold(0, (sum, r) => sum + (kMonitorWeights[r] ?? 0)),
+        reasons: [for (final r in rules) Reason(r, kMonitorWeights[r] ?? 0, kMonitorReasons[r]?[_lang] ?? r)],
+        occurredAt: at,
+        acknowledged: acknowledged,
+        pauseId: pause == null ? null : 'pause-$id',
+        pauseStatus: pause,
+      );
 
   String get _lang => language();
   String _label(String action) => kActionLabels[action]?[_lang] ?? action;
@@ -448,7 +499,10 @@ class DemoCoSignApi implements CoSignApi {
   @override
   Future<DateTime> acceptInvite({String? token, String? code}) => _later(() => DateTime.now().add(const Duration(hours: 24)));
   @override
-  Future<List<Person>> people() => _later(() => const [Person(linkId: 'link-amma', displayName: 'Amma', status: 'active')]);
+  Future<List<Person>> people() => _later(() => const [
+        Person(linkId: 'link-amma', displayName: 'Amma', status: 'active'),
+        Person(linkId: 'link-arun', displayName: 'Arun (grandson)', status: 'active'),
+      ]);
   @override
   Future<void> resign(String linkId) async {}
 
@@ -546,4 +600,77 @@ class DemoCoSignApi implements CoSignApi {
         'payees': [for (final p in _payees) p.handle],
       });
 
+
+  // ------------------------------------------------------------------ family protection
+
+  @override
+  Future<MonitorStatus> monitorStatus() => _later(() => MonitorStatus(
+        consented: _monitorConsent,
+        consentVersion: '2026-10',
+        enabledOnThisPhone: _monitorEnabled,
+        guardians: _guardians.where((g) => g.status != 'pending_activation').length,
+        eventsLast24h: _monitorEnabled ? 12 : 0,
+        activePauseId: null,
+      ));
+
+  @override
+  Future<void> setMonitorConsent(bool granted, String version) => _later(() {
+        _monitorConsent = granted;
+        if (!granted) _monitorEnabled = false;
+      });
+
+  @override
+  Future<String> issueMonitorToken() => _later(() {
+        _monitorEnabled = true;
+        return 'demo-monitor-token';
+      });
+
+  @override
+  Future<void> revokeMonitorToken() => _later(() => _monitorEnabled = false);
+
+  @override
+  Future<List<GuardianAlert>> guardianAlerts() => _later(() => List.of(_alerts));
+
+  @override
+  Future<void> acknowledgeAlert(String id) => _later(() {
+        final i = _alerts.indexWhere((a) => a.id == id);
+        final a = _alerts[i];
+        _alerts[i] = GuardianAlert(
+          id: a.id,
+          personName: a.personName,
+          kind: a.kind,
+          appCategory: a.appCategory,
+          appPackage: a.appPackage,
+          amountBucket: a.amountBucket,
+          severity: a.severity,
+          score: a.score,
+          reasons: a.reasons,
+          occurredAt: a.occurredAt,
+          acknowledged: true,
+          pauseId: a.pauseId,
+          pauseStatus: a.pauseStatus,
+        );
+      });
+
+  @override
+  Future<void> releasePause(String pauseId) => _later(() {
+        final i = _alerts.indexWhere((a) => a.pauseId == pauseId);
+        final a = _alerts[i];
+        _alerts[i] = GuardianAlert(
+          id: a.id,
+          personName: a.personName,
+          kind: a.kind,
+          appCategory: a.appCategory,
+          appPackage: a.appPackage,
+          amountBucket: a.amountBucket,
+          severity: a.severity,
+          score: a.score,
+          reasons: a.reasons,
+          occurredAt: a.occurredAt,
+          acknowledged: true,
+          pauseId: a.pauseId,
+          pauseStatus: 'released',
+        );
+        realtime.emit('guardian.alert', {'pauseId': pauseId, 'status': 'released'});
+      });
 }

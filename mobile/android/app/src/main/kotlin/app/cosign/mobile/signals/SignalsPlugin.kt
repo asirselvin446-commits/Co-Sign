@@ -4,24 +4,27 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AppOpsManager
+import android.app.role.RoleManager
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import android.os.Process
-import android.provider.ContactsContract
 import android.provider.Settings
-import android.telephony.PhoneStateListener
 import android.telephony.SubscriptionManager
-import android.telephony.TelephonyCallback
 import android.telephony.TelephonyManager
 import android.view.WindowManager
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import app.cosign.mobile.monitor.AppCatalog
+import app.cosign.mobile.monitor.CallWatcher
+import app.cosign.mobile.monitor.MonitorForegroundService
+import app.cosign.mobile.monitor.MonitorHub
 import com.google.android.play.core.integrity.IntegrityManagerFactory
 import com.google.android.play.core.integrity.StandardIntegrityManager.PrepareIntegrityTokenRequest
 import com.google.android.play.core.integrity.StandardIntegrityManager.StandardIntegrityTokenRequest
@@ -48,7 +51,8 @@ class SignalsPlugin :
     ActivityAware,
     MethodChannel.MethodCallHandler,
     EventChannel.StreamHandler,
-    PluginRegistry.RequestPermissionsResultListener {
+    PluginRegistry.RequestPermissionsResultListener,
+    PluginRegistry.ActivityResultListener {
 
     private lateinit var context: Context
     private lateinit var methods: MethodChannel
@@ -59,10 +63,6 @@ class SignalsPlugin :
     private val main = Handler(Looper.getMainLooper())
     private val mainExecutor = Executor { main.post(it) }
 
-    private lateinit var callTracker: CallStateTracker
-    private var telephonyCallback: Any? = null
-    private var phoneStateListener: PhoneStateListener? = null
-    private var audioModeListener: Any? = null
 
     private var screenshotSeenAt: Long = 0
     private var recordingActive = false
@@ -80,12 +80,12 @@ class SignalsPlugin :
         events = EventChannel(b.binaryMessenger, "app.cosign/signals/events")
         methods.setMethodCallHandler(this)
         events.setStreamHandler(this)
-        callTracker = CallStateTracker(isKnownContact = ::lookupContact)
-        startCallMonitoring()
+        CallWatcher.start(context)
+        CallWatcher.onCallState = { active -> emit(mapOf("type" to "call_state", "active" to active)) }
     }
 
     override fun onDetachedFromEngine(b: FlutterPlugin.FlutterPluginBinding) {
-        stopCallMonitoring()
+        CallWatcher.onCallState = null
         methods.setMethodCallHandler(null)
         events.setStreamHandler(null)
     }
@@ -94,12 +94,14 @@ class SignalsPlugin :
         binding = b
         activity = b.activity
         b.addRequestPermissionsResultListener(this)
+        b.addActivityResultListener(this)
         startScreenMonitoring()
     }
 
     override fun onDetachedFromActivity() {
         stopScreenMonitoring()
         binding?.removeRequestPermissionsResultListener(this)
+        binding?.removeActivityResultListener(this)
         binding = null
         activity = null
     }
@@ -155,6 +157,24 @@ class SignalsPlugin :
                     val km = context.getSystemService(Context.KEYGUARD_SERVICE) as android.app.KeyguardManager
                     result.success(km.isDeviceSecure)
                 }
+                "monitorConfigure" -> {
+                    MonitorHub.init(context)
+                    val enabled = call.argument<Boolean>("enabled") ?: false
+                    AppCatalog.setExtra(call.argument<Map<String, String>>("extraApps") ?: emptyMap())
+                    MonitorHub.configure(call.argument("baseUrl"), call.argument("token"), enabled, call.argument("lang"))
+                    if (MonitorHub.enabled) MonitorForegroundService.start(context) else MonitorForegroundService.stop(context)
+                    result.success(MonitorHub.enabled)
+                }
+                "monitorStatus" -> result.success(monitorStatus())
+                "monitorOpen" -> {
+                    openMonitorSetting(call.argument<String>("what") ?: "")
+                    result.success(true)
+                }
+                "monitorRequestCallScreening" -> requestCallScreeningRole(result)
+                "monitorFlush" -> {
+                    MonitorHub.flush()
+                    result.success(true)
+                }
                 "platformInfo" -> result.success(
                     mapOf(
                         "sdkInt" to Build.VERSION.SDK_INT,
@@ -172,7 +192,7 @@ class SignalsPlugin :
     // ------------------------------------------------------------------ snapshot
 
     private fun snapshot(remotePackages: List<String>): SignalSnapshot {
-        updateAudioMode()
+        CallWatcher.refreshAudio(context)
         val detector = RemoteAccessDetector(
             isInstalled = ::isInstalled,
             enabledAccessibilityServices = {
@@ -184,7 +204,7 @@ class SignalsPlugin :
         )
         val recentScreenshot = System.currentTimeMillis() - screenshotSeenAt < 2 * 60 * 1000
         return SignalSnapshot(
-            call = callTracker.snapshot(),
+            call = CallWatcher.tracker.snapshot(),
             remoteAccess = detector.detect(remotePackages),
             screen = ScreenSignal(captureDetected = recentScreenshot, recordingActive = recordingActive),
             simFingerprint = simFingerprint(),
@@ -265,86 +285,6 @@ class SignalsPlugin :
         return SimFingerprint.compute(installSalt(), subs, carrierId, tm.simOperator)
     }
 
-    // ------------------------------------------------------------------ calls
-
-    private fun lookupContact(number: String): Boolean? {
-        if (!granted(Manifest.permission.READ_CONTACTS)) return null
-        val uri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(number))
-        return try {
-            context.contentResolver.query(uri, arrayOf(ContactsContract.PhoneLookup._ID), null, null, null)?.use { it.count > 0 } ?: false
-        } catch (_: SecurityException) {
-            null
-        }
-    }
-
-    private fun mapState(state: Int) = when (state) {
-        TelephonyManager.CALL_STATE_RINGING -> CallStateTracker.State.RINGING
-        TelephonyManager.CALL_STATE_OFFHOOK -> CallStateTracker.State.OFFHOOK
-        else -> CallStateTracker.State.IDLE
-    }
-
-    private fun onCallState(state: Int, number: String?) {
-        callTracker.onTelephonyState(mapState(state), number)
-        emit(mapOf("type" to "call_state", "active" to (state == TelephonyManager.CALL_STATE_OFFHOOK)))
-    }
-
-    @SuppressLint("MissingPermission")
-    private fun startCallMonitoring() {
-        stopCallMonitoring()
-        val tm = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
-        if (granted(Manifest.permission.READ_PHONE_STATE)) {
-            if (granted(Manifest.permission.READ_CALL_LOG) || Build.VERSION.SDK_INT < 31) {
-                // PhoneStateListener is the only API that hands us the incoming number (needs
-                // READ_CALL_LOG); the number is used for the local contacts lookup and then dropped.
-                @Suppress("DEPRECATION")
-                val listener = object : PhoneStateListener(mainExecutor) {
-                    @Deprecated("Deprecated in Java")
-                    override fun onCallStateChanged(state: Int, phoneNumber: String?) = onCallState(state, phoneNumber)
-                }
-                @Suppress("DEPRECATION")
-                tm.listen(listener, PhoneStateListener.LISTEN_CALL_STATE)
-                phoneStateListener = listener
-            } else {
-                val cb = object : TelephonyCallback(), TelephonyCallback.CallStateListener {
-                    override fun onCallStateChanged(state: Int) = onCallState(state, null)
-                }
-                tm.registerTelephonyCallback(mainExecutor, cb)
-                telephonyCallback = cb
-            }
-        }
-        if (Build.VERSION.SDK_INT >= 31) {
-            val audio = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-            val l = AudioManager.OnModeChangedListener { mode -> callTracker.onAudioMode(isCallMode(mode)) }
-            audio.addOnModeChangedListener(mainExecutor, l)
-            audioModeListener = l
-        }
-        updateAudioMode()
-    }
-
-    private fun isCallMode(mode: Int) = mode == AudioManager.MODE_IN_CALL || mode == AudioManager.MODE_IN_COMMUNICATION
-
-    private fun updateAudioMode() {
-        val audio = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        callTracker.onAudioMode(isCallMode(audio.mode))
-    }
-
-    private fun stopCallMonitoring() {
-        val tm = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
-        phoneStateListener?.let {
-            @Suppress("DEPRECATION")
-            tm.listen(it, PhoneStateListener.LISTEN_NONE)
-        }
-        phoneStateListener = null
-        if (Build.VERSION.SDK_INT >= 31) {
-            (telephonyCallback as? TelephonyCallback)?.let { tm.unregisterTelephonyCallback(it) }
-            (audioModeListener as? AudioManager.OnModeChangedListener)?.let {
-                (context.getSystemService(Context.AUDIO_SERVICE) as AudioManager).removeOnModeChangedListener(it)
-            }
-        }
-        telephonyCallback = null
-        audioModeListener = null
-    }
-
     // ------------------------------------------------------------------ screen capture
 
     private fun startScreenMonitoring() {
@@ -381,6 +321,76 @@ class SignalsPlugin :
         recordingCallback = null
     }
 
+    // ------------------------------------------------------------------ family protection
+
+    private fun monitorStatus(): Map<String, Any> {
+        val notificationAccess = NotificationManagerCompat.getEnabledListenerPackages(context).contains(context.packageName)
+        val accessibility = Settings.Secure.getString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)
+            ?.split(':')?.any { it.startsWith(context.packageName + "/") } == true
+        val callScreening = if (Build.VERSION.SDK_INT >= 29) {
+            context.getSystemService(RoleManager::class.java)?.isRoleHeld(RoleManager.ROLE_CALL_SCREENING) == true
+        } else {
+            false
+        }
+        val power = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+        return mapOf(
+            "enabled" to MonitorHub.enabled,
+            "usageAccess" to hasUsageAccess(),
+            "notificationAccess" to notificationAccess,
+            "accessibility" to accessibility,
+            "callScreening" to callScreening,
+            "overlay" to Settings.canDrawOverlays(context),
+            "batteryUnrestricted" to power.isIgnoringBatteryOptimizations(context.packageName),
+            "phoneState" to granted(Manifest.permission.READ_PHONE_STATE),
+            "contacts" to granted(Manifest.permission.READ_CONTACTS),
+        )
+    }
+
+    private fun openMonitorSetting(what: String) {
+        val pkgUri = Uri.parse("package:" + context.packageName)
+        val intent = when (what) {
+            "usageAccess" -> Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+            "notificationAccess" -> Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+            "accessibility" -> Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+            "overlay" -> Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, pkgUri)
+            "battery" -> Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, pkgUri)
+            else -> Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, pkgUri)
+        }.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            context.startActivity(intent)
+        } catch (_: Exception) {
+            context.startActivity(Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
+    }
+
+    private var pendingRoleResult: MethodChannel.Result? = null
+
+    private fun requestCallScreeningRole(result: MethodChannel.Result) {
+        val act = activity
+        if (Build.VERSION.SDK_INT < 29 || act == null) {
+            result.success(false)
+            return
+        }
+        val rm = act.getSystemService(RoleManager::class.java)
+        if (rm == null || !rm.isRoleAvailable(RoleManager.ROLE_CALL_SCREENING)) {
+            result.success(false)
+            return
+        }
+        if (rm.isRoleHeld(RoleManager.ROLE_CALL_SCREENING)) {
+            result.success(true)
+            return
+        }
+        pendingRoleResult = result
+        act.startActivityForResult(rm.createRequestRoleIntent(RoleManager.ROLE_CALL_SCREENING), ROLE_REQUEST_CODE)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
+        if (requestCode != ROLE_REQUEST_CODE) return false
+        pendingRoleResult?.success(resultCode == Activity.RESULT_OK)
+        pendingRoleResult = null
+        return true
+    }
+
     // ------------------------------------------------------------------ permissions
 
     private fun requestPermissions(groups: List<String>, result: MethodChannel.Result) {
@@ -411,7 +421,7 @@ class SignalsPlugin :
         val result = pendingPermissionResult ?: return true
         pendingPermissionResult = null
         // Re-register so newly granted permissions take effect immediately.
-        startCallMonitoring()
+        CallWatcher.restart(context)
         result.success(pendingPermissions.all(::granted))
         return true
     }
@@ -435,5 +445,6 @@ class SignalsPlugin :
 
     companion object {
         private const val REQUEST_CODE = 0x5157
+        private const val ROLE_REQUEST_CODE = 0x5158
     }
 }

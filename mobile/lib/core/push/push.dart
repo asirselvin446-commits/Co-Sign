@@ -20,9 +20,11 @@ String? routeForPush(Map<String, Object?> data) {
   final screen = data['screen'];
   final requestId = data['requestId'];
   final recoveryId = data['recoveryId'];
+  final alertId = data['alertId'];
   return switch (screen) {
     'guardian_request' when requestId is String => '/guardian/request/$requestId',
     'guardian_recovery' when recoveryId is String => '/guardian/recovery/$recoveryId',
+    'guardian_alert' when alertId is String => '/guardian/alerts/$alertId',
     'stepup' when requestId is String => '/stepup/$requestId',
     'recovery_alert' => '/home',
     'guardians' => '/guardians',

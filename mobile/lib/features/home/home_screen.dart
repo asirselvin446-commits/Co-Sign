@@ -151,6 +151,7 @@ class _NavGrid extends StatelessWidget {
       (Icons.health_and_safety, l.guardians, '/guardians'),
       (Icons.phone_android, l.phones, '/devices'),
       (Icons.inbox, l.guardianRequests, '/guardian/inbox'),
+      (Icons.shield_moon, l.familyProtection, '/protection'),
     ];
     return Wrap(
       spacing: 12,

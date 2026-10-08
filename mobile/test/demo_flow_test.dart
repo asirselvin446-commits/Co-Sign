@@ -27,6 +27,9 @@ void main() {
       );
 
   testWidgets('sign in, see the balance, and co-sign a risky transfer', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
     expect(find.text('Sign in safely'), findsOneWidget);
@@ -37,7 +40,7 @@ void main() {
     expect(find.textContaining('50,000.00 XTS'), findsOneWidget);
 
     // Turn on the simulated scam call, then send more than the daily limit.
-    await tester.tap(find.text('Demo: scam call OFF'));
+    await tester.tap(find.byIcon(Icons.phone_disabled));
     await tester.pump();
     await tester.tap(find.text('Send money'));
     await tester.pumpAndSettle();

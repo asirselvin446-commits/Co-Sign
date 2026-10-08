@@ -10,6 +10,7 @@ import 'features/guardians/guardians_screens.dart';
 import 'features/home/home_screen.dart';
 import 'features/ledger/ledger_screens.dart';
 import 'features/onboarding/onboarding_screens.dart';
+import 'features/protection/protection_screens.dart';
 import 'features/recovery/recovery_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/stepup/stepup_screen.dart';
@@ -78,6 +79,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/guardian/recovery/:id', builder: (_, s) => GuardianRecoveryScreen(recoveryId: s.pathParameters['id']!)),
       GoRoute(path: '/stepup/:id', builder: (_, s) => StepupScreen(requestId: s.pathParameters['id']!, start: s.extra as StepupStart?)),
       GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
+      GoRoute(path: '/protection', builder: (_, _) => const FamilyProtectionScreen()),
+      GoRoute(path: '/guardian/alerts/:id', builder: (_, s) => AlertDetailScreen(alertId: s.pathParameters['id']!)),
       GoRoute(path: '/settings/permissions', builder: (_, _) => const PermissionsScreen(fromSettings: true)),
       GoRoute(path: '/invite/:token', builder: (_, _) => const Scaffold(body: LoadingView())),
     ],

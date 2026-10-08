@@ -181,10 +181,22 @@ ${langs.map((l) => `      '${l}': ErrorText(${dartStr(e[l].cause)}, ${dartStr(e[
   return lines.join('\n') + '\n';
 }
 
+/** Android string resources for the native pause screen (it runs without Flutter). */
+function genAndroidStrings(lang) {
+  const esc = (s) =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+  const rows = Object.entries(catalog.monitorRules).map(([key, r]) => `    <string name="rule_${key}">${esc(r[lang])}</string>`);
+  return `<?xml version="1.0" encoding="utf-8"?>\n<!-- GENERATED from shared/catalog.json by scripts/gen-catalog.mjs. Do not edit. -->\n<resources>\n${rows.join('\n')}\n</resources>\n`;
+}
+
 validate();
+const androidRes = join(root, 'mobile/android/app/src/main/res');
 const outputs = [
   [join(root, 'backend/src/generated/catalog.ts'), genTs()],
   [join(root, 'mobile/lib/generated/catalog.g.dart'), genDart()],
+  [join(androidRes, 'values/monitor_rules.xml'), genAndroidStrings('en')],
+  [join(androidRes, 'values-ta/monitor_rules.xml'), genAndroidStrings('ta')],
+  [join(androidRes, 'values-hi/monitor_rules.xml'), genAndroidStrings('hi')],
 ];
 let stale = false;
 for (const [file, content] of outputs) {

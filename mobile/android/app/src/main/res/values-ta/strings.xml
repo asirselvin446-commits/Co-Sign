@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pause_title">நில்லுங்கள். தொடரும் முன் சரிபாருங்கள்.</string>
+    <string name="pause_body">இது மோசடிக்காரர்கள் செயல்படும் விதம் போலத் தெரிகிறது:</string>
+    <string name="pause_advice">யாராவது என்ன செய்ய வேண்டும் என்று சொல்லிக்கொண்டிருந்தால் அழைப்பைத் துண்டியுங்கள். உங்கள் பாதுகாவலருக்குத் தெரிவிக்கப்பட்டது. வங்கிகளும் காவல்துறையும் அழைப்பில் பணம் செலுத்தவோ குறியீட்டைப் பகிரவோ ஒருபோதும் சொல்லாது.</string>
+    <string name="pause_wait">%1$d வினாடிகளில் தொடரலாம்.</string>
+    <string name="pause_can_continue">உறுதியாக இருந்தால் இப்போது தொடரலாம்.</string>
+    <string name="pause_continue">இருந்தாலும் தொடர்</string>
+    <string name="pause_open_app">Co-Sign-ஐத் திற</string>
+    <string name="pause_released">உங்கள் பாதுகாவலர் இந்த இடைநிறுத்தத்தை நீக்கினார்.</string>
+    <string name="monitor_channel">குடும்பப் பாதுகாப்பு</string>
+    <string name="monitor_notification_title">Co-Sign இந்தத் தொலைபேசியைப் பாதுகாக்கிறது</string>
+    <string name="monitor_notification_body">ஏதாவது மோசடி போலத் தெரிந்தால் உங்கள் பாதுகாவலர்களுக்குத் தெரிவிக்கப்படும். அமைப்புகளை மாற்றத் தட்டுங்கள்.</string>
+    <string name="accessibility_description">தெரியாத எண்ணுடனான அழைப்பின்போது வங்கி, பணம் செலுத்தும் அல்லது மின்னஞ்சல் உள்நுழைவுத் திரை திறக்கப்பட்டால், Co-Sign குடும்பப் பாதுகாப்பு அதைக் கவனித்து, நீங்கள் சரிபார்க்க இடைநிறுத்துகிறது. எந்த வகைத் திரை திறந்துள்ளது என்பதை மட்டுமே அது அறியும். திரையில் உள்ளதையோ நீங்கள் தட்டச்சு செய்வதையோ அது ஒருபோதும் படிக்காது.</string>
+</resources>

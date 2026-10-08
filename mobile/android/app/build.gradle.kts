@@ -59,8 +59,10 @@ android {
         }
         release {
             signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
-            isMinifyEnabled = true
-            isShrinkResources = true
+            // Shrinking is off until release builds are tested on devices: R8 can strip classes that
+            // plugins (passkeys, notifications) load by reflection.
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
@@ -81,6 +83,8 @@ dependencies {
     implementation("com.google.android.play:integrity:1.4.0")
     implementation("androidx.core:core-ktx:1.16.0")
     testImplementation("junit:junit:4.13.2")
+    // Real org.json for unit tests (android.jar only has stubs); used to read shared/monitor-vectors.json.
+    testImplementation("org.json:json:20240303")
 }
 
 // Firebase push is enabled when android/app/google-services.json is present (from your Firebase project).

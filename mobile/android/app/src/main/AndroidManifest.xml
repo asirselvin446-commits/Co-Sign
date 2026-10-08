@@ -18,6 +18,14 @@
     <uses-permission android:name="android.permission.DETECT_SCREEN_CAPTURE" />
     <uses-permission android:name="android.permission.DETECT_SCREEN_RECORDING" />
 
+    <!-- Family protection (each part is switched on by the person, with an explanation). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Pause screen over a payment app when the accessibility service is off. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
     <application
         android:label="Co-Sign"
         android:name="${applicationName}"
@@ -52,6 +60,52 @@
                 <data android:scheme="https" android:host="${appLinkHost}" android:pathPrefix="/link/" />
             </intent-filter>
         </activity>
+
+        <!-- Family protection services. Monitoring is always visible (ongoing notification). -->
+        <service
+            android:name=".monitor.MonitorForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Family scam protection: warns the person and their guardian when banking or payment apps are used during a suspicious call." />
+        </service>
+        <service
+            android:name=".monitor.CoSignAccessibilityService"
+            android:exported="false"
+            android:label="@string/monitor_channel"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+        <service
+            android:name=".monitor.CoSignNotificationListener"
+            android:exported="false"
+            android:label="@string/monitor_channel"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+        <service
+            android:name=".monitor.CoSignCallScreeningService"
+            android:exported="true"
+            android:permission="android.permission.BIND_SCREENING_SERVICE">
+            <intent-filter>
+                <action android:name="android.telecom.CallScreeningService" />
+            </intent-filter>
+        </service>
+        <receiver
+            android:name=".monitor.MonitorBootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
 
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"

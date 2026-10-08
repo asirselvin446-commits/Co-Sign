@@ -17,6 +17,12 @@ abstract class SignalsChannel {
   Future<bool?> isDeviceSecure();
   Stream<Json> get events;
   String get platform;
+
+  // Family protection (Android background monitoring).
+  Future<bool> monitorConfigure({required String baseUrl, required String? token, required bool enabled, required String lang});
+  Future<Map<String, bool>> monitorStatus();
+  Future<void> monitorOpen(String what);
+  Future<bool> requestCallScreening();
 }
 
 class NativeSignalsChannel implements SignalsChannel {
@@ -97,6 +103,43 @@ class NativeSignalsChannel implements SignalsChannel {
 
   @override
   Stream<Json> get events => _stream ??= _events.receiveBroadcastStream().map((e) => _deepCast(e as Map<Object?, Object?>)).handleError((Object _) {});
+
+  @override
+  Future<bool> monitorConfigure({required String baseUrl, required String? token, required bool enabled, required String lang}) async {
+    try {
+      return await _methods.invokeMethod<bool>('monitorConfigure', {'baseUrl': baseUrl, 'token': token, 'enabled': enabled, 'lang': lang}) ?? false;
+    } on Object {
+      return false;
+    }
+  }
+
+  @override
+  Future<Map<String, bool>> monitorStatus() async {
+    try {
+      final r = await _methods.invokeMapMethod<String, Object?>('monitorStatus');
+      return {for (final e in (r ?? const {}).entries) e.key: e.value == true};
+    } on Object {
+      return const {};
+    }
+  }
+
+  @override
+  Future<void> monitorOpen(String what) async {
+    try {
+      await _methods.invokeMethod<void>('monitorOpen', {'what': what});
+    } on Object {
+      // not available on this platform
+    }
+  }
+
+  @override
+  Future<bool> requestCallScreening() async {
+    try {
+      return await _methods.invokeMethod<bool>('monitorRequestCallScreening') ?? false;
+    } on Object {
+      return false;
+    }
+  }
 
   static Json _deepCast(Map<Object?, Object?> m) => m.map(
         (k, v) => MapEntry(k! as String, v is Map<Object?, Object?> ? _deepCast(v) : v),

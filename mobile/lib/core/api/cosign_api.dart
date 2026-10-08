@@ -75,6 +75,15 @@ abstract class CoSignApi {
   Future<ConsentState> consent();
   Future<void> setConsent(bool granted, String version);
   Future<Json> exportData();
+
+  // family protection
+  Future<MonitorStatus> monitorStatus();
+  Future<void> setMonitorConsent(bool granted, String version);
+  Future<String> issueMonitorToken();
+  Future<void> revokeMonitorToken();
+  Future<List<GuardianAlert>> guardianAlerts();
+  Future<void> acknowledgeAlert(String id);
+  Future<void> releasePause(String pauseId);
 }
 
 class HttpCoSignApi implements CoSignApi {
@@ -276,6 +285,28 @@ class HttpCoSignApi implements CoSignApi {
 
   @override
   Future<Json> exportData() => http.get('/v1/me/export');
+
+  @override
+  Future<MonitorStatus> monitorStatus() async => MonitorStatus.fromJson(await http.get('/v1/monitor/status'));
+
+  @override
+  Future<void> setMonitorConsent(bool granted, String version) => http.put('/v1/monitor/consent', {'granted': granted, 'version': version});
+
+  @override
+  Future<String> issueMonitorToken() async => (await http.post('/v1/monitor/token'))['token']! as String;
+
+  @override
+  Future<void> revokeMonitorToken() => http.delete('/v1/monitor/token');
+
+  @override
+  Future<List<GuardianAlert>> guardianAlerts() async =>
+      ((await http.get('/v1/guardian/alerts'))['alerts']! as List<Object?>).cast<Json>().map(GuardianAlert.fromJson).toList();
+
+  @override
+  Future<void> acknowledgeAlert(String id) => http.post('/v1/guardian/alerts/$id/ack');
+
+  @override
+  Future<void> releasePause(String pauseId) => http.post('/v1/guardian/pauses/$pauseId/release');
 }
 
 const _uuid = Uuid();

@@ -15,6 +15,7 @@ export interface TestUser {
   authenticator: SoftAuthenticator;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- test responses are asserted field by field
 export async function call<T = any>(
   t: TestApp,
   method: InjectOptions['method'],

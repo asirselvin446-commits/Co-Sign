@@ -12,14 +12,11 @@ describe('passkey registration, login and sessions (software authenticator)', ()
     await t.close();
   });
 
-  it('registers with a discoverable, user-verified passkey and seeds the ledger account', async () => {
+  it('registers with a discoverable, user-verified passkey', async () => {
     const u = await registerUser(t, 'asha', { displayName: 'Asha', locale: 'ta' });
     const me = await call(t, 'GET', '/v1/me', { token: u.accessToken });
     expect(me.status).toBe(200);
     expect(me.body).toMatchObject({ handle: 'asha', displayName: 'Asha', locale: 'ta', deviceId: u.deviceId });
-    const account = await t.deps.prisma.account.findUniqueOrThrow({ where: { userId: u.id } });
-    expect(account.balanceMinor).toBe(t.deps.config.STARTING_BALANCE_MINOR);
-    expect(account.currency).toBe('XTS');
     // Display name is encrypted at rest.
     const row = await t.deps.prisma.user.findUniqueOrThrow({ where: { id: u.id } });
     expect(row.displayNameEnc).not.toContain('Asha');

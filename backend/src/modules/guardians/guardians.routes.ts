@@ -168,10 +168,28 @@ export async function guardianRoutes(app: ZApp, ctx: Ctx): Promise<void> {
       schema: {
         tags: ['guardian'],
         security: [{ bearer: [] }],
-        summary: 'People I guard (no balances or account details)',
+        summary: 'People I guard, with their protection status (no message text, numbers or account details)',
         response: {
           200: z.object({
-            people: z.array(z.object({ linkId: z.string(), displayName: z.string(), handle: z.string(), status: z.string(), activatesAt: z.string().nullable(), removesAt: z.string().nullable() })),
+            people: z.array(
+              z.object({
+                linkId: z.string(),
+                displayName: z.string(),
+                handle: z.string(),
+                status: z.string(),
+                activatesAt: z.string().nullable(),
+                removesAt: z.string().nullable(),
+                /** Only for people I can act for (active links). */
+                protection: z
+                  .object({
+                    on: z.boolean(),
+                    lastSeenAt: z.string().nullable(),
+                    activePause: z.object({ id: z.string(), byGuardian: z.boolean(), expiresAt: z.string() }).nullable(),
+                    lastAlert: z.object({ id: z.string(), severity: z.string(), occurredAt: z.string() }).nullable(),
+                  })
+                  .nullable(),
+              }),
+            ),
           }),
         },
       },
@@ -183,6 +201,8 @@ export async function guardianRoutes(app: ZApp, ctx: Ctx): Promise<void> {
         where: { guardianId: userId, status: { in: ['pending_activation', 'active', 'pending_removal'] } },
         include: { user: true },
       });
+      const acting = links.filter((l) => l.status !== 'pending_activation').map((l) => l.userId);
+      const protection = await services.monitor.protectionFor(acting);
       return {
         people: links.map((l) => ({
           linkId: l.id,
@@ -191,6 +211,7 @@ export async function guardianRoutes(app: ZApp, ctx: Ctx): Promise<void> {
           status: l.status,
           activatesAt: l.status === 'pending_activation' ? l.activatesAt.toISOString() : null,
           removesAt: l.removesAt?.toISOString() ?? null,
+          protection: protection.get(l.userId) ?? null,
         })),
       };
     },

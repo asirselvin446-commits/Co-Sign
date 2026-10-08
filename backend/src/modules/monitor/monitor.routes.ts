@@ -1,6 +1,6 @@
 import type { FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import type { Ctx, ZApp } from '../../http/context.js';
+import { accountLimit, type Ctx, type ZApp } from '../../http/context.js';
 import { userAuth } from '../../http/auth.js';
 import { AppError } from '../../lib/errors.js';
 import { monitorEventSchema } from './monitor.engine.js';
@@ -11,7 +11,7 @@ export const MONITOR_CONSENT_VERSION = '2026-10';
 const reason = z.object({ key: z.string(), weight: z.number(), reason: z.string() });
 const alertView = z.object({
   id: z.string(),
-  person: z.object({ displayName: z.string(), handle: z.string() }),
+  person: z.object({ displayName: z.string(), handle: z.string(), linkId: z.string() }),
   kind: z.string(),
   app: z.object({ category: z.string(), package: z.string().nullable() }).nullable(),
   amountBucket: z.string().nullable(),
@@ -176,7 +176,125 @@ export async function monitorRoutes(app: ZApp, ctx: Ctx): Promise<void> {
     },
   );
 
+  app.get(
+    '/v1/monitor/commands',
+    {
+      schema: {
+        ...tag,
+        summary: 'What this phone should do now (show a pause, lock the screen). Polled by the background service.',
+        response: {
+          200: z.object({
+            pause: z.object({ id: z.string(), rules: z.array(z.string()), byGuardian: z.boolean(), expiresAt: z.string() }).nullable(),
+            lock: z.boolean(),
+          }),
+        },
+      },
+      config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
+    },
+    async (req) => monitor.commands((await monitorDevice(req)).deviceId),
+  );
+
+  app.post(
+    '/v1/monitor/pauses/:id/ask',
+    {
+      schema: { ...tag, summary: 'From the pause screen: ask my guardians to let me continue', params: z.object({ id: z.uuid() }), response: { 204: z.null() } },
+      config: { rateLimit: { max: 10, timeWindow: '10 minutes' } },
+    },
+    async (req, reply) => {
+      const { userId, deviceId } = await monitorDevice(req);
+      await monitor.askRelease(req.params.id, userId, deviceId);
+      return reply.status(204).send(null);
+    },
+  );
+
+  app.post(
+    '/v1/monitor/help',
+    {
+      schema: { ...tag, summary: '"I need help": alert every guardian now', response: { 204: z.null() } },
+      config: { rateLimit: { max: 10, timeWindow: '10 minutes' } },
+    },
+    async (req, reply) => {
+      const { userId, deviceId } = await monitorDevice(req);
+      await monitor.help(userId, deviceId);
+      return reply.status(204).send(null);
+    },
+  );
+
+  app.get(
+    '/v1/monitor/mine',
+    {
+      schema: {
+        ...tag,
+        security: [{ bearer: [] }],
+        summary: 'My own recent warnings (last 7 days), the same ones my guardians see',
+        response: {
+          200: z.object({
+            alerts: z.array(z.object({ id: z.string(), kind: z.string(), severity: z.string(), reasons: z.array(reason), occurredAt: z.string(), paused: z.boolean() })),
+          }),
+        },
+      },
+      preHandler: guards.requireUser,
+    },
+    async (req) => ({ alerts: await monitor.mine(userAuth(req).userId, req.lang) }),
+  );
+
   // ---------------------------------------------------------------- guardian
+
+  app.post(
+    '/v1/guardian/people/:linkId/pause',
+    {
+      schema: {
+        ...tag,
+        security: [{ bearer: [] }],
+        summary: "Pause the person's protected phone now (they can still call you, and continue after a countdown)",
+        params: z.object({ linkId: z.uuid() }),
+        response: { 200: z.object({ pauseIds: z.array(z.string()) }) },
+      },
+      preHandler: guards.requireUser,
+      config: accountLimit(20, '10 minutes'),
+    },
+    async (req) => monitor.guardianPause(userAuth(req).userId, req.params.linkId),
+  );
+
+  app.post(
+    '/v1/guardian/people/:linkId/lock',
+    {
+      schema: {
+        ...tag,
+        security: [{ bearer: [] }],
+        summary: "Lock the person's protected phone screen (they unlock it with their own PIN)",
+        params: z.object({ linkId: z.uuid() }),
+        response: { 200: z.object({ devices: z.number() }) },
+      },
+      preHandler: guards.requireUser,
+      config: accountLimit(10, '10 minutes'),
+    },
+    async (req) => monitor.guardianLock(userAuth(req).userId, req.params.linkId),
+  );
+
+  app.get(
+    '/v1/guardian/pauses/:id',
+    {
+      schema: {
+        ...tag,
+        security: [{ bearer: [] }],
+        params: z.object({ id: z.uuid() }),
+        response: {
+          200: z.object({
+            id: z.string(),
+            status: z.string(),
+            byGuardian: z.boolean(),
+            person: z.object({ displayName: z.string(), handle: z.string() }),
+            reasons: z.array(reason),
+            createdAt: z.string(),
+            expiresAt: z.string(),
+          }),
+        },
+      },
+      preHandler: guards.requireUser,
+    },
+    async (req) => monitor.pauseForGuardian(req.params.id, userAuth(req).userId, req.lang),
+  );
 
   app.get(
     '/v1/guardian/alerts',
@@ -184,7 +302,7 @@ export async function monitorRoutes(app: ZApp, ctx: Ctx): Promise<void> {
       schema: {
         ...tag,
         security: [{ bearer: [] }],
-        summary: 'Alerts about the people I guard (last 7 days). No balances, message text or numbers.',
+        summary: 'Alerts about the people I guard (last 7 days). No message text, numbers or screen contents.',
         querystring: z.object({ limit: z.coerce.number().int().min(1).max(100).default(50) }),
         response: { 200: z.object({ alerts: z.array(alertView) }) },
       },

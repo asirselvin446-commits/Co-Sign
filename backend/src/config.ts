@@ -61,10 +61,6 @@ const schema = z
     TWILIO_AUTH_TOKEN: z.string().default(''),
     TWILIO_FROM: z.string().default(''),
 
-    CURRENCY_CODE: z.string().regex(/^[A-Z]{3}$/).default('XTS'),
-    STARTING_BALANCE_MINOR: z.coerce.bigint().default(5_000_000n),
-    DEFAULT_TRANSFER_LIMIT_MINOR: z.coerce.bigint().default(1_000_000n),
-
     ACCESS_TOKEN_TTL_SECONDS: seconds(600),
     REFRESH_TOKEN_TTL_SECONDS: seconds(30 * 24 * 3600),
     ADMIN_REFRESH_TOKEN_TTL_SECONDS: seconds(12 * 3600),

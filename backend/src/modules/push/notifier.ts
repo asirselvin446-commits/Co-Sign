@@ -37,9 +37,11 @@ export class Notifier {
         userId,
         (rawLang) => {
           const lang = pickLang(rawLang);
-          const t = NOTIFICATIONS[key][lang];
+          const t: { title: string; body: string; actions?: Record<string, string> } = NOTIFICATIONS[key][lang];
           const v = vars(lang);
-          return { type: key, title: fill(t.title, v), body: fill(t.body, v), data };
+          // Buttons on the notification (e.g. Approve / Deny), labelled in the recipient's language.
+          const withActions: Record<string, string> = t.actions ? { ...data, actions: JSON.stringify(Object.entries(t.actions).map(([id, label]) => ({ id, label }))) } : data;
+          return { type: key, title: fill(t.title, v), body: fill(t.body, v), data: withActions };
         },
         opts,
       );

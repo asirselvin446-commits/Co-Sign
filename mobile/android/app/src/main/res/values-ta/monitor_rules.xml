@@ -16,4 +16,19 @@
     <string name="rule_repeated_unknown_caller">அதே தெரியாத எண் இரண்டு மணி நேரத்தில் மூன்று முறை அல்லது அதற்கு மேல் அழைத்துள்ளது.</string>
     <string name="rule_hidden_or_international_caller">அழைப்பவரின் எண் மறைக்கப்பட்டுள்ளது அல்லது வேறு நாட்டைச் சேர்ந்தது.</string>
     <string name="rule_late_night_activity">இது நள்ளிரவு முதல் அதிகாலை 5 மணிக்குள் நடந்தது.</string>
+    <string name="rule_chat_after_otp">ஒருமுறைக் குறியீடு வந்தவுடன் ஒரு அரட்டைச் செயலி திறக்கப்பட்டது. மோசடிக்காரர்கள் அந்தக் குறியீட்டை அனுப்பச் சொல்வார்கள்.</string>
+    <string name="rule_otp_shared_during_call">இது தெரியாத எண்ணுடனான அழைப்பின்போது நடந்தது. குறியீட்டைப் பகிரவைக்கும் மோசடிகள் இப்படித்தான் நடக்கின்றன.</string>
+    <string name="rule_screen_share_started">திரைப் பகிர்வு தொடங்கப்பட்டது. பார்ப்பவர் குறியீடுகள், PIN மற்றும் கடவுச்சொற்களைப் பார்க்க முடியும்.</string>
+    <string name="rule_screen_share_during_call">தெரியாத எண்ணுடனான அழைப்பின்போது திரைப் பகிர்வு தொடங்கப்பட்டது.</string>
+    <string name="rule_remote_access_installed">இப்போதுதான் ஒரு தொலைக் கட்டுப்பாட்டுச் செயலி நிறுவப்பட்டது. மோசடிக்காரர்கள் போன்களைக் கைப்பற்ற இவற்றைப் பயன்படுத்துவார்கள்.</string>
+    <string name="rule_sideloaded_app_installed">Play Store-க்கு வெளியிலிருந்து ஒரு செயலி நிறுவப்பட்டது. போலி வங்கிச் செயலிகள் இப்படித்தான் பரப்பப்படுகின்றன.</string>
+    <string name="rule_install_during_call">தெரியாத எண்ணுடனான அழைப்பின்போது அந்தச் செயலி நிறுவப்பட்டது.</string>
+    <string name="rule_new_accessibility_app">ஒரு செயலிக்குத் திரையைப் படிக்கவும் கட்டுப்படுத்தவும் அனுமதி வழங்கப்பட்டது.</string>
+    <string name="rule_new_device_admin_app">ஒரு செயலி சாதன நிர்வாகியாக்கப்பட்டது. இதனால் அது போனைப் பூட்டவோ அழிக்கவோ முடியும்.</string>
+    <string name="rule_access_granted_during_call">அந்த அனுமதி தெரியாத எண்ணுடனான அழைப்பின்போது வழங்கப்பட்டது.</string>
+    <string name="rule_repeated_unlock_failures">திரைப் பூட்டின் தவறான PIN அல்லது வடிவம் 3 அல்லது அதற்கு மேல் முறை உள்ளிடப்பட்டது. வேறு யாரோ போனைத் திறக்க முயலலாம்.</string>
+    <string name="rule_many_unlock_failures">சில நிமிடங்களுக்குள் தவறான PIN 5 அல்லது அதற்கு மேல் முறை உள்ளிடப்பட்டது.</string>
+    <string name="rule_failed_login_alert">ஒரு செயலி தோல்வியடைந்த உள்நுழைவு அல்லது தவறான கடவுச்சொல் அல்லது PIN பற்றித் தெரிவித்தது.</string>
+    <string name="rule_repeated_failed_logins">குறுகிய நேரத்தில் பல உள்நுழைவுத் தோல்விகள் தெரிவிக்கப்பட்டன.</string>
+    <string name="rule_guardian_paused">உங்களைப் பாதுகாக்க உங்கள் காப்பாளர் இந்தப் போனைச் சில நிமிடங்கள் நிறுத்தி வைத்துள்ளார்.</string>
 </resources>

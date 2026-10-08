@@ -10,7 +10,7 @@ import { MONITOR_RULES, type Lang, type MonitorRuleKey } from '../../generated/c
  * screen contents or exact amounts ever leave the phone.
  */
 
-export const APP_CATEGORIES = ['bank', 'upi', 'wallet', 'email', 'social', 'remote_access', 'other'] as const;
+export const APP_CATEGORIES = ['bank', 'upi', 'wallet', 'email', 'social', 'messaging', 'remote_access', 'other'] as const;
 export const AMOUNT_BUCKETS = ['lt_1k', '1k_10k', '10k_50k', '50k_1l', 'gt_1l'] as const;
 export type AmountBucket = (typeof AMOUNT_BUCKETS)[number];
 
@@ -22,9 +22,20 @@ export const MONITOR_KINDS = [
   'notification_otp',
   'notification_debit',
   'notification_credit',
+  'notification_failed_login',
   'call_update',
   'pause_dismissed',
+  /** The system "start sharing / recording your screen?" prompt appeared. */
+  'screen_share_prompt',
+  'app_installed',
+  /** A new accessibility service or device administrator was switched on for another app. */
+  'access_granted',
+  /** Wrong screen-lock PIN, pattern or password (counted on the phone). */
+  'unlock_failed',
 ] as const;
+
+export const INSTALLERS = ['store', 'unknown'] as const;
+export const GRANTS = ['accessibility', 'device_admin'] as const;
 
 export const callContextSchema = z.object({
   active: z.boolean(),
@@ -51,6 +62,14 @@ export const monitorEventSchema = z.object({
   localHour: z.number().int().min(0).max(23),
   /** The phone already showed the pause screen for this event. */
   paused: z.boolean().default(false),
+  /** Seconds since the last one-time-code notification (app_foreground only), if within 10 minutes. */
+  sinceOtpSec: z.number().int().min(0).max(600).nullable().default(null),
+  /** Failed attempts in the counting window (unlock_failed, notification_failed_login). */
+  attempts: z.number().int().min(1).max(100).nullable().default(null),
+  /** Where an installed app came from (app_installed). */
+  installer: z.enum(INSTALLERS).nullable().default(null),
+  /** What was granted (access_granted). */
+  grant: z.enum(GRANTS).nullable().default(null),
 });
 export type MonitorEvent = z.infer<typeof monitorEventSchema>;
 export type MonitorEventInput = z.input<typeof monitorEventSchema>;
@@ -75,6 +94,8 @@ export const WARN_AT = 30;
 export const CRITICAL_AT = 60;
 const SENSITIVE: ReadonlyArray<string> = ['bank', 'upi', 'wallet'];
 const LOGIN_SENSITIVE: ReadonlyArray<string> = ['bank', 'upi', 'wallet', 'email'];
+/** A chat app opened this soon after a one-time code is treated as possible code sharing. */
+export const OTP_SHARE_WINDOW_SEC = 180;
 
 export function bucketIndex(b: AmountBucket | null): number {
   return b === null ? -1 : AMOUNT_BUCKETS.indexOf(b);
@@ -104,6 +125,33 @@ export function assessMonitorEvent(e: MonitorEvent, ctx: MonitorContext): Monito
       } else if (onRiskyCall && category && SENSITIVE.includes(category)) {
         hit.add('sensitive_app_during_call');
       }
+      if (chatAfterOtp(e)) {
+        hit.add('chat_after_otp');
+        if (onRiskyCall) hit.add('otp_shared_during_call');
+      }
+      break;
+    case 'screen_share_prompt':
+      hit.add('screen_share_started');
+      if (onRiskyCall) hit.add('screen_share_during_call');
+      break;
+    case 'app_installed':
+      if (category === 'remote_access') hit.add('remote_access_installed');
+      if (e.installer === 'unknown') hit.add('sideloaded_app_installed');
+      if (onRiskyCall && hit.size > 0) hit.add('install_during_call');
+      break;
+    case 'access_granted':
+      hit.add(e.grant === 'device_admin' ? 'new_device_admin_app' : 'new_accessibility_app');
+      if (onRiskyCall) hit.add('access_granted_during_call');
+      break;
+    case 'unlock_failed': {
+      const n = e.attempts ?? 0;
+      if (n >= 3) hit.add('repeated_unlock_failures');
+      if (n >= 5) hit.add('many_unlock_failures');
+      break;
+    }
+    case 'notification_failed_login':
+      hit.add('failed_login_alert');
+      if ((e.attempts ?? 0) >= 3) hit.add('repeated_failed_logins');
       break;
     case 'notification_otp':
       if (onRiskyCall) hit.add('otp_during_call');
@@ -139,8 +187,23 @@ export function assessMonitorEvent(e: MonitorEvent, ctx: MonitorContext): Monito
   const rules = [...hit].sort((a, b) => MONITOR_RULES[b].weight - MONITOR_RULES[a].weight || a.localeCompare(b));
   const score = rules.reduce((s, k) => s + MONITOR_RULES[k].weight, 0);
   const severity: Severity = score >= CRITICAL_AT ? 'critical' : score >= WARN_AT ? 'warn' : 'info';
-  const sensitiveMoment = e.kind === 'payment_screen' || e.kind === 'login_screen' || e.kind === 'notification_otp' || (e.kind === 'app_foreground' && category !== null && category !== 'other');
-  return { score, severity, rules, pause: severity === 'critical' && sensitiveMoment };
+  return { score, severity, rules, pause: severity === 'critical' && sensitiveMoment(e) };
+}
+
+/** A chat app opened within a few minutes of a one-time code arriving. */
+export function chatAfterOtp(e: MonitorEvent): boolean {
+  return e.kind === 'app_foreground' && e.app?.category === 'messaging' && e.sinceOtpSec !== null && e.sinceOtpSec <= OTP_SHARE_WINDOW_SEC;
+}
+
+/**
+ * Moments when stopping the person for a minute can still prevent harm: they are on a payment,
+ * sign-in or code screen, opening an app that matters (money, email, chat, remote control), or
+ * about to start screen sharing.
+ */
+function sensitiveMoment(e: MonitorEvent): boolean {
+  const category = e.app?.category ?? null;
+  if (e.kind === 'payment_screen' || e.kind === 'login_screen' || e.kind === 'notification_otp' || e.kind === 'screen_share_prompt') return true;
+  return e.kind === 'app_foreground' && category !== null && category !== 'other';
 }
 
 export function monitorReasons(rules: string[], lang: Lang): Array<{ key: string; weight: number; reason: string }> {

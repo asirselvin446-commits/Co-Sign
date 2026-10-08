@@ -53,11 +53,7 @@ class ErrorCodes {
   static const String NOT_ALLOWED = 'NOT_ALLOWED';
   static const String INVALID_INPUT = 'INVALID_INPUT';
   static const String NOT_FOUND = 'NOT_FOUND';
-  static const String INSUFFICIENT_FUNDS = 'INSUFFICIENT_FUNDS';
-  static const String LIMIT_STEPUP_REQUIRED = 'LIMIT_STEPUP_REQUIRED';
   static const String STEPUP_REQUIRED = 'STEPUP_REQUIRED';
-  static const String PAYEE_EXISTS = 'PAYEE_EXISTS';
-  static const String LIMIT_NOT_HIGHER = 'LIMIT_NOT_HIGHER';
   static const String HANDLE_TAKEN = 'HANDLE_TAKEN';
   static const String GUARDIAN_LIMIT_REACHED = 'GUARDIAN_LIMIT_REACHED';
   static const String INVITE_INVALID = 'INVITE_INVALID';
@@ -65,10 +61,10 @@ class ErrorCodes {
   static const String ALREADY_GUARDIAN = 'ALREADY_GUARDIAN';
   static const String REQUEST_EXPIRED = 'REQUEST_EXPIRED';
   static const String REQUEST_ALREADY_DECIDED = 'REQUEST_ALREADY_DECIDED';
-  static const String IDEMPOTENCY_CONFLICT = 'IDEMPOTENCY_CONFLICT';
   static const String ACTION_NOT_COMPLETED = 'ACTION_NOT_COMPLETED';
   static const String RECOVERY_NOT_COMPLETED = 'RECOVERY_NOT_COMPLETED';
   static const String CONSENT_REQUIRED = 'CONSENT_REQUIRED';
+  static const String PROTECTION_OFF = 'PROTECTION_OFF';
   static const String INTERNAL_ERROR = 'INTERNAL_ERROR';
 }
 
@@ -346,32 +342,6 @@ const Map<String, ErrorEntry> kErrorCatalog = <String, ErrorEntry>{
       'hi': ErrorText("आपने जो माँगा वह हमें नहीं मिला।", "वापस जाएँ और फिर से कोशिश करें।"),
     },
   ),
-  'INSUFFICIENT_FUNDS': ErrorEntry(
-    code: 'INSUFFICIENT_FUNDS',
-    http: 422,
-    tier: 'detailed',
-    generic: 'ACTION_NOT_COMPLETED',
-    origin: 'server',
-    params: <String>[],
-    text: <String, ErrorText>{
-      'en': ErrorText("Your balance is too low for this transfer.", "Enter a smaller amount."),
-      'ta': ErrorText("இந்தப் பரிமாற்றத்திற்கு உங்கள் இருப்பு போதவில்லை.", "குறைவான தொகையை உள்ளிடுங்கள்."),
-      'hi': ErrorText("इस ट्रांसफ़र के लिए आपका बैलेंस कम है।", "कम रकम डालें।"),
-    },
-  ),
-  'LIMIT_STEPUP_REQUIRED': ErrorEntry(
-    code: 'LIMIT_STEPUP_REQUIRED',
-    http: 428,
-    tier: 'public',
-    generic: null,
-    origin: 'server',
-    params: <String>[],
-    text: <String, ErrorText>{
-      'en': ErrorText("This is more than your daily limit, so it needs an extra safety check.", "Tap Continue to confirm with your passkey."),
-      'ta': ErrorText("இது உங்கள் தினசரி வரம்பை விட அதிகம், அதனால் கூடுதல் பாதுகாப்புச் சோதனை தேவை.", "உங்கள் பாஸ்கீ மூலம் உறுதிசெய்ய தொடர் என்பதைத் தட்டுங்கள்."),
-      'hi': ErrorText("यह आपकी रोज़ की सीमा से ज़्यादा है, इसलिए इसके लिए एक अतिरिक्त सुरक्षा जाँच चाहिए।", "अपनी पासकी से पुष्टि करने के लिए आगे बढ़ें पर टैप करें।"),
-    },
-  ),
   'STEPUP_REQUIRED': ErrorEntry(
     code: 'STEPUP_REQUIRED',
     http: 428,
@@ -383,32 +353,6 @@ const Map<String, ErrorEntry> kErrorCatalog = <String, ErrorEntry>{
       'en': ErrorText("This change needs an extra safety check.", "Tap Continue to confirm with your passkey."),
       'ta': ErrorText("இந்த மாற்றத்திற்குக் கூடுதல் பாதுகாப்புச் சோதனை தேவை.", "உங்கள் பாஸ்கீ மூலம் உறுதிசெய்ய தொடர் என்பதைத் தட்டுங்கள்."),
       'hi': ErrorText("इस बदलाव के लिए एक अतिरिक्त सुरक्षा जाँच चाहिए।", "अपनी पासकी से पुष्टि करने के लिए आगे बढ़ें पर टैप करें।"),
-    },
-  ),
-  'PAYEE_EXISTS': ErrorEntry(
-    code: 'PAYEE_EXISTS',
-    http: 409,
-    tier: 'public',
-    generic: null,
-    origin: 'server',
-    params: <String>[],
-    text: <String, ErrorText>{
-      'en': ErrorText("This person is already in your payees.", "Choose them from your payee list to send money."),
-      'ta': ErrorText("இவர் ஏற்கனவே உங்கள் பணம் பெறுபவர் பட்டியலில் உள்ளார்.", "பணம் அனுப்ப உங்கள் பட்டியலிலிருந்து இவரைத் தேர்ந்தெடுங்கள்."),
-      'hi': ErrorText("यह व्यक्ति पहले से आपकी प्राप्तकर्ता सूची में है।", "पैसे भेजने के लिए उन्हें अपनी सूची से चुनें।"),
-    },
-  ),
-  'LIMIT_NOT_HIGHER': ErrorEntry(
-    code: 'LIMIT_NOT_HIGHER',
-    http: 400,
-    tier: 'public',
-    generic: null,
-    origin: 'server',
-    params: <String>[],
-    text: <String, ErrorText>{
-      'en': ErrorText("The new limit must be higher than your current limit.", "Lowering a limit does not need a check. Enter a higher amount to raise it."),
-      'ta': ErrorText("புதிய வரம்பு தற்போதைய வரம்பை விட அதிகமாக இருக்க வேண்டும்.", "வரம்பைக் குறைக்கச் சோதனை தேவையில்லை. உயர்த்த, அதிகத் தொகையை உள்ளிடுங்கள்."),
-      'hi': ErrorText("नई सीमा मौजूदा सीमा से ज़्यादा होनी चाहिए।", "सीमा घटाने के लिए जाँच की ज़रूरत नहीं है। बढ़ाने के लिए ज़्यादा रकम डालें।"),
     },
   ),
   'HANDLE_TAKEN': ErrorEntry(
@@ -502,19 +446,6 @@ const Map<String, ErrorEntry> kErrorCatalog = <String, ErrorEntry>{
       'hi': ErrorText("इस अनुरोध का जवाब पहले ही दिया जा चुका है।", "आपको कुछ करने की ज़रूरत नहीं है।"),
     },
   ),
-  'IDEMPOTENCY_CONFLICT': ErrorEntry(
-    code: 'IDEMPOTENCY_CONFLICT',
-    http: 409,
-    tier: 'public',
-    generic: null,
-    origin: 'server',
-    params: <String>[],
-    text: <String, ErrorText>{
-      'en': ErrorText("This request was already sent with different details.", "Start a new transfer."),
-      'ta': ErrorText("இந்தக் கோரிக்கை ஏற்கனவே வேறு விவரங்களுடன் அனுப்பப்பட்டது.", "புதிய பரிமாற்றத்தைத் தொடங்குங்கள்."),
-      'hi': ErrorText("यह अनुरोध पहले ही अलग जानकारी के साथ भेजा जा चुका है।", "नया ट्रांसफ़र शुरू करें।"),
-    },
-  ),
   'ACTION_NOT_COMPLETED': ErrorEntry(
     code: 'ACTION_NOT_COMPLETED',
     http: 403,
@@ -554,6 +485,19 @@ const Map<String, ErrorEntry> kErrorCatalog = <String, ErrorEntry>{
       'hi': ErrorText("आपने इस फ़ोन पर सुरक्षा जाँच की अनुमति अभी नहीं दी है।", "सेटिंग में सुरक्षा जाँच खोलें और चुनें कि किसकी अनुमति देनी है।"),
     },
   ),
+  'PROTECTION_OFF': ErrorEntry(
+    code: 'PROTECTION_OFF',
+    http: 409,
+    tier: 'public',
+    generic: null,
+    origin: 'server',
+    params: <String>[],
+    text: <String, ErrorText>{
+      'en': ErrorText("Family protection is not switched on for their phone, so it cannot be paused or locked from here.", "Call them, and ask them to open Co-Sign and turn on family protection."),
+      'ta': ErrorText("அவரது போனில் குடும்பப் பாதுகாப்பு இயக்கப்படவில்லை. அதனால் இங்கிருந்து அதை நிறுத்தவோ பூட்டவோ முடியாது.", "அவரை அழைத்து, Co-Sign-ஐத் திறந்து குடும்பப் பாதுகாப்பை இயக்கச் சொல்லுங்கள்."),
+      'hi': ErrorText("उनके फ़ोन पर पारिवारिक सुरक्षा चालू नहीं है, इसलिए उसे यहाँ से रोका या लॉक नहीं किया जा सकता।", "उन्हें कॉल करें और Co-Sign खोलकर पारिवारिक सुरक्षा चालू करने को कहें।"),
+    },
+  ),
   'INTERNAL_ERROR': ErrorEntry(
     code: 'INTERNAL_ERROR',
     http: 500,
@@ -580,8 +524,6 @@ const Map<String, Map<String, String>> kRiskReasons = <String, Map<String, Strin
   'repeated_failures': <String, String>{'en': "There were 3 or more failed attempts in the last 15 minutes.", 'ta': "கடந்த 15 நிமிடங்களில் 3 அல்லது அதற்கு மேற்பட்ட முயற்சிகள் தோல்வியடைந்தன.", 'hi': "पिछले 15 मिनट में 3 या उससे ज़्यादा बार कोशिश नाकाम हुई।"},
   'integrity_failed': <String, String>{'en': "This phone or app did not pass Google's safety check.", 'ta': "இந்தத் தொலைபேசி அல்லது செயலி Google பாதுகாப்புச் சோதனையில் தேறவில்லை.", 'hi': "यह फ़ोन या ऐप Google की सुरक्षा जाँच में पास नहीं हुआ।"},
   'recent_family_alert': <String, String>{'en': "Family protection saw a warning sign on this phone in the last 30 minutes.", 'ta': "கடந்த 30 நிமிடங்களில் இந்தத் தொலைபேசியில் குடும்பப் பாதுகாப்பு ஓர் எச்சரிக்கை அறிகுறியைக் கண்டது.", 'hi': "पिछले 30 मिनट में फ़ैमिली प्रोटेक्शन ने इस फ़ोन पर एक चेतावनी का संकेत देखा।"},
-  'unusual_amount': <String, String>{'en': "This amount is much larger than the payments this person usually makes.", 'ta': "இவர் வழக்கமாகச் செய்யும் பணப் பரிமாற்றங்களை விட இந்தத் தொகை மிக அதிகம்.", 'hi': "यह रकम इनके आम तौर पर किए जाने वाले भुगतानों से बहुत ज़्यादा है।"},
-  'new_payee_recent': <String, String>{'en': "The money is going to someone added as a payee less than a day ago.", 'ta': "ஒரு நாளுக்குள் சேர்க்கப்பட்ட ஒருவருக்குப் பணம் செல்கிறது.", 'hi': "पैसे ऐसे व्यक्ति को जा रहे हैं जिसे एक दिन से कम समय पहले जोड़ा गया था।"},
 };
 
 /// Monitoring rules: weight and reason per language. Must match the backend engine.
@@ -601,6 +543,21 @@ const Map<String, int> kMonitorWeights = <String, int>{
   'repeated_unknown_caller': 20,
   'hidden_or_international_caller': 15,
   'late_night_activity': 10,
+  'chat_after_otp': 40,
+  'otp_shared_during_call': 30,
+  'screen_share_started': 40,
+  'screen_share_during_call': 30,
+  'remote_access_installed': 40,
+  'sideloaded_app_installed': 30,
+  'install_during_call': 30,
+  'new_accessibility_app': 40,
+  'new_device_admin_app': 40,
+  'access_granted_during_call': 30,
+  'repeated_unlock_failures': 40,
+  'many_unlock_failures': 20,
+  'failed_login_alert': 30,
+  'repeated_failed_logins': 20,
+  'guardian_paused': 0,
 };
 
 const Map<String, Map<String, String>> kMonitorReasons = <String, Map<String, String>>{
@@ -619,6 +576,21 @@ const Map<String, Map<String, String>> kMonitorReasons = <String, Map<String, St
   'repeated_unknown_caller': <String, String>{'en': "The same unknown number has called three or more times in two hours.", 'ta': "அதே தெரியாத எண் இரண்டு மணி நேரத்தில் மூன்று முறை அல்லது அதற்கு மேல் அழைத்துள்ளது.", 'hi': "एक ही अनजान नंबर से दो घंटे में तीन या ज़्यादा बार कॉल आई है।"},
   'hidden_or_international_caller': <String, String>{'en': "The caller's number is hidden or from another country.", 'ta': "அழைப்பவரின் எண் மறைக்கப்பட்டுள்ளது அல்லது வேறு நாட்டைச் சேர்ந்தது.", 'hi': "कॉल करने वाले का नंबर छिपा है या किसी दूसरे देश का है।"},
   'late_night_activity': <String, String>{'en': "This happened between midnight and 5 a.m.", 'ta': "இது நள்ளிரவு முதல் அதிகாலை 5 மணிக்குள் நடந்தது.", 'hi': "यह आधी रात से सुबह 5 बजे के बीच हुआ।"},
+  'chat_after_otp': <String, String>{'en': "A chat app was opened right after a one-time code arrived. Scammers ask people to send them the code.", 'ta': "ஒருமுறைக் குறியீடு வந்தவுடன் ஒரு அரட்டைச் செயலி திறக்கப்பட்டது. மோசடிக்காரர்கள் அந்தக் குறியீட்டை அனுப்பச் சொல்வார்கள்.", 'hi': "एक बार वाला कोड आते ही चैट ऐप खोला गया। धोखेबाज़ लोगों से यह कोड भेजने को कहते हैं।"},
+  'otp_shared_during_call': <String, String>{'en': "This happened during a call with an unknown number, which is how code-sharing scams work.", 'ta': "இது தெரியாத எண்ணுடனான அழைப்பின்போது நடந்தது. குறியீட்டைப் பகிரவைக்கும் மோசடிகள் இப்படித்தான் நடக்கின்றன.", 'hi': "यह किसी अनजान नंबर से कॉल के दौरान हुआ। कोड शेयर करवाने वाली धोखाधड़ी ऐसे ही होती है।"},
+  'screen_share_started': <String, String>{'en': "Screen sharing was started. Whoever is watching can see codes, PINs and passwords.", 'ta': "திரைப் பகிர்வு தொடங்கப்பட்டது. பார்ப்பவர் குறியீடுகள், PIN மற்றும் கடவுச்சொற்களைப் பார்க்க முடியும்.", 'hi': "स्क्रीन शेयरिंग शुरू की गई। देखने वाला कोड, PIN और पासवर्ड देख सकता है।"},
+  'screen_share_during_call': <String, String>{'en': "Screen sharing was started during a call with an unknown number.", 'ta': "தெரியாத எண்ணுடனான அழைப்பின்போது திரைப் பகிர்வு தொடங்கப்பட்டது.", 'hi': "किसी अनजान नंबर से कॉल के दौरान स्क्रीन शेयरिंग शुरू की गई।"},
+  'remote_access_installed': <String, String>{'en': "A remote-control app was just installed. Scammers use these apps to take over phones.", 'ta': "இப்போதுதான் ஒரு தொலைக் கட்டுப்பாட்டுச் செயலி நிறுவப்பட்டது. மோசடிக்காரர்கள் போன்களைக் கைப்பற்ற இவற்றைப் பயன்படுத்துவார்கள்.", 'hi': "अभी एक रिमोट-कंट्रोल ऐप इंस्टॉल किया गया। धोखेबाज़ फ़ोन पर कब्ज़ा करने के लिए ऐसे ऐप इस्तेमाल करते हैं।"},
+  'sideloaded_app_installed': <String, String>{'en': "An app was installed from outside the Play Store. Fake bank apps are spread this way.", 'ta': "Play Store-க்கு வெளியிலிருந்து ஒரு செயலி நிறுவப்பட்டது. போலி வங்கிச் செயலிகள் இப்படித்தான் பரப்பப்படுகின்றன.", 'hi': "Play Store के बाहर से एक ऐप इंस्टॉल किया गया। नकली बैंक ऐप इसी तरह फैलाए जाते हैं।"},
+  'install_during_call': <String, String>{'en': "The app was installed during a call with an unknown number.", 'ta': "தெரியாத எண்ணுடனான அழைப்பின்போது அந்தச் செயலி நிறுவப்பட்டது.", 'hi': "यह ऐप किसी अनजान नंबर से कॉल के दौरान इंस्टॉल किया गया।"},
+  'new_accessibility_app': <String, String>{'en': "An app was given permission to read and control the screen.", 'ta': "ஒரு செயலிக்குத் திரையைப் படிக்கவும் கட்டுப்படுத்தவும் அனுமதி வழங்கப்பட்டது.", 'hi': "एक ऐप को स्क्रीन पढ़ने और चलाने की अनुमति दी गई।"},
+  'new_device_admin_app': <String, String>{'en': "An app was made a device administrator, which lets it lock or erase the phone.", 'ta': "ஒரு செயலி சாதன நிர்வாகியாக்கப்பட்டது. இதனால் அது போனைப் பூட்டவோ அழிக்கவோ முடியும்.", 'hi': "एक ऐप को डिवाइस एडमिन बनाया गया, जिससे वह फ़ोन लॉक या मिटा सकता है।"},
+  'access_granted_during_call': <String, String>{'en': "The permission was given during a call with an unknown number.", 'ta': "அந்த அனுமதி தெரியாத எண்ணுடனான அழைப்பின்போது வழங்கப்பட்டது.", 'hi': "यह अनुमति किसी अनजान नंबर से कॉल के दौरान दी गई।"},
+  'repeated_unlock_failures': <String, String>{'en': "The wrong screen-lock PIN or pattern was entered 3 or more times. Someone else may be trying to get into the phone.", 'ta': "திரைப் பூட்டின் தவறான PIN அல்லது வடிவம் 3 அல்லது அதற்கு மேல் முறை உள்ளிடப்பட்டது. வேறு யாரோ போனைத் திறக்க முயலலாம்.", 'hi': "स्क्रीन लॉक का गलत PIN या पैटर्न 3 या ज़्यादा बार डाला गया। हो सकता है कोई और फ़ोन खोलने की कोशिश कर रहा हो।"},
+  'many_unlock_failures': <String, String>{'en': "The wrong PIN was entered 5 or more times within a few minutes.", 'ta': "சில நிமிடங்களுக்குள் தவறான PIN 5 அல்லது அதற்கு மேல் முறை உள்ளிடப்பட்டது.", 'hi': "कुछ ही मिनटों में गलत PIN 5 या ज़्यादा बार डाला गया।"},
+  'failed_login_alert': <String, String>{'en': "An app reported a failed sign-in or a wrong password or PIN.", 'ta': "ஒரு செயலி தோல்வியடைந்த உள்நுழைவு அல்லது தவறான கடவுச்சொல் அல்லது PIN பற்றித் தெரிவித்தது.", 'hi': "एक ऐप ने बताया कि साइन-इन नहीं हो सका या गलत पासवर्ड या PIN डाला गया।"},
+  'repeated_failed_logins': <String, String>{'en': "Several failed sign-ins were reported in a short time.", 'ta': "குறுகிய நேரத்தில் பல உள்நுழைவுத் தோல்விகள் தெரிவிக்கப்பட்டன.", 'hi': "थोड़े ही समय में कई बार साइन-इन न हो पाने की सूचना मिली।"},
+  'guardian_paused': <String, String>{'en': "Your guardian paused this phone for a few minutes to keep you safe.", 'ta': "உங்களைப் பாதுகாக்க உங்கள் காப்பாளர் இந்தப் போனைச் சில நிமிடங்கள் நிறுத்தி வைத்துள்ளார்.", 'hi': "आपकी सुरक्षा के लिए आपके अभिभावक ने इस फ़ोन को कुछ मिनटों के लिए रोका है।"},
 };
 
 const Map<String, Map<String, String>> kActionLabels = <String, Map<String, String>>{
@@ -627,9 +599,6 @@ const Map<String, Map<String, String>> kActionLabels = <String, Map<String, Stri
   'remove_guardian': <String, String>{'en': "Remove a guardian", 'ta': "பாதுகாவலரை நீக்குதல்", 'hi': "संरक्षक को हटाना"},
   'change_phone': <String, String>{'en': "Change phone number", 'ta': "தொலைபேசி எண்ணை மாற்றுதல்", 'hi': "फ़ोन नंबर बदलना"},
   'change_email': <String, String>{'en': "Change email address", 'ta': "மின்னஞ்சல் முகவரியை மாற்றுதல்", 'hi': "ईमेल पता बदलना"},
-  'raise_transfer_limit': <String, String>{'en': "Raise the daily transfer limit", 'ta': "தினசரி பரிமாற்ற வரம்பை உயர்த்துதல்", 'hi': "रोज़ की ट्रांसफ़र सीमा बढ़ाना"},
-  'add_payee': <String, String>{'en': "Add a payee", 'ta': "பணம் பெறுபவரைச் சேர்த்தல்", 'hi': "पैसे पाने वाले को जोड़ना"},
-  'transfer_above_limit': <String, String>{'en': "Send money above the daily limit", 'ta': "தினசரி வரம்பை மீறிப் பணம் அனுப்புதல்", 'hi': "रोज़ की सीमा से ज़्यादा पैसे भेजना"},
   'view_recovery_codes': <String, String>{'en': "Create new recovery codes", 'ta': "புதிய மீட்புக் குறியீடுகளை உருவாக்குதல்", 'hi': "नए रिकवरी कोड बनाना"},
   'delete_account': <String, String>{'en': "Delete the account", 'ta': "கணக்கை நீக்குதல்", 'hi': "खाता हटाना"},
 };

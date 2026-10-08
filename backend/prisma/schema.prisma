@@ -3,8 +3,8 @@
 // Columns ending in "Hash" hold keyed HMAC-SHA256 blind indexes or SHA-256 token digests.
 
 generator client {
-  provider        = "prisma-client-js"
-  binaryTargets   = ["native", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -42,9 +42,6 @@ enum SensitiveAction {
   remove_guardian
   change_phone
   change_email
-  raise_transfer_limit
-  add_payee
-  transfer_above_limit
   view_recovery_codes
   delete_account
 }
@@ -81,31 +78,25 @@ enum RecoveryApprovalMethod {
   recovery_code
 }
 
-enum TransferStatus {
-  completed
-  failed
-}
-
 model User {
-  id             String     @id @default(uuid()) @db.Uuid
-  handle         String     @unique
-  displayNameEnc String     @map("display_name_enc")
-  webauthnUserId Bytes      @unique @map("webauthn_user_id")
-  locale         String     @default("en")
-  status         UserStatus @default(active)
-  emailEnc       String?    @map("email_enc")
-  emailHash      String?    @unique @map("email_hash")
-  phoneEnc       String?    @map("phone_enc")
-  phoneHash      String?    @unique @map("phone_hash")
-  phoneVerifiedAt DateTime? @map("phone_verified_at")
-  createdAt      DateTime   @default(now()) @map("created_at")
-  updatedAt      DateTime   @updatedAt @map("updated_at")
-  deletedAt      DateTime?  @map("deleted_at")
+  id              String     @id @default(uuid()) @db.Uuid
+  handle          String     @unique
+  displayNameEnc  String     @map("display_name_enc")
+  webauthnUserId  Bytes      @unique @map("webauthn_user_id")
+  locale          String     @default("en")
+  status          UserStatus @default(active)
+  emailEnc        String?    @map("email_enc")
+  emailHash       String?    @unique @map("email_hash")
+  phoneEnc        String?    @map("phone_enc")
+  phoneHash       String?    @unique @map("phone_hash")
+  phoneVerifiedAt DateTime?  @map("phone_verified_at")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+  deletedAt       DateTime?  @map("deleted_at")
 
   credentials       Credential[]
   devices           Device[]
   refreshTokens     RefreshToken[]
-  account           Account?
   guardianLinks     GuardianLink[]     @relation("ProtectedUser")
   guardingLinks     GuardianLink[]     @relation("Guardian")
   invites           Invite[]           @relation("Inviter")
@@ -116,9 +107,6 @@ model User {
   recoveries        Recovery[]
   recoveryApprovals RecoveryApproval[]
   recoveryCodes     RecoveryCode[]
-  payees            Payee[]            @relation("PayeeOwner")
-  payeeOf           Payee[]            @relation("PayeeTarget")
-  transfers         Transfer[]         @relation("TransferInitiator")
   consents          Consent[]
   monitorEvents     MonitorEvent[]
   pauses            DevicePause[]
@@ -439,60 +427,6 @@ model RecoveryCode {
   @@map("recovery_codes")
 }
 
-model Account {
-  id                 String   @id @default(uuid()) @db.Uuid
-  userId             String   @unique @map("user_id") @db.Uuid
-  currency           String
-  balanceMinor       BigInt   @map("balance_minor")
-  transferLimitMinor BigInt   @map("transfer_limit_minor")
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
-
-  user          User       @relation(fields: [userId], references: [id], onDelete: Restrict)
-  transfersOut  Transfer[] @relation("TransferFrom")
-  transfersIn   Transfer[] @relation("TransferTo")
-
-  @@map("accounts")
-}
-
-model Payee {
-  id          String    @id @default(uuid()) @db.Uuid
-  ownerId     String    @map("owner_id") @db.Uuid
-  payeeUserId String    @map("payee_user_id") @db.Uuid
-  nickname    String
-  createdAt   DateTime  @default(now()) @map("created_at")
-  removedAt   DateTime? @map("removed_at")
-
-  owner     User @relation("PayeeOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  payeeUser User @relation("PayeeTarget", fields: [payeeUserId], references: [id], onDelete: Cascade)
-
-  @@unique([ownerId, payeeUserId])
-  @@map("payees")
-}
-
-model Transfer {
-  id              String         @id @default(uuid()) @db.Uuid
-  fromAccountId   String         @map("from_account_id") @db.Uuid
-  toAccountId     String         @map("to_account_id") @db.Uuid
-  amountMinor     BigInt         @map("amount_minor")
-  currency        String
-  memoEnc         String?        @map("memo_enc")
-  status          TransferStatus
-  idempotencyKey  String         @map("idempotency_key")
-  initiatedById   String         @map("initiated_by_id") @db.Uuid
-  stepupRequestId String?        @map("stepup_request_id") @db.Uuid
-  createdAt       DateTime       @default(now()) @map("created_at")
-
-  fromAccount Account @relation("TransferFrom", fields: [fromAccountId], references: [id], onDelete: Restrict)
-  toAccount   Account @relation("TransferTo", fields: [toAccountId], references: [id], onDelete: Restrict)
-  initiatedBy User    @relation("TransferInitiator", fields: [initiatedById], references: [id], onDelete: Restrict)
-
-  @@unique([initiatedById, idempotencyKey])
-  @@index([fromAccountId, createdAt])
-  @@index([toAccountId, createdAt])
-  @@map("transfers")
-}
-
 model Consent {
   id        String   @id @default(uuid()) @db.Uuid
   userId    String   @map("user_id") @db.Uuid
@@ -543,6 +477,8 @@ model MonitorEvent {
   appPackage     String?   @map("app_package")
   amountBucket   String?   @map("amount_bucket")
   callEnc        String?   @map("call_enc")
+  /// Non-sensitive extra facts for the newer event kinds (counts, installer source, grant type).
+  detail         Json?
   score          Int
   severity       String
   rules          String[]
@@ -552,8 +488,8 @@ model MonitorEvent {
   acknowledgedAt DateTime? @map("acknowledged_at")
   acknowledgedBy String?   @map("acknowledged_by") @db.Uuid
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device Device        @relation(fields: [deviceId], references: [id], onDelete: Cascade)
   pauses DevicePause[]
 
   @@unique([deviceId, clientId])

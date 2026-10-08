@@ -16,4 +16,19 @@
     <string name="rule_repeated_unknown_caller">एक ही अनजान नंबर से दो घंटे में तीन या ज़्यादा बार कॉल आई है।</string>
     <string name="rule_hidden_or_international_caller">कॉल करने वाले का नंबर छिपा है या किसी दूसरे देश का है।</string>
     <string name="rule_late_night_activity">यह आधी रात से सुबह 5 बजे के बीच हुआ।</string>
+    <string name="rule_chat_after_otp">एक बार वाला कोड आते ही चैट ऐप खोला गया। धोखेबाज़ लोगों से यह कोड भेजने को कहते हैं।</string>
+    <string name="rule_otp_shared_during_call">यह किसी अनजान नंबर से कॉल के दौरान हुआ। कोड शेयर करवाने वाली धोखाधड़ी ऐसे ही होती है।</string>
+    <string name="rule_screen_share_started">स्क्रीन शेयरिंग शुरू की गई। देखने वाला कोड, PIN और पासवर्ड देख सकता है।</string>
+    <string name="rule_screen_share_during_call">किसी अनजान नंबर से कॉल के दौरान स्क्रीन शेयरिंग शुरू की गई।</string>
+    <string name="rule_remote_access_installed">अभी एक रिमोट-कंट्रोल ऐप इंस्टॉल किया गया। धोखेबाज़ फ़ोन पर कब्ज़ा करने के लिए ऐसे ऐप इस्तेमाल करते हैं।</string>
+    <string name="rule_sideloaded_app_installed">Play Store के बाहर से एक ऐप इंस्टॉल किया गया। नकली बैंक ऐप इसी तरह फैलाए जाते हैं।</string>
+    <string name="rule_install_during_call">यह ऐप किसी अनजान नंबर से कॉल के दौरान इंस्टॉल किया गया।</string>
+    <string name="rule_new_accessibility_app">एक ऐप को स्क्रीन पढ़ने और चलाने की अनुमति दी गई।</string>
+    <string name="rule_new_device_admin_app">एक ऐप को डिवाइस एडमिन बनाया गया, जिससे वह फ़ोन लॉक या मिटा सकता है।</string>
+    <string name="rule_access_granted_during_call">यह अनुमति किसी अनजान नंबर से कॉल के दौरान दी गई।</string>
+    <string name="rule_repeated_unlock_failures">स्क्रीन लॉक का गलत PIN या पैटर्न 3 या ज़्यादा बार डाला गया। हो सकता है कोई और फ़ोन खोलने की कोशिश कर रहा हो।</string>
+    <string name="rule_many_unlock_failures">कुछ ही मिनटों में गलत PIN 5 या ज़्यादा बार डाला गया।</string>
+    <string name="rule_failed_login_alert">एक ऐप ने बताया कि साइन-इन नहीं हो सका या गलत पासवर्ड या PIN डाला गया।</string>
+    <string name="rule_repeated_failed_logins">थोड़े ही समय में कई बार साइन-इन न हो पाने की सूचना मिली।</string>
+    <string name="rule_guardian_paused">आपकी सुरक्षा के लिए आपके अभिभावक ने इस फ़ोन को कुछ मिनटों के लिए रोका है।</string>
 </resources>

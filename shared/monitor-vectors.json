@@ -90,6 +90,90 @@
       "event": { "kind": "notification_credit", "app": { "package": "com.sbi.lotusintouch", "category": "bank" }, "amountBucket": "gt_1l", "call": null, "localHour": 3 },
       "context": { "usualMaxDebitBucket": null },
       "expect": { "score": 0, "severity": "info", "rules": [], "pause": false }
+    },
+    {
+      "name": "chat app opened 40 s after a one-time code, no call",
+      "event": { "kind": "app_foreground", "app": { "package": "com.whatsapp", "category": "messaging" }, "amountBucket": null, "call": null, "localHour": 11, "sinceOtpSec": 40 },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 40, "severity": "warn", "rules": ["chat_after_otp"], "pause": false }
+    },
+    {
+      "name": "chat app opened right after a code during an unknown call: pause before the code is sent",
+      "event": { "kind": "app_foreground", "app": { "package": "com.whatsapp", "category": "messaging" }, "amountBucket": null, "call": { "active": true, "durationSec": 300, "caller": "unknown", "repeatCount": 0 }, "localHour": 11, "sinceOtpSec": 25 },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 70, "severity": "critical", "rules": ["chat_after_otp", "otp_shared_during_call"], "pause": true }
+    },
+    {
+      "name": "chat app opened ten minutes after a code is ordinary",
+      "event": { "kind": "app_foreground", "app": { "package": "org.telegram.messenger", "category": "messaging" }, "amountBucket": null, "call": null, "localHour": 11, "sinceOtpSec": 600 },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 0, "severity": "info", "rules": [], "pause": false }
+    },
+    {
+      "name": "screen-share prompt during an unknown call: pause",
+      "event": { "kind": "screen_share_prompt", "app": null, "amountBucket": null, "call": { "active": true, "durationSec": 200, "caller": "unknown", "repeatCount": 0 }, "localHour": 11 },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 70, "severity": "critical", "rules": ["screen_share_started", "screen_share_during_call"], "pause": true }
+    },
+    {
+      "name": "screen-share prompt with no call warns the guardian",
+      "event": { "kind": "screen_share_prompt", "app": null, "amountBucket": null, "call": null, "localHour": 11 },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 40, "severity": "warn", "rules": ["screen_share_started"], "pause": false }
+    },
+    {
+      "name": "remote-control app installed from outside the Play Store during an unknown call",
+      "event": { "kind": "app_installed", "app": { "package": "com.anydesk.anydeskandroid", "category": "remote_access" }, "amountBucket": null, "call": { "active": true, "durationSec": 600, "caller": "unknown", "repeatCount": 0 }, "localHour": 11, "installer": "unknown" },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 100, "severity": "critical", "rules": ["remote_access_installed", "install_during_call", "sideloaded_app_installed"], "pause": false }
+    },
+    {
+      "name": "ordinary app from the Play Store is not flagged, even during a call",
+      "event": { "kind": "app_installed", "app": { "package": "com.duolingo", "category": "other" }, "amountBucket": null, "call": { "active": true, "durationSec": 600, "caller": "unknown", "repeatCount": 0 }, "localHour": 11, "installer": "store" },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 0, "severity": "info", "rules": [], "pause": false }
+    },
+    {
+      "name": "screen-control permission given to an app during an unknown call",
+      "event": { "kind": "access_granted", "app": { "package": "com.support.helper", "category": "other" }, "amountBucket": null, "call": { "active": true, "durationSec": 400, "caller": "unknown", "repeatCount": 0 }, "localHour": 11, "grant": "accessibility" },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 70, "severity": "critical", "rules": ["new_accessibility_app", "access_granted_during_call"], "pause": false }
+    },
+    {
+      "name": "an app made device administrator",
+      "event": { "kind": "access_granted", "app": { "package": "com.support.helper", "category": "other" }, "amountBucket": null, "call": null, "localHour": 11, "grant": "device_admin" },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 40, "severity": "warn", "rules": ["new_device_admin_app"], "pause": false }
+    },
+    {
+      "name": "wrong screen-lock PIN three times",
+      "event": { "kind": "unlock_failed", "app": null, "amountBucket": null, "call": null, "localHour": 11, "attempts": 3 },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 40, "severity": "warn", "rules": ["repeated_unlock_failures"], "pause": false }
+    },
+    {
+      "name": "wrong screen-lock PIN six times at 2 a.m.",
+      "event": { "kind": "unlock_failed", "app": null, "amountBucket": null, "call": null, "localHour": 2, "attempts": 6 },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 70, "severity": "critical", "rules": ["repeated_unlock_failures", "many_unlock_failures", "late_night_activity"], "pause": false }
+    },
+    {
+      "name": "two wrong PINs are a normal slip",
+      "event": { "kind": "unlock_failed", "app": null, "amountBucket": null, "call": null, "localHour": 11, "attempts": 2 },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 0, "severity": "info", "rules": [], "pause": false }
+    },
+    {
+      "name": "bank app reports a third failed sign-in",
+      "event": { "kind": "notification_failed_login", "app": { "package": "com.sbi.lotusintouch", "category": "bank" }, "amountBucket": null, "call": null, "localHour": 11, "attempts": 3 },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 50, "severity": "warn", "rules": ["failed_login_alert", "repeated_failed_logins"], "pause": false }
+    },
+    {
+      "name": "one failed sign-in alert",
+      "event": { "kind": "notification_failed_login", "app": { "package": "com.google.android.gm", "category": "email" }, "amountBucket": null, "call": null, "localHour": 11, "attempts": 1 },
+      "context": { "usualMaxDebitBucket": null },
+      "expect": { "score": 30, "severity": "warn", "rules": ["failed_login_alert"], "pause": false }
     }
   ]
 }

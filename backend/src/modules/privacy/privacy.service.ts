@@ -1,7 +1,6 @@
 import type { Prisma } from '@prisma/client';
 import type { Deps } from '../../deps.js';
 import type { AuditInput } from '../audit/audit.service.js';
-import { ctxTransferMemo } from '../ledger/ledger.service.js';
 import { ctxSignalPayload } from '../risk/risk.service.js';
 import { ctxDeviceName, ctxUserEmail, ctxUserName, ctxUserPhone } from '../users/users.service.js';
 import type { DevicesService } from '../devices/devices.service.js';
@@ -23,8 +22,6 @@ export class PrivacyService {
       include: {
         devices: true,
         credentials: true,
-        account: true,
-        payees: { include: { payeeUser: { select: { handle: true } } } },
         guardianLinks: { include: { guardian: { select: { handle: true } } } },
         guardingLinks: { include: { user: { select: { handle: true } } } },
         consents: { orderBy: { createdAt: 'asc' } },
@@ -35,12 +32,6 @@ export class PrivacyService {
       },
     });
     const dec = (v: string | null, c: string) => (v ? cipher.decrypt(v, c) : null);
-    const transfers = user.account
-      ? await prisma.transfer.findMany({
-          where: { OR: [{ fromAccountId: user.account.id }, { toAccountId: user.account.id }] },
-          orderBy: { createdAt: 'desc' },
-        })
-      : [];
     return {
       exportedAt: new Date().toISOString(),
       profile: {
@@ -64,18 +55,6 @@ export class PrivacyService {
         integrityVerdict: d.integrityVerdict,
       })),
       passkeys: user.credentials.map((c) => ({ id: c.id, createdAt: c.createdAt, lastUsedAt: c.lastUsedAt, backedUp: c.backedUp, revokedAt: c.revokedAt })),
-      account: user.account
-        ? { currency: user.account.currency, balanceMinor: user.account.balanceMinor.toString(), transferLimitMinor: user.account.transferLimitMinor.toString() }
-        : null,
-      transfers: transfers.map((t) => ({
-        id: t.id,
-        direction: t.fromAccountId === user.account?.id ? 'out' : 'in',
-        amountMinor: t.amountMinor.toString(),
-        currency: t.currency,
-        memo: dec(t.memoEnc, ctxTransferMemo(t.id)),
-        createdAt: t.createdAt,
-      })),
-      payees: user.payees.map((p) => ({ handle: p.payeeUser.handle, nickname: p.nickname, createdAt: p.createdAt, removedAt: p.removedAt })),
       guardians: user.guardianLinks.map((l) => ({ handle: l.guardian.handle, status: l.status, createdAt: l.createdAt })),
       guarding: user.guardingLinks.map((l) => ({ handle: l.user.handle, status: l.status, createdAt: l.createdAt })),
       consents: user.consents.map((c) => ({ purpose: c.purpose, version: c.version, granted: c.granted, at: c.createdAt })),
@@ -100,6 +79,7 @@ export class PrivacyService {
         appCategory: m.appCategory,
         app: m.appPackage,
         amountRange: m.amountBucket,
+        detail: m.detail,
         severity: m.severity,
         rules: m.rules,
       })),
@@ -107,9 +87,8 @@ export class PrivacyService {
   }
 
   /**
-   * Delete an account. Personal data is erased; ledger rows stay (other people's transfers point at
-   * them) but are reachable only through a pseudonymous ID. Audit events contain IDs only, so the
-   * hash chain survives deletion intact. Returns the device IDs revoked, for post-commit cleanup.
+   * Delete an account. Personal data is erased and the user row keeps only a pseudonymous ID.
+   * Audit events contain IDs only, so the hash chain survives deletion intact. Returns the device IDs revoked, for post-commit cleanup.
    */
   async deleteAccount(tx: Prisma.TransactionClient, log: (i: AuditInput) => Promise<unknown>, userId: string): Promise<string[]> {
     const devices = await tx.device.findMany({ where: { userId, revokedAt: null }, select: { id: true } });
@@ -120,8 +99,6 @@ export class PrivacyService {
     await tx.monitorEvent.deleteMany({ where: { userId } });
     await tx.devicePause.deleteMany({ where: { userId } });
     await tx.recoveryCode.deleteMany({ where: { userId } });
-    await tx.payee.updateMany({ where: { ownerId: userId, removedAt: null }, data: { removedAt: new Date() } });
-    await tx.payee.updateMany({ where: { payeeUserId: userId, removedAt: null }, data: { removedAt: new Date() } });
     await tx.guardianLink.updateMany({
       where: { OR: [{ userId }, { guardianId: userId }], status: { in: ['pending_activation', 'active', 'pending_removal'] } },
       data: { status: 'removed', endedAt: new Date() },

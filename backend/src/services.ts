@@ -3,7 +3,6 @@ import { CredentialsService } from './modules/auth/credentials.service.js';
 import { TokenService } from './modules/auth/tokens.js';
 import { DevicesService } from './modules/devices/devices.service.js';
 import { GuardiansService } from './modules/guardians/guardians.service.js';
-import { LedgerService } from './modules/ledger/ledger.service.js';
 import { MonitorService } from './modules/monitor/monitor.service.js';
 import { PrivacyService } from './modules/privacy/privacy.service.js';
 import { Notifier } from './modules/push/notifier.js';
@@ -23,7 +22,6 @@ export interface Services {
   devices: DevicesService;
   notifier: Notifier;
   risk: RiskService;
-  ledger: LedgerService;
   guardians: GuardiansService;
   phone: PhoneService;
   privacy: PrivacyService;
@@ -40,13 +38,12 @@ export function createServices(deps: Deps): Services {
   const devices = new DevicesService(deps, tokens);
   const notifier = new Notifier(deps);
   const risk = new RiskService(deps, credentials);
-  const ledger = new LedgerService(deps);
   const guardians = new GuardiansService(deps, users, notifier);
   const phone = new PhoneService(deps);
   const privacy = new PrivacyService(deps, devices);
 
-  // Step-up and recovery depend on the full set (actions call into ledger, guardians, privacy...).
-  const services = { tokens, webauthn, users, credentials, devices, notifier, risk, ledger, guardians, phone, privacy } as Services;
+  // Step-up and recovery depend on the full set (actions call into guardians, privacy...).
+  const services = { tokens, webauthn, users, credentials, devices, notifier, risk, guardians, phone, privacy } as Services;
   services.stepup = new StepupService(deps, services, createActions(deps, services));
   services.recovery = new RecoveryService(deps, services);
   services.monitor = new MonitorService(deps, services);

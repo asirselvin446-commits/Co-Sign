@@ -42,13 +42,12 @@ export class UsersService {
     }
   }
 
-  /** Create a user with a seeded ledger account. Caller supplies the transaction. */
+  /** Create a user. Caller supplies the transaction. */
   async createUser(
     tx: Prisma.TransactionClient,
     input: { handle: string; displayName: string; locale: string; webauthnUserId: Buffer },
   ): Promise<User> {
     const id = randomUUID();
-    const c = this.deps.config;
     try {
       return await tx.user.create({
         data: {
@@ -57,13 +56,6 @@ export class UsersService {
           displayNameEnc: this.deps.cipher.encrypt(input.displayName, ctxUserName(id)),
           webauthnUserId: new Uint8Array(input.webauthnUserId),
           locale: input.locale,
-          account: {
-            create: {
-              currency: c.CURRENCY_CODE,
-              balanceMinor: c.STARTING_BALANCE_MINOR,
-              transferLimitMinor: c.DEFAULT_TRANSFER_LIMIT_MINOR,
-            },
-          },
         },
       });
     } catch (e) {

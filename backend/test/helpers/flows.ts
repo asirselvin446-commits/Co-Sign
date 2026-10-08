@@ -61,10 +61,4 @@ export async function guardianDecide(t: TestApp, guardian: TestUser, requestId: 
   return call(t, 'POST', `/v1/guardian/requests/${requestId}/decision`, { token: guardian.accessToken, body: { response } });
 }
 
-export async function addPayee(t: TestApp, u: TestUser, handle: string, nickname = handle): Promise<string> {
-  const { verify } = await stepup(t, u, 'add_payee', { handle, nickname }, calmSignals());
-  if (verify.body.status !== 'completed') throw new Error(`add payee: ${JSON.stringify(verify.body)}`);
-  return verify.body.result.payeeId;
-}
-
 export const tick = (t: TestApp) => runJobsOnce(t.ctx);

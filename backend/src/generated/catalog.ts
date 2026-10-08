@@ -460,48 +460,6 @@ export const ERROR_CATALOG = {
       }
     }
   },
-  "INSUFFICIENT_FUNDS": {
-    "http": 422,
-    "tier": "detailed",
-    "generic": "ACTION_NOT_COMPLETED",
-    "origin": "server",
-    "params": [],
-    "text": {
-      "en": {
-        "cause": "Your balance is too low for this transfer.",
-        "next": "Enter a smaller amount."
-      },
-      "ta": {
-        "cause": "இந்தப் பரிமாற்றத்திற்கு உங்கள் இருப்பு போதவில்லை.",
-        "next": "குறைவான தொகையை உள்ளிடுங்கள்."
-      },
-      "hi": {
-        "cause": "इस ट्रांसफ़र के लिए आपका बैलेंस कम है।",
-        "next": "कम रकम डालें।"
-      }
-    }
-  },
-  "LIMIT_STEPUP_REQUIRED": {
-    "http": 428,
-    "tier": "public",
-    "generic": null,
-    "origin": "server",
-    "params": [],
-    "text": {
-      "en": {
-        "cause": "This is more than your daily limit, so it needs an extra safety check.",
-        "next": "Tap Continue to confirm with your passkey."
-      },
-      "ta": {
-        "cause": "இது உங்கள் தினசரி வரம்பை விட அதிகம், அதனால் கூடுதல் பாதுகாப்புச் சோதனை தேவை.",
-        "next": "உங்கள் பாஸ்கீ மூலம் உறுதிசெய்ய தொடர் என்பதைத் தட்டுங்கள்."
-      },
-      "hi": {
-        "cause": "यह आपकी रोज़ की सीमा से ज़्यादा है, इसलिए इसके लिए एक अतिरिक्त सुरक्षा जाँच चाहिए।",
-        "next": "अपनी पासकी से पुष्टि करने के लिए आगे बढ़ें पर टैप करें।"
-      }
-    }
-  },
   "STEPUP_REQUIRED": {
     "http": 428,
     "tier": "public",
@@ -520,48 +478,6 @@ export const ERROR_CATALOG = {
       "hi": {
         "cause": "इस बदलाव के लिए एक अतिरिक्त सुरक्षा जाँच चाहिए।",
         "next": "अपनी पासकी से पुष्टि करने के लिए आगे बढ़ें पर टैप करें।"
-      }
-    }
-  },
-  "PAYEE_EXISTS": {
-    "http": 409,
-    "tier": "public",
-    "generic": null,
-    "origin": "server",
-    "params": [],
-    "text": {
-      "en": {
-        "cause": "This person is already in your payees.",
-        "next": "Choose them from your payee list to send money."
-      },
-      "ta": {
-        "cause": "இவர் ஏற்கனவே உங்கள் பணம் பெறுபவர் பட்டியலில் உள்ளார்.",
-        "next": "பணம் அனுப்ப உங்கள் பட்டியலிலிருந்து இவரைத் தேர்ந்தெடுங்கள்."
-      },
-      "hi": {
-        "cause": "यह व्यक्ति पहले से आपकी प्राप्तकर्ता सूची में है।",
-        "next": "पैसे भेजने के लिए उन्हें अपनी सूची से चुनें।"
-      }
-    }
-  },
-  "LIMIT_NOT_HIGHER": {
-    "http": 400,
-    "tier": "public",
-    "generic": null,
-    "origin": "server",
-    "params": [],
-    "text": {
-      "en": {
-        "cause": "The new limit must be higher than your current limit.",
-        "next": "Lowering a limit does not need a check. Enter a higher amount to raise it."
-      },
-      "ta": {
-        "cause": "புதிய வரம்பு தற்போதைய வரம்பை விட அதிகமாக இருக்க வேண்டும்.",
-        "next": "வரம்பைக் குறைக்கச் சோதனை தேவையில்லை. உயர்த்த, அதிகத் தொகையை உள்ளிடுங்கள்."
-      },
-      "hi": {
-        "cause": "नई सीमा मौजूदा सीमा से ज़्यादा होनी चाहिए।",
-        "next": "सीमा घटाने के लिए जाँच की ज़रूरत नहीं है। बढ़ाने के लिए ज़्यादा रकम डालें।"
       }
     }
   },
@@ -712,27 +628,6 @@ export const ERROR_CATALOG = {
       }
     }
   },
-  "IDEMPOTENCY_CONFLICT": {
-    "http": 409,
-    "tier": "public",
-    "generic": null,
-    "origin": "server",
-    "params": [],
-    "text": {
-      "en": {
-        "cause": "This request was already sent with different details.",
-        "next": "Start a new transfer."
-      },
-      "ta": {
-        "cause": "இந்தக் கோரிக்கை ஏற்கனவே வேறு விவரங்களுடன் அனுப்பப்பட்டது.",
-        "next": "புதிய பரிமாற்றத்தைத் தொடங்குங்கள்."
-      },
-      "hi": {
-        "cause": "यह अनुरोध पहले ही अलग जानकारी के साथ भेजा जा चुका है।",
-        "next": "नया ट्रांसफ़र शुरू करें।"
-      }
-    }
-  },
   "ACTION_NOT_COMPLETED": {
     "http": 403,
     "tier": "public",
@@ -793,6 +688,27 @@ export const ERROR_CATALOG = {
       "hi": {
         "cause": "आपने इस फ़ोन पर सुरक्षा जाँच की अनुमति अभी नहीं दी है।",
         "next": "सेटिंग में सुरक्षा जाँच खोलें और चुनें कि किसकी अनुमति देनी है।"
+      }
+    }
+  },
+  "PROTECTION_OFF": {
+    "http": 409,
+    "tier": "public",
+    "generic": null,
+    "origin": "server",
+    "params": [],
+    "text": {
+      "en": {
+        "cause": "Family protection is not switched on for their phone, so it cannot be paused or locked from here.",
+        "next": "Call them, and ask them to open Co-Sign and turn on family protection."
+      },
+      "ta": {
+        "cause": "அவரது போனில் குடும்பப் பாதுகாப்பு இயக்கப்படவில்லை. அதனால் இங்கிருந்து அதை நிறுத்தவோ பூட்டவோ முடியாது.",
+        "next": "அவரை அழைத்து, Co-Sign-ஐத் திறந்து குடும்பப் பாதுகாப்பை இயக்கச் சொல்லுங்கள்."
+      },
+      "hi": {
+        "cause": "उनके फ़ोन पर पारिवारिक सुरक्षा चालू नहीं है, इसलिए उसे यहाँ से रोका या लॉक नहीं किया जा सकता।",
+        "next": "उन्हें कॉल करें और Co-Sign खोलकर पारिवारिक सुरक्षा चालू करने को कहें।"
       }
     }
   },
@@ -899,22 +815,6 @@ export const RISK_RULE_DEFAULTS = {
       "en": "Family protection saw a warning sign on this phone in the last 30 minutes.",
       "ta": "கடந்த 30 நிமிடங்களில் இந்தத் தொலைபேசியில் குடும்பப் பாதுகாப்பு ஓர் எச்சரிக்கை அறிகுறியைக் கண்டது.",
       "hi": "पिछले 30 मिनट में फ़ैमिली प्रोटेक्शन ने इस फ़ोन पर एक चेतावनी का संकेत देखा।"
-    }
-  },
-  "unusual_amount": {
-    "weight": 25,
-    "reasons": {
-      "en": "This amount is much larger than the payments this person usually makes.",
-      "ta": "இவர் வழக்கமாகச் செய்யும் பணப் பரிமாற்றங்களை விட இந்தத் தொகை மிக அதிகம்.",
-      "hi": "यह रकम इनके आम तौर पर किए जाने वाले भुगतानों से बहुत ज़्यादा है।"
-    }
-  },
-  "new_payee_recent": {
-    "weight": 20,
-    "reasons": {
-      "en": "The money is going to someone added as a payee less than a day ago.",
-      "ta": "ஒரு நாளுக்குள் சேர்க்கப்பட்ட ஒருவருக்குப் பணம் செல்கிறது.",
-      "hi": "पैसे ऐसे व्यक्ति को जा रहे हैं जिसे एक दिन से कम समय पहले जोड़ा गया था।"
     }
   }
 } as const;
@@ -1040,6 +940,126 @@ export const MONITOR_RULES = {
       "ta": "இது நள்ளிரவு முதல் அதிகாலை 5 மணிக்குள் நடந்தது.",
       "hi": "यह आधी रात से सुबह 5 बजे के बीच हुआ।"
     }
+  },
+  "chat_after_otp": {
+    "weight": 40,
+    "reasons": {
+      "en": "A chat app was opened right after a one-time code arrived. Scammers ask people to send them the code.",
+      "ta": "ஒருமுறைக் குறியீடு வந்தவுடன் ஒரு அரட்டைச் செயலி திறக்கப்பட்டது. மோசடிக்காரர்கள் அந்தக் குறியீட்டை அனுப்பச் சொல்வார்கள்.",
+      "hi": "एक बार वाला कोड आते ही चैट ऐप खोला गया। धोखेबाज़ लोगों से यह कोड भेजने को कहते हैं।"
+    }
+  },
+  "otp_shared_during_call": {
+    "weight": 30,
+    "reasons": {
+      "en": "This happened during a call with an unknown number, which is how code-sharing scams work.",
+      "ta": "இது தெரியாத எண்ணுடனான அழைப்பின்போது நடந்தது. குறியீட்டைப் பகிரவைக்கும் மோசடிகள் இப்படித்தான் நடக்கின்றன.",
+      "hi": "यह किसी अनजान नंबर से कॉल के दौरान हुआ। कोड शेयर करवाने वाली धोखाधड़ी ऐसे ही होती है।"
+    }
+  },
+  "screen_share_started": {
+    "weight": 40,
+    "reasons": {
+      "en": "Screen sharing was started. Whoever is watching can see codes, PINs and passwords.",
+      "ta": "திரைப் பகிர்வு தொடங்கப்பட்டது. பார்ப்பவர் குறியீடுகள், PIN மற்றும் கடவுச்சொற்களைப் பார்க்க முடியும்.",
+      "hi": "स्क्रीन शेयरिंग शुरू की गई। देखने वाला कोड, PIN और पासवर्ड देख सकता है।"
+    }
+  },
+  "screen_share_during_call": {
+    "weight": 30,
+    "reasons": {
+      "en": "Screen sharing was started during a call with an unknown number.",
+      "ta": "தெரியாத எண்ணுடனான அழைப்பின்போது திரைப் பகிர்வு தொடங்கப்பட்டது.",
+      "hi": "किसी अनजान नंबर से कॉल के दौरान स्क्रीन शेयरिंग शुरू की गई।"
+    }
+  },
+  "remote_access_installed": {
+    "weight": 40,
+    "reasons": {
+      "en": "A remote-control app was just installed. Scammers use these apps to take over phones.",
+      "ta": "இப்போதுதான் ஒரு தொலைக் கட்டுப்பாட்டுச் செயலி நிறுவப்பட்டது. மோசடிக்காரர்கள் போன்களைக் கைப்பற்ற இவற்றைப் பயன்படுத்துவார்கள்.",
+      "hi": "अभी एक रिमोट-कंट्रोल ऐप इंस्टॉल किया गया। धोखेबाज़ फ़ोन पर कब्ज़ा करने के लिए ऐसे ऐप इस्तेमाल करते हैं।"
+    }
+  },
+  "sideloaded_app_installed": {
+    "weight": 30,
+    "reasons": {
+      "en": "An app was installed from outside the Play Store. Fake bank apps are spread this way.",
+      "ta": "Play Store-க்கு வெளியிலிருந்து ஒரு செயலி நிறுவப்பட்டது. போலி வங்கிச் செயலிகள் இப்படித்தான் பரப்பப்படுகின்றன.",
+      "hi": "Play Store के बाहर से एक ऐप इंस्टॉल किया गया। नकली बैंक ऐप इसी तरह फैलाए जाते हैं।"
+    }
+  },
+  "install_during_call": {
+    "weight": 30,
+    "reasons": {
+      "en": "The app was installed during a call with an unknown number.",
+      "ta": "தெரியாத எண்ணுடனான அழைப்பின்போது அந்தச் செயலி நிறுவப்பட்டது.",
+      "hi": "यह ऐप किसी अनजान नंबर से कॉल के दौरान इंस्टॉल किया गया।"
+    }
+  },
+  "new_accessibility_app": {
+    "weight": 40,
+    "reasons": {
+      "en": "An app was given permission to read and control the screen.",
+      "ta": "ஒரு செயலிக்குத் திரையைப் படிக்கவும் கட்டுப்படுத்தவும் அனுமதி வழங்கப்பட்டது.",
+      "hi": "एक ऐप को स्क्रीन पढ़ने और चलाने की अनुमति दी गई।"
+    }
+  },
+  "new_device_admin_app": {
+    "weight": 40,
+    "reasons": {
+      "en": "An app was made a device administrator, which lets it lock or erase the phone.",
+      "ta": "ஒரு செயலி சாதன நிர்வாகியாக்கப்பட்டது. இதனால் அது போனைப் பூட்டவோ அழிக்கவோ முடியும்.",
+      "hi": "एक ऐप को डिवाइस एडमिन बनाया गया, जिससे वह फ़ोन लॉक या मिटा सकता है।"
+    }
+  },
+  "access_granted_during_call": {
+    "weight": 30,
+    "reasons": {
+      "en": "The permission was given during a call with an unknown number.",
+      "ta": "அந்த அனுமதி தெரியாத எண்ணுடனான அழைப்பின்போது வழங்கப்பட்டது.",
+      "hi": "यह अनुमति किसी अनजान नंबर से कॉल के दौरान दी गई।"
+    }
+  },
+  "repeated_unlock_failures": {
+    "weight": 40,
+    "reasons": {
+      "en": "The wrong screen-lock PIN or pattern was entered 3 or more times. Someone else may be trying to get into the phone.",
+      "ta": "திரைப் பூட்டின் தவறான PIN அல்லது வடிவம் 3 அல்லது அதற்கு மேல் முறை உள்ளிடப்பட்டது. வேறு யாரோ போனைத் திறக்க முயலலாம்.",
+      "hi": "स्क्रीन लॉक का गलत PIN या पैटर्न 3 या ज़्यादा बार डाला गया। हो सकता है कोई और फ़ोन खोलने की कोशिश कर रहा हो।"
+    }
+  },
+  "many_unlock_failures": {
+    "weight": 20,
+    "reasons": {
+      "en": "The wrong PIN was entered 5 or more times within a few minutes.",
+      "ta": "சில நிமிடங்களுக்குள் தவறான PIN 5 அல்லது அதற்கு மேல் முறை உள்ளிடப்பட்டது.",
+      "hi": "कुछ ही मिनटों में गलत PIN 5 या ज़्यादा बार डाला गया।"
+    }
+  },
+  "failed_login_alert": {
+    "weight": 30,
+    "reasons": {
+      "en": "An app reported a failed sign-in or a wrong password or PIN.",
+      "ta": "ஒரு செயலி தோல்வியடைந்த உள்நுழைவு அல்லது தவறான கடவுச்சொல் அல்லது PIN பற்றித் தெரிவித்தது.",
+      "hi": "एक ऐप ने बताया कि साइन-इन नहीं हो सका या गलत पासवर्ड या PIN डाला गया।"
+    }
+  },
+  "repeated_failed_logins": {
+    "weight": 20,
+    "reasons": {
+      "en": "Several failed sign-ins were reported in a short time.",
+      "ta": "குறுகிய நேரத்தில் பல உள்நுழைவுத் தோல்விகள் தெரிவிக்கப்பட்டன.",
+      "hi": "थोड़े ही समय में कई बार साइन-इन न हो पाने की सूचना मिली।"
+    }
+  },
+  "guardian_paused": {
+    "weight": 0,
+    "reasons": {
+      "en": "Your guardian paused this phone for a few minutes to keep you safe.",
+      "ta": "உங்களைப் பாதுகாக்க உங்கள் காப்பாளர் இந்தப் போனைச் சில நிமிடங்கள் நிறுத்தி வைத்துள்ளார்.",
+      "hi": "आपकी सुरक्षा के लिए आपके अभिभावक ने इस फ़ोन को कुछ मिनटों के लिए रोका है।"
+    }
   }
 } as const;
 export type MonitorRuleKey = keyof typeof MONITOR_RULES;
@@ -1070,21 +1090,6 @@ export const ACTION_LABELS = {
     "ta": "மின்னஞ்சல் முகவரியை மாற்றுதல்",
     "hi": "ईमेल पता बदलना"
   },
-  "raise_transfer_limit": {
-    "en": "Raise the daily transfer limit",
-    "ta": "தினசரி பரிமாற்ற வரம்பை உயர்த்துதல்",
-    "hi": "रोज़ की ट्रांसफ़र सीमा बढ़ाना"
-  },
-  "add_payee": {
-    "en": "Add a payee",
-    "ta": "பணம் பெறுபவரைச் சேர்த்தல்",
-    "hi": "पैसे पाने वाले को जोड़ना"
-  },
-  "transfer_above_limit": {
-    "en": "Send money above the daily limit",
-    "ta": "தினசரி வரம்பை மீறிப் பணம் அனுப்புதல்",
-    "hi": "रोज़ की सीमा से ज़्यादा पैसे भेजना"
-  },
   "view_recovery_codes": {
     "en": "Create new recovery codes",
     "ta": "புதிய மீட்புக் குறியீடுகளை உருவாக்குதல்",
@@ -1102,15 +1107,27 @@ export const NOTIFICATIONS = {
   "guardian_request": {
     "en": {
       "title": "{name} needs your approval",
-      "body": "{action}. Check with them on a number you know before you approve."
+      "body": "{action}. Check with them on a number you know before you approve.",
+      "actions": {
+        "approve": "Approve",
+        "deny": "Deny"
+      }
     },
     "ta": {
       "title": "{name} உங்கள் ஒப்புதலைக் கேட்கிறார்",
-      "body": "{action}. ஒப்புதல் அளிப்பதற்கு முன், உங்களுக்குத் தெரிந்த எண்ணில் அவரிடம் உறுதிசெய்யுங்கள்."
+      "body": "{action}. ஒப்புதல் அளிப்பதற்கு முன், உங்களுக்குத் தெரிந்த எண்ணில் அவரிடம் உறுதிசெய்யுங்கள்.",
+      "actions": {
+        "approve": "அனுமதி",
+        "deny": "மறு"
+      }
     },
     "hi": {
       "title": "{name} को आपकी मंज़ूरी चाहिए",
-      "body": "{action}। मंज़ूरी देने से पहले, किसी जाने-पहचाने नंबर पर उनसे पुष्टि करें।"
+      "body": "{action}। मंज़ूरी देने से पहले, किसी जाने-पहचाने नंबर पर उनसे पुष्टि करें।",
+      "actions": {
+        "approve": "मंज़ूरी दें",
+        "deny": "मना करें"
+      }
     }
   },
   "recovery_request": {
@@ -1200,29 +1217,93 @@ export const NOTIFICATIONS = {
   "monitor_alert": {
     "en": {
       "title": "{name} may need help now",
-      "body": "{what}. Call them yourself on a number you know."
+      "body": "{what}. Call them yourself on a number you know.",
+      "actions": {
+        "pause": "Pause their phone",
+        "open": "Open"
+      }
     },
     "ta": {
       "title": "{name}-க்கு இப்போது உதவி தேவைப்படலாம்",
-      "body": "{what}. உங்களுக்குத் தெரிந்த எண்ணில் நீங்களே அவரை அழையுங்கள்."
+      "body": "{what}. உங்களுக்குத் தெரிந்த எண்ணில் நீங்களே அவரை அழையுங்கள்.",
+      "actions": {
+        "pause": "போனை நிறுத்து",
+        "open": "திற"
+      }
     },
     "hi": {
       "title": "{name} को अभी मदद की ज़रूरत हो सकती है",
-      "body": "{what}। किसी जाने-पहचाने नंबर पर ख़ुद उन्हें कॉल करें।"
+      "body": "{what}। किसी जाने-पहचाने नंबर पर ख़ुद उन्हें कॉल करें।",
+      "actions": {
+        "pause": "फ़ोन रोकें",
+        "open": "खोलें"
+      }
     }
   },
   "monitor_paused": {
     "en": {
       "title": "{name}'s phone is paused for safety",
-      "body": "{what}. Open Co-Sign to release the pause after you have spoken to them."
+      "body": "{what}. Open Co-Sign to release the pause after you have spoken to them.",
+      "actions": {
+        "release": "Let them continue",
+        "open": "Open"
+      }
     },
     "ta": {
       "title": "பாதுகாப்பிற்காக {name}-இன் தொலைபேசி நிறுத்தி வைக்கப்பட்டுள்ளது",
-      "body": "{what}. அவரிடம் பேசிய பிறகு இடைநிறுத்தத்தை நீக்க Co-Sign-ஐத் திறவுங்கள்."
+      "body": "{what}. அவரிடம் பேசிய பிறகு இடைநிறுத்தத்தை நீக்க Co-Sign-ஐத் திறவுங்கள்.",
+      "actions": {
+        "release": "தொடர அனுமதி",
+        "open": "திற"
+      }
     },
     "hi": {
       "title": "सुरक्षा के लिए {name} का फ़ोन रोका गया है",
-      "body": "{what}। उनसे बात करने के बाद रोक हटाने के लिए Co-Sign खोलें।"
+      "body": "{what}। उनसे बात करने के बाद रोक हटाने के लिए Co-Sign खोलें।",
+      "actions": {
+        "release": "आगे बढ़ने दें",
+        "open": "खोलें"
+      }
+    }
+  },
+  "monitor_release_ask": {
+    "en": {
+      "title": "{name} is asking to continue",
+      "body": "Their phone was paused for safety: {what}. Let them continue only after you have spoken to them.",
+      "actions": {
+        "release": "Let them continue",
+        "open": "Open"
+      }
+    },
+    "ta": {
+      "title": "{name} தொடர அனுமதி கேட்கிறார்",
+      "body": "பாதுகாப்புக்காக அவரது போன் நிறுத்தப்பட்டது: {what}. அவரிடம் பேசிய பிறகே தொடர அனுமதியுங்கள்.",
+      "actions": {
+        "release": "தொடர அனுமதி",
+        "open": "திற"
+      }
+    },
+    "hi": {
+      "title": "{name} आगे बढ़ने की अनुमति माँग रहे हैं",
+      "body": "सुरक्षा के लिए उनका फ़ोन रोका गया: {what}। उनसे बात करने के बाद ही अनुमति दें।",
+      "actions": {
+        "release": "आगे बढ़ने दें",
+        "open": "खोलें"
+      }
+    }
+  },
+  "monitor_help": {
+    "en": {
+      "title": "{name} asked you for help",
+      "body": "They pressed \"I need help\" in Co-Sign. Call them now on a number you know."
+    },
+    "ta": {
+      "title": "{name} உங்களிடம் உதவி கேட்கிறார்",
+      "body": "அவர் Co-Sign-இல் \"எனக்கு உதவி வேண்டும்\" என்பதை அழுத்தினார். உங்களுக்குத் தெரிந்த எண்ணில் இப்போதே அவரை அழையுங்கள்."
+    },
+    "hi": {
+      "title": "{name} ने आपसे मदद माँगी है",
+      "body": "उन्होंने Co-Sign में \"मुझे मदद चाहिए\" दबाया। किसी जाने-पहचाने नंबर पर अभी उन्हें कॉल करें।"
     }
   }
 } as const;

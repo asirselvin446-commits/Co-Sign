@@ -180,7 +180,7 @@ export async function adminRoutes(app: ZApp, ctx: Ctx): Promise<void> {
     {
       schema: {
         ...tag,
-        summary: 'Account security view. Balances are shown to administrators only, never to analysts.',
+        summary: 'Account security view: devices, passkeys, guardians, safety checks and recent audit events.',
         params: z.object({ id: z.uuid() }),
         response: { 200: z.record(z.string(), z.unknown()) },
       },
@@ -192,7 +192,6 @@ export async function adminRoutes(app: ZApp, ctx: Ctx): Promise<void> {
         where: { id: req.params.id },
         include: {
           devices: { orderBy: { enrolledAt: 'asc' } },
-          account: true,
           guardianLinks: { include: { guardian: { select: { handle: true } } }, where: { status: { in: ['pending_activation', 'active', 'pending_removal'] } } },
           guardingLinks: { include: { user: { select: { handle: true } } }, where: { status: { in: ['pending_activation', 'active', 'pending_removal'] } } },
           stepupRequests: { orderBy: { createdAt: 'desc' }, take: 20 },
@@ -237,10 +236,6 @@ export async function adminRoutes(app: ZApp, ctx: Ctx): Promise<void> {
           createdAt: s.createdAt.toISOString(),
         })),
         recoveries: u.recoveries.map((r) => ({ id: r.id, status: r.status, createdAt: r.createdAt.toISOString() })),
-        account:
-          role === 'admin' && u.account
-            ? { currency: u.account.currency, balanceMinor: u.account.balanceMinor.toString(), transferLimitMinor: u.account.transferLimitMinor.toString() }
-            : null,
         events: events.map((e) => ({ id: e.id.toString(), createdAt: e.createdAt.toISOString(), action: e.action, actorType: e.actorType })),
       };
     },

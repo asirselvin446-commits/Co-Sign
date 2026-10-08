@@ -45,14 +45,13 @@ describe('security console APIs', () => {
     expect(ts.body.series.reduce((n: number, p: { logins: number }) => n + p.logins, 0)).toBeGreaterThanOrEqual(1);
   });
 
-  it('looks up users; analysts never see balances, admins do; every view is audited', async () => {
+  it('looks up users for staff, and every view is audited', async () => {
     const found = await call(t, 'GET', '/v1/admin/users?q=sha', { token: analyst });
     expect(found.body.users[0]).toMatchObject({ handle: 'shanti', displayName: 'Shanti' });
     const a = await call(t, 'GET', `/v1/admin/users/${userId}`, { token: analyst });
-    expect(a.body.account).toBeNull();
-    expect(JSON.stringify(a.body)).not.toContain('balanceMinor');
+    expect(a.body).toMatchObject({ handle: 'shanti', devices: [expect.objectContaining({ platform: 'android' })] });
     const b = await call(t, 'GET', `/v1/admin/users/${userId}`, { token: admin });
-    expect(b.body.account.balanceMinor).toBe('5000000');
+    expect(b.status).toBe(200);
     expect(await t.deps.prisma.auditEvent.count({ where: { action: 'admin.user_viewed', subjectId: userId } })).toBe(2);
   });
 

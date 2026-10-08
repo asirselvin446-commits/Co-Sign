@@ -16,4 +16,19 @@
     <string name="rule_repeated_unknown_caller">The same unknown number has called three or more times in two hours.</string>
     <string name="rule_hidden_or_international_caller">The caller\'s number is hidden or from another country.</string>
     <string name="rule_late_night_activity">This happened between midnight and 5 a.m.</string>
+    <string name="rule_chat_after_otp">A chat app was opened right after a one-time code arrived. Scammers ask people to send them the code.</string>
+    <string name="rule_otp_shared_during_call">This happened during a call with an unknown number, which is how code-sharing scams work.</string>
+    <string name="rule_screen_share_started">Screen sharing was started. Whoever is watching can see codes, PINs and passwords.</string>
+    <string name="rule_screen_share_during_call">Screen sharing was started during a call with an unknown number.</string>
+    <string name="rule_remote_access_installed">A remote-control app was just installed. Scammers use these apps to take over phones.</string>
+    <string name="rule_sideloaded_app_installed">An app was installed from outside the Play Store. Fake bank apps are spread this way.</string>
+    <string name="rule_install_during_call">The app was installed during a call with an unknown number.</string>
+    <string name="rule_new_accessibility_app">An app was given permission to read and control the screen.</string>
+    <string name="rule_new_device_admin_app">An app was made a device administrator, which lets it lock or erase the phone.</string>
+    <string name="rule_access_granted_during_call">The permission was given during a call with an unknown number.</string>
+    <string name="rule_repeated_unlock_failures">The wrong screen-lock PIN or pattern was entered 3 or more times. Someone else may be trying to get into the phone.</string>
+    <string name="rule_many_unlock_failures">The wrong PIN was entered 5 or more times within a few minutes.</string>
+    <string name="rule_failed_login_alert">An app reported a failed sign-in or a wrong password or PIN.</string>
+    <string name="rule_repeated_failed_logins">Several failed sign-ins were reported in a short time.</string>
+    <string name="rule_guardian_paused">Your guardian paused this phone for a few minutes to keep you safe.</string>
 </resources>

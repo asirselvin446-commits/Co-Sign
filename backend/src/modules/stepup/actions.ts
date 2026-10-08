@@ -7,7 +7,7 @@ import { randomDigits } from '../../lib/crypto.js';
 import type { Services } from '../../services.js';
 import type { AuditInput } from '../audit/audit.service.js';
 import { RECOVERY_CODE_COUNT, generateRecoveryCode, recoveryCodeHash } from '../recovery/codes.js';
-import { assertValidHandle, ctxUserEmail, ctxUserName, ctxUserPhone, normaliseHandle } from '../users/users.service.js';
+import { ctxUserEmail, ctxUserName, ctxUserPhone } from '../users/users.service.js';
 
 export type SensitiveActionKey =
   | 'add_device'
@@ -15,9 +15,6 @@ export type SensitiveActionKey =
   | 'remove_guardian'
   | 'change_phone'
   | 'change_email'
-  | 'raise_transfer_limit'
-  | 'add_payee'
-  | 'transfer_above_limit'
   | 'view_recovery_codes'
   | 'delete_account';
 
@@ -35,101 +32,18 @@ export interface ActionDef<P> {
   params: z.ZodType<P>;
   /** Validate against current state before asking anyone to approve. Returns normalised params. */
   precheck: (userId: string, params: P) => Promise<P>;
-  /** One line shown to guardians, e.g. "1,000.00 XTS to @ravi". Never shows balances. */
+  /** One line shown to guardians (e.g. the guardian being removed). Never shows secrets. */
   summary: (params: P, lang: Lang) => Promise<string | null>;
   execute: (c: ExecContext, params: P) => Promise<Record<string, unknown>>;
   /** Results that must be shown once and then forgotten (e.g. recovery codes). */
   oneTimeResult?: boolean;
 }
 
-const amount = z
-  .string()
-  .regex(/^[1-9]\d{0,14}$/)
-  .transform((v) => BigInt(v));
-
 export const DEVICE_LINK_TTL_SECONDS = 600;
 export const deviceLinkKey = (codeHash: string) => `devlink:${codeHash}`;
-const MAX_LIMIT_MINOR = 100_000_000_000n;
-
-export function formatMinor(value: bigint, currency: string): string {
-  const neg = value < 0n;
-  const abs = neg ? -value : value;
-  const whole = (abs / 100n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  return `${neg ? '-' : ''}${whole}.${(abs % 100n).toString().padStart(2, '0')} ${currency}`;
-}
 
 export function createActions(deps: Deps, services: Services) {
-  const { prisma, cipher, blind, config } = deps;
-
-  const add_payee: ActionDef<{ handle: string; nickname: string; payeeUserId?: string }> = {
-    params: z.object({ handle: z.string().min(3).max(31), nickname: z.string().trim().min(1).max(40), payeeUserId: z.uuid().optional() }),
-    async precheck(userId, p) {
-      const handle = normaliseHandle(p.handle);
-      assertValidHandle(handle);
-      const target = await prisma.user.findUnique({ where: { handle } });
-      if (!target || target.status !== 'active') throw new AppError('NOT_FOUND');
-      if (target.id === userId) throw new AppError('INVALID_INPUT', {}, { fields: ['handle'] });
-      const existing = await prisma.payee.findUnique({ where: { ownerId_payeeUserId: { ownerId: userId, payeeUserId: target.id } } });
-      if (existing && !existing.removedAt) throw new AppError('PAYEE_EXISTS');
-      return { handle, nickname: p.nickname, payeeUserId: target.id };
-    },
-    async summary(p) {
-      return `@${p.handle}`;
-    },
-    async execute(c, p) {
-      const payee = await c.tx.payee.upsert({
-        where: { ownerId_payeeUserId: { ownerId: c.userId, payeeUserId: p.payeeUserId! } },
-        create: { ownerId: c.userId, payeeUserId: p.payeeUserId!, nickname: p.nickname },
-        update: { nickname: p.nickname, removedAt: null },
-      });
-      await c.log({ actorType: 'user', actorId: c.userId, action: 'ledger.payee_added', subjectType: 'payee', subjectId: payee.id, payload: { stepupRequestId: c.stepupId } });
-      return { payeeId: payee.id };
-    },
-  };
-
-  const transfer_above_limit: ActionDef<{ payeeId: string; amountMinor: bigint; memo?: string | undefined; idempotencyKey: string }> = {
-    params: z.object({
-      payeeId: z.uuid(),
-      amountMinor: amount,
-      memo: z.string().trim().max(140).optional(),
-      idempotencyKey: z.string().min(8).max(80),
-    }),
-    async precheck(userId, p) {
-      await services.ledger.resolvePayee(userId, p.payeeId);
-      const { account } = await services.ledger.summary(userId);
-      if (account.balanceMinor < p.amountMinor) throw new AppError('INSUFFICIENT_FUNDS');
-      return p;
-    },
-    async summary(p, _lang) {
-      const payee = await prisma.payee.findUnique({ where: { id: p.payeeId }, include: { payeeUser: true } });
-      return `${formatMinor(p.amountMinor, config.CURRENCY_CODE)} → @${payee?.payeeUser.handle ?? '?'}`;
-    },
-    async execute(c, p) {
-      const { transfer } = await services.ledger.transfer(
-        { userId: c.userId, payeeId: p.payeeId, amountMinor: p.amountMinor, memo: p.memo, idempotencyKey: p.idempotencyKey, stepupRequestId: c.stepupId },
-        { allowAboveLimit: true, tx: c.tx, log: c.log },
-      );
-      return { transferId: transfer.id };
-    },
-  };
-
-  const raise_transfer_limit: ActionDef<{ newLimitMinor: bigint }> = {
-    params: z.object({ newLimitMinor: amount }),
-    async precheck(userId, p) {
-      const { account } = await services.ledger.summary(userId);
-      if (p.newLimitMinor <= account.transferLimitMinor) throw new AppError('LIMIT_NOT_HIGHER');
-      if (p.newLimitMinor > MAX_LIMIT_MINOR) throw new AppError('INVALID_INPUT', {}, { fields: ['newLimitMinor'] });
-      return p;
-    },
-    async summary(p) {
-      return formatMinor(p.newLimitMinor, config.CURRENCY_CODE);
-    },
-    async execute(c, p) {
-      await c.tx.account.update({ where: { userId: c.userId }, data: { transferLimitMinor: p.newLimitMinor } });
-      await c.log({ actorType: 'user', actorId: c.userId, action: 'ledger.limit_raised', subjectType: 'user', subjectId: c.userId, payload: { newLimitMinor: p.newLimitMinor.toString() } });
-      return { transferLimitMinor: p.newLimitMinor.toString() };
-    },
-  };
+  const { prisma, cipher, blind } = deps;
 
   const remove_guardian: ActionDef<{ linkId: string }> = {
     params: z.object({ linkId: z.uuid() }),
@@ -276,9 +190,6 @@ export function createActions(deps: Deps, services: Services) {
     remove_guardian,
     change_phone,
     change_email,
-    raise_transfer_limit,
-    add_payee,
-    transfer_above_limit,
     view_recovery_codes,
     delete_account,
   } as unknown as Record<SensitiveActionKey, ActionDef<never>>;
@@ -298,9 +209,6 @@ export const SENSITIVE_ACTIONS = [
   'remove_guardian',
   'change_phone',
   'change_email',
-  'raise_transfer_limit',
-  'add_payee',
-  'transfer_above_limit',
   'view_recovery_codes',
   'delete_account',
 ] as const satisfies readonly SensitiveActionKey[];

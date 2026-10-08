@@ -1,4 +1,4 @@
-import type { DevicePause, MonitorEvent as MonitorEventRow } from '@prisma/client';
+import type { DevicePause, MonitorEvent as MonitorEventRow, Prisma } from '@prisma/client';
 import type { Deps } from '../../deps.js';
 import type { Lang } from '../../generated/catalog.js';
 import { AppError } from '../../lib/errors.js';
@@ -12,6 +12,19 @@ export const ctxMonitorCall = (id: string) => `monitor.call:${id}`;
 const PAUSE_TTL_MS = 30 * 60 * 1000;
 const ALERT_THROTTLE_SECONDS = 10 * 60;
 const BASELINE_DAYS = 60;
+const LOCK_COMMAND_TTL_SECONDS = 5 * 60;
+const lockKey = (deviceId: string) => `moncmd:lock:${deviceId}`;
+export const GUARDIAN_PAUSE_RULE = 'guardian_paused';
+
+/** The extra, non-sensitive facts some event kinds carry. Null when there are none. */
+function eventDetail(e: MonitorEvent): Prisma.InputJsonObject | null {
+  const d: Record<string, string | number> = {};
+  if (e.sinceOtpSec !== null) d.sinceOtpSec = e.sinceOtpSec;
+  if (e.attempts !== null) d.attempts = e.attempts;
+  if (e.installer !== null) d.installer = e.installer;
+  if (e.grant !== null) d.grant = e.grant;
+  return Object.keys(d).length > 0 ? d : null;
+}
 
 export interface IngestResult {
   clientId: string;
@@ -111,6 +124,7 @@ export class MonitorService {
   private async store(userId: string, deviceId: string, e: MonitorEvent, a: MonitorAssessment) {
     // A pause is only recorded when the phone actually showed one (it decides offline, instantly).
     const showPause = e.paused && a.pause;
+    const detail = eventDetail(e);
     return this.deps.audit.transaction(async (tx, log) => {
       const id = crypto.randomUUID();
       const row = await tx.monitorEvent.create({
@@ -124,6 +138,7 @@ export class MonitorService {
           appPackage: e.app?.package ?? null,
           amountBucket: e.amountBucket,
           callEnc: e.call ? this.deps.cipher.encryptJson(e.call, ctxMonitorCall(id)) : null,
+          ...(detail ? { detail } : {}),
           score: a.score,
           severity: a.severity,
           rules: a.rules,
@@ -153,25 +168,50 @@ export class MonitorService {
   }
 
   private async alertGuardians(userId: string, row: MonitorEventRow, pause: DevicePause | null): Promise<void> {
-    const { guardians, notifier, users } = this.services;
-    const owner = await this.deps.prisma.user.findUnique({ where: { id: userId } });
-    if (!owner) return;
-    const name = users.displayName(owner);
-    const ids = await guardians.guardianIds(userId);
+    const { notifier } = this.services;
+    const name = await this.personName(userId);
+    if (name === null) return;
     const top = row.rules[0] ?? '';
     // Throttle pushes for the same situation; the alert list and live feed still get every event.
     const throttleKey = `monalert:${userId}:${top}`;
     const sendPush = pause !== null || (await this.deps.redis.set(throttleKey, '1', 'EX', ALERT_THROTTLE_SECONDS, 'NX')) === 'OK';
-    for (const gid of ids) {
-      this.deps.realtime.toUser(gid, 'guardian.alert', { alertId: row.id, severity: row.severity, pauseId: pause?.id ?? null });
+    for (const link of await this.guardianLinks(userId)) {
+      this.deps.realtime.toUser(link.guardianId, 'guardian.alert', { alertId: row.id, severity: row.severity, pauseId: pause?.id ?? null });
       if (!sendPush) continue;
       await notifier.push(
-        gid,
+        link.guardianId,
         pause ? 'monitor_paused' : 'monitor_alert',
-        (lang) => ({ name, what: monitorReasons([top], lang)[0]?.reason.replace(/\.$/, '') ?? '' }),
-        { screen: 'guardian_alert', alertId: row.id, ...(pause ? { pauseId: pause.id } : {}) },
+        (lang) => ({ name, what: this.what(row.rules, lang) }),
+        { screen: 'guardian_alert', alertId: row.id, linkId: link.id, ...(pause ? { pauseId: pause.id } : {}) },
       );
     }
+  }
+
+  private async personName(userId: string): Promise<string | null> {
+    const owner = await this.deps.prisma.user.findUnique({ where: { id: userId } });
+    return owner ? this.services.users.displayName(owner) : null;
+  }
+
+  /** The guardian links of the people guarding this person (one per guardian). */
+  private guardianLinks(userId: string) {
+    return this.deps.prisma.guardianLink.findMany({ where: { userId, status: { in: ['active', 'pending_removal'] } }, select: { id: true, guardianId: true } });
+  }
+
+  /** The main reason, for a notification body, without its final full stop. */
+  private what(rules: string[], lang: Lang): string {
+    return monitorReasons([rules[0] ?? ''], lang)[0]?.reason.replace(/\.$/, '') ?? '';
+  }
+
+  /** A guardian's link to a person, if it lets them act (active, or active until a pending removal). */
+  private async actingLink(guardianId: string, linkId: string) {
+    const link = await this.deps.prisma.guardianLink.findFirst({ where: { id: linkId, guardianId, status: { in: ['active', 'pending_removal'] } } });
+    if (!link) throw new AppError('NOT_FOUND');
+    return link;
+  }
+
+  /** Phones of this person with family protection switched on. */
+  private protectedDevices(userId: string) {
+    return this.deps.prisma.device.findMany({ where: { userId, revokedAt: null, monitorTokenHash: { not: null } }, select: { id: true, lastSeenAt: true } });
   }
 
   // ---------------------------------------------------------------- pauses
@@ -201,6 +241,153 @@ export class MonitorService {
     this.deps.realtime.toDevice(p.deviceId, 'monitor.pause', { pauseId, status: 'released' });
   }
 
+  // ---------------------------------------------------------------- guardian controls
+
+  /**
+   * The guardian pauses the person's protected phone(s) now, e.g. after a worrying alert or a call
+   * for help. The person still sees why, can call the guardian, and can continue after the countdown.
+   */
+  async guardianPause(guardianId: string, linkId: string): Promise<{ pauseIds: string[] }> {
+    const link = await this.actingLink(guardianId, linkId);
+    const devices = await this.protectedDevices(link.userId);
+    if (devices.length === 0) throw new AppError('PROTECTION_OFF');
+    const pauses = await this.deps.audit.transaction(async (tx, log) => {
+      const created: DevicePause[] = [];
+      for (const d of devices) {
+        await tx.devicePause.updateMany({ where: { deviceId: d.id, status: 'active' }, data: { status: 'expired', endedAt: new Date(), endedBy: 'superseded' } });
+        created.push(
+          await tx.devicePause.create({
+            data: { userId: link.userId, deviceId: d.id, eventId: null, status: 'active', rules: [GUARDIAN_PAUSE_RULE], expiresAt: new Date(Date.now() + PAUSE_TTL_MS) },
+          }),
+        );
+      }
+      await log({ actorType: 'guardian', actorId: guardianId, action: 'monitor.guardian_paused', subjectType: 'user', subjectId: link.userId, payload: { devices: devices.length } });
+      return created;
+    });
+    for (const p of pauses) this.deps.realtime.toDevice(p.deviceId, 'monitor.pause', { pauseId: p.id, status: 'active' });
+    return { pauseIds: pauses.map((p) => p.id) };
+  }
+
+  /** The guardian locks the person's protected phone(s); they unlock it with their own screen lock. */
+  async guardianLock(guardianId: string, linkId: string): Promise<{ devices: number }> {
+    const link = await this.actingLink(guardianId, linkId);
+    const devices = await this.protectedDevices(link.userId);
+    if (devices.length === 0) throw new AppError('PROTECTION_OFF');
+    for (const d of devices) await this.deps.redis.set(lockKey(d.id), guardianId, 'EX', LOCK_COMMAND_TTL_SECONDS);
+    await this.deps.audit.append({ actorType: 'guardian', actorId: guardianId, action: 'monitor.guardian_locked', subjectType: 'user', subjectId: link.userId, payload: { devices: devices.length } });
+    for (const d of devices) this.deps.realtime.toDevice(d.id, 'monitor.command', { lock: true });
+    return { devices: devices.length };
+  }
+
+  /**
+   * What the protected phone should do now: show the active pause (from the rules or the guardian)
+   * and lock the screen once if a guardian asked. Polled by the phone's background service.
+   */
+  async commands(deviceId: string): Promise<{ pause: { id: string; rules: string[]; byGuardian: boolean; expiresAt: string } | null; lock: boolean }> {
+    const { prisma, redis } = this.deps;
+    // "Last seen" for the guardian's status view, written at most every five minutes.
+    if ((await redis.set(`monseen:${deviceId}`, '1', 'EX', 300, 'NX')) === 'OK') {
+      await prisma.device.update({ where: { id: deviceId }, data: { lastSeenAt: new Date() } });
+    }
+    const [pause, lock] = await Promise.all([
+      prisma.devicePause.findFirst({ where: { deviceId, status: 'active', expiresAt: { gt: new Date() } }, orderBy: { createdAt: 'desc' } }),
+      redis.getdel(lockKey(deviceId)),
+    ]);
+    return {
+      pause: pause ? { id: pause.id, rules: pause.rules, byGuardian: pause.eventId === null, expiresAt: pause.expiresAt.toISOString() } : null,
+      lock: lock !== null,
+    };
+  }
+
+  /** From the pause screen: "Ask my guardian to let me continue". */
+  async askRelease(pauseId: string, userId: string, deviceId: string): Promise<void> {
+    const p = await this.deps.prisma.devicePause.findFirst({ where: { id: pauseId, deviceId, status: 'active', expiresAt: { gt: new Date() } } });
+    if (!p) throw new AppError('NOT_FOUND');
+    // One ask per pause every two minutes, so a worried tap-tap-tap does not flood the guardian.
+    if ((await this.deps.redis.set(`monask:${pauseId}`, '1', 'EX', 120, 'NX')) !== 'OK') return;
+    const name = await this.personName(userId);
+    if (name === null) return;
+    await this.deps.audit.append({ actorType: 'device', actorId: deviceId, action: 'monitor.release_asked', subjectType: 'pause', subjectId: pauseId });
+    for (const link of await this.guardianLinks(userId)) {
+      this.deps.realtime.toUser(link.guardianId, 'guardian.alert', { pauseId, status: 'asked' });
+      await this.services.notifier.push(link.guardianId, 'monitor_release_ask', (lang) => ({ name, what: this.what(p.rules, lang) }), {
+        screen: 'guardian_pause',
+        pauseId,
+        linkId: link.id,
+      });
+    }
+  }
+
+  /** "I need help": tells every guardian at once. */
+  async help(userId: string, deviceId: string): Promise<void> {
+    if ((await this.deps.redis.set(`monhelp:${userId}`, '1', 'EX', 120, 'NX')) !== 'OK') return;
+    const name = await this.personName(userId);
+    if (name === null) return;
+    await this.deps.audit.append({ actorType: 'user', actorId: userId, action: 'monitor.help_requested', subjectType: 'user', subjectId: userId, payload: { deviceId } });
+    for (const link of await this.guardianLinks(userId)) {
+      this.deps.realtime.toUser(link.guardianId, 'guardian.help', { linkId: link.id });
+      await this.services.notifier.push(link.guardianId, 'monitor_help', () => ({ name }), { screen: 'guardian_person', linkId: link.id });
+    }
+  }
+
+  /** A pause as the guardian sees it (from the "asking to continue" notification). */
+  async pauseForGuardian(pauseId: string, guardianId: string, lang: Lang) {
+    const p = await this.deps.prisma.devicePause.findUnique({ where: { id: pauseId }, include: { user: true } });
+    if (!p || !(await this.services.guardians.isGuardianOf(guardianId, p.userId))) throw new AppError('NOT_FOUND');
+    const status = p.status === 'active' && p.expiresAt < new Date() ? 'expired' : p.status;
+    return {
+      id: p.id,
+      status,
+      byGuardian: p.eventId === null,
+      person: { displayName: this.services.users.displayName(p.user), handle: p.user.handle },
+      reasons: monitorReasons(p.rules, lang),
+      createdAt: p.createdAt.toISOString(),
+      expiresAt: p.expiresAt.toISOString(),
+    };
+  }
+
+  /** Protection status per guarded person, for the guardian's Family screen. */
+  async protectionFor(userIds: string[]) {
+    const now = new Date();
+    const [devices, pauses, alerts] = await Promise.all([
+      this.deps.prisma.device.findMany({ where: { userId: { in: userIds }, revokedAt: null, monitorTokenHash: { not: null } }, select: { userId: true, lastSeenAt: true } }),
+      this.deps.prisma.devicePause.findMany({ where: { userId: { in: userIds }, status: 'active', expiresAt: { gt: now } }, orderBy: { createdAt: 'desc' } }),
+      this.deps.prisma.monitorEvent.findMany({
+        where: { userId: { in: userIds }, severity: { in: ['warn', 'critical'] }, createdAt: { gt: new Date(now.getTime() - 7 * 86400_000) } },
+        orderBy: { occurredAt: 'desc' },
+        distinct: ['userId'],
+        select: { userId: true, id: true, severity: true, occurredAt: true },
+      }),
+    ]);
+    return new Map(
+      userIds.map((id) => {
+        const mine = devices.filter((d) => d.userId === id);
+        const pause = pauses.find((p) => p.userId === id) ?? null;
+        const last = alerts.find((a) => a.userId === id) ?? null;
+        const seen = mine.map((d) => d.lastSeenAt.getTime()).sort((a, b) => b - a)[0];
+        return [
+          id,
+          {
+            on: mine.length > 0,
+            lastSeenAt: seen ? new Date(seen).toISOString() : null,
+            activePause: pause ? { id: pause.id, byGuardian: pause.eventId === null, expiresAt: pause.expiresAt.toISOString() } : null,
+            lastAlert: last ? { id: last.id, severity: last.severity, occurredAt: last.occurredAt.toISOString() } : null,
+          },
+        ] as const;
+      }),
+    );
+  }
+
+  /** The protected person's own recent warnings, so nothing is hidden from them. */
+  async mine(userId: string, lang: Lang, limit = 20) {
+    const rows = await this.deps.prisma.monitorEvent.findMany({
+      where: { userId, severity: { in: ['warn', 'critical'] }, createdAt: { gt: new Date(Date.now() - 7 * 86400_000) } },
+      orderBy: { occurredAt: 'desc' },
+      take: limit,
+    });
+    return rows.map((r) => ({ id: r.id, kind: r.kind, severity: r.severity, reasons: monitorReasons(r.rules, lang), occurredAt: r.occurredAt.toISOString(), paused: r.paused }));
+  }
+
   private async end(
     pauseId: string,
     owner: { deviceId?: string; userId?: string },
@@ -223,7 +410,7 @@ export class MonitorService {
       where: { guardianId, status: { in: ['active', 'pending_removal'] } },
       include: { user: true },
     });
-    const people = new Map(links.map((l) => [l.userId, l.user]));
+    const people = new Map(links.map((l) => [l.userId, { ...l.user, linkId: l.id }]));
     if (people.size === 0) return [];
     const rows = await this.deps.prisma.monitorEvent.findMany({
       where: { userId: { in: [...people.keys()] }, severity: { in: ['warn', 'critical'] }, createdAt: { gt: new Date(Date.now() - 7 * 86400_000) } },
@@ -236,7 +423,7 @@ export class MonitorService {
       const pause = r.pauses[0] ?? null;
       return {
         id: r.id,
-        person: { displayName: this.services.users.displayName(person), handle: person.handle },
+        person: { displayName: this.services.users.displayName(person), handle: person.handle, linkId: person.linkId },
         kind: r.kind,
         app: r.appCategory ? { category: r.appCategory, package: r.appPackage } : null,
         amountBucket: r.amountBucket,

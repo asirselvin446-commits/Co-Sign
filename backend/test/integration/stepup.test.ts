@@ -1,48 +1,45 @@
-import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { io as ioClient } from 'socket.io-client';
 import { startTestApp, type TestApp } from '../helpers/app.js';
 import { call, registerUser, type TestUser } from '../helpers/client.js';
-import { addPayee, ageDevice, calmSignals, grantConsent, guardianDecide, makeGuardian, scamSignals, startStepup, stepup, tick } from '../helpers/flows.js';
+import { ageDevice, calmSignals, grantConsent, guardianDecide, makeGuardian, scamSignals, startStepup, stepup, tick } from '../helpers/flows.js';
 
 describe('step-up co-sign end to end', () => {
   let t: TestApp;
   let user: TestUser;
   let g1: TestUser;
   let g2: TestUser;
-  let payeeId: string;
+  let n = 0;
 
   beforeAll(async () => {
     t = await startTestApp();
     user = await registerUser(t, 'amma', { displayName: 'Amma', locale: 'ta' });
     g1 = await registerUser(t, 'son', { displayName: 'Son' });
     g2 = await registerUser(t, 'daughter', { displayName: 'Daughter', locale: 'hi' });
-    await registerUser(t, 'shop');
     for (const u of [user, g1, g2]) {
       await grantConsent(t, u);
       await ageDevice(t, u);
     }
     await makeGuardian(t, user, g1);
     await makeGuardian(t, user, g2);
-    payeeId = await addPayee(t, user, 'shop');
-    // An established payee, so these tests isolate the call and remote-access rules.
-    await t.deps.prisma.payee.update({ where: { id: payeeId }, data: { createdAt: new Date(Date.now() - 30 * 86400_000) } });
   });
   afterAll(async () => {
     await t.close();
   });
 
-  const bigTransfer = () => ({ payeeId, amountMinor: '1500000', idempotencyKey: randomUUID() });
+  // Changing the sign-in email is a classic takeover step, so it is risk-scored and co-signed.
+  const newEmail = () => ({ email: `amma.${++n}@mail.test` });
 
   it('low risk: the user passkey alone completes the action', async () => {
-    const { start, verify } = await stepup(t, user, 'raise_transfer_limit', { newLimitMinor: '1200000' }, calmSignals());
+    const { start, verify } = await stepup(t, user, 'change_email', { email: 'amma.home@mail.test' }, calmSignals());
     expect(start.body.request).toMatchObject({ status: 'pending_user', needsGuardian: false, score: 0 });
     expect(verify.body.status).toBe('completed');
-    expect((await t.deps.prisma.account.findUniqueOrThrow({ where: { userId: user.id } })).transferLimitMinor).toBe(1_200_000n);
+    const row = await t.deps.prisma.user.findUniqueOrThrow({ where: { id: user.id } });
+    expect(row.emailHash).toBe(t.deps.blind.of('email', 'amma.home@mail.test'));
   });
 
   it('high risk: explains why in the user language and pauses for a guardian', async () => {
-    const { start, verify, id } = await stepup(t, user, 'transfer_above_limit', bigTransfer(), scamSignals());
+    const { start, verify, id } = await stepup(t, user, 'change_email', newEmail(), scamSignals());
     expect(start.body.request.score).toBe(70);
     expect(start.body.request.needsGuardian).toBe(true);
     // The user chose Tamil: reasons and the action label are in Tamil.
@@ -51,25 +48,28 @@ describe('step-up co-sign end to end', () => {
     expect(verify.body.status).toBe('pending_guardians');
 
     // Guardians are told immediately (push), and see only the request, in their own language.
-    expect(t.push.forUser(g1.id).some((m) => m.type === 'guardian_request' && m.data.requestId === id)).toBe(true);
+    const push = t.push.forUser(g1.id).find((m) => m.type === 'guardian_request' && m.data.requestId === id)!;
+    expect(push).toBeTruthy();
+    // One-tap buttons on the notification; each still needs the guardian's own passkey.
+    expect(JSON.parse(push.data.actions!).map((a: { id: string }) => a.id)).toEqual(['approve', 'deny']);
     const inbox = await call(t, 'GET', '/v1/guardian/inbox', { token: g2.accessToken, headers: { 'accept-language': 'hi' } });
     const item = inbox.body.requests.find((r: { id: string }) => r.id === id);
-    expect(item).toMatchObject({ score: 70, requester: { displayName: 'Amma' }, action: 'transfer_above_limit' });
+    expect(item).toMatchObject({ score: 70, requester: { displayName: 'Amma' }, action: 'change_email' });
     expect(item.reasons[0].reason).toMatch(/[ऀ-ॿ]/);
-    expect(JSON.stringify(item)).not.toContain('balance');
+    // The guardian sees what is being changed, never the new address itself.
+    expect(JSON.stringify(item)).not.toContain('@mail.test');
 
     const approve = await guardianDecide(t, g1, id, 'approve');
     expect(approve.status).toBe(200);
     expect(approve.body.decision).toBe('approve');
     const view = await call(t, 'GET', `/v1/stepup/${id}`, { token: user.accessToken });
     expect(view.body.status).toBe('completed');
-    expect(view.body.result.transferId).toBeTruthy();
     const decision = await t.deps.prisma.guardianDecision.findFirstOrThrow({ where: { requestId: id } });
     expect(decision.responseMs).toBeGreaterThanOrEqual(0);
   });
 
   it('one denial cancels the request and the user is told why', async () => {
-    const { id, verify } = await stepup(t, user, 'transfer_above_limit', bigTransfer(), scamSignals());
+    const { id, verify } = await stepup(t, user, 'change_email', newEmail(), scamSignals());
     expect(verify.body.status).toBe('pending_guardians');
     const deny = await guardianDecide(t, g2, id, 'deny');
     expect(deny.body.decision).toBe('deny');
@@ -84,8 +84,8 @@ describe('step-up co-sign end to end', () => {
   });
 
   it('a guardian approval is bound to one request and cannot be replayed', async () => {
-    const a = await stepup(t, user, 'transfer_above_limit', bigTransfer(), scamSignals());
-    const b = await stepup(t, user, 'transfer_above_limit', bigTransfer(), scamSignals());
+    const a = await stepup(t, user, 'change_email', newEmail(), scamSignals());
+    const b = await stepup(t, user, 'change_email', newEmail(), scamSignals());
     // Signature made for request A...
     const optsA = await call(t, 'POST', `/v1/guardian/requests/${a.id}/options`, { token: g1.accessToken, body: { decision: 'approve' } });
     const sigA = g1.authenticator.get(optsA.body.options);
@@ -100,7 +100,7 @@ describe('step-up co-sign end to end', () => {
   });
 
   it('a guardian cannot approve with the protected user\'s own passkey', async () => {
-    const { id } = await stepup(t, user, 'transfer_above_limit', bigTransfer(), scamSignals());
+    const { id } = await stepup(t, user, 'change_email', newEmail(), scamSignals());
     const opts = await call(t, 'POST', `/v1/guardian/requests/${id}/options`, { token: g1.accessToken, body: { decision: 'approve' } });
     // The scammer coaches the user to "approve" on their own phone: the credential is not the guardian's.
     const forged = user.authenticator.get({ ...opts.body.options, allowCredentials: [] });
@@ -111,14 +111,14 @@ describe('step-up co-sign end to end', () => {
 
   it('non-guardians cannot see or decide requests', async () => {
     const stranger = await registerUser(t, 'stranger');
-    const { id } = await stepup(t, user, 'transfer_above_limit', bigTransfer(), scamSignals());
+    const { id } = await stepup(t, user, 'change_email', newEmail(), scamSignals());
     expect((await call(t, 'GET', `/v1/guardian/requests/${id}`, { token: stranger.accessToken })).status).toBe(404);
     expect((await guardianDecide(t, stranger, id, 'approve')).status).toBe(404);
     await call(t, 'POST', `/v1/stepup/${id}/cancel`, { token: user.accessToken });
   });
 
   it('no answer before expiry starts a cool-off, then the user confirms with their passkey', async () => {
-    const { id } = await stepup(t, user, 'transfer_above_limit', bigTransfer(), scamSignals());
+    const { id } = await stepup(t, user, 'change_email', newEmail(), scamSignals());
     await t.deps.prisma.stepupRequest.update({ where: { id }, data: { expiresAt: new Date(Date.now() - 1000) } });
     await tick(t);
     let view = await call(t, 'GET', `/v1/stepup/${id}`, { token: user.accessToken });
@@ -143,7 +143,7 @@ describe('step-up co-sign end to end', () => {
     const solo = await registerUser(t, 'solo');
     await grantConsent(t, solo);
     await ageDevice(t, solo);
-    const { verify, id } = await stepup(t, solo, 'raise_transfer_limit', { newLimitMinor: '2000000' }, scamSignals());
+    const { verify, id } = await stepup(t, solo, 'change_email', { email: 'solo@mail.test' }, scamSignals());
     expect(verify.body.status).toBe('cooloff');
     const cancel = await call(t, 'POST', `/v1/stepup/${id}/cancel`, { token: solo.accessToken });
     expect(cancel.body.status).toBe('cancelled');
@@ -152,13 +152,13 @@ describe('step-up co-sign end to end', () => {
   it('without consent, device signals are ignored (fewer signals, never more power)', async () => {
     const quiet = await registerUser(t, 'quiet');
     await ageDevice(t, quiet);
-    const start = await startStepup(t, quiet, 'raise_transfer_limit', { newLimitMinor: '2000000' }, scamSignals());
+    const start = await startStepup(t, quiet, 'change_email', { email: 'quiet@mail.test' }, scamSignals());
     expect(start.body.request.score).toBe(0);
   });
 
   it('server-side facts still count without consent: a brand-new device adds points', async () => {
     const fresh = await registerUser(t, 'fresh');
-    const start = await startStepup(t, fresh, 'raise_transfer_limit', { newLimitMinor: '2000000' });
+    const start = await startStepup(t, fresh, 'change_email', { email: 'fresh@mail.test' });
     expect(start.body.request.reasons.map((r: { key: string }) => r.key)).toEqual(['new_device_24h']);
   });
 
@@ -169,7 +169,7 @@ describe('step-up co-sign end to end', () => {
       socket.on('connect_error', reject);
     });
     const updated = new Promise<{ status: string }>((resolve) => socket.on('stepup.updated', resolve));
-    const { id } = await stepup(t, user, 'transfer_above_limit', bigTransfer(), scamSignals());
+    const { id } = await stepup(t, user, 'change_email', newEmail(), scamSignals());
     expect((await updated).status).toBe('pending_guardians');
     const next = new Promise<{ status: string; requestId: string }>((resolve) => socket.on('stepup.updated', (e) => e.status === 'completed' && resolve(e)));
     await guardianDecide(t, g2, id, 'approve');

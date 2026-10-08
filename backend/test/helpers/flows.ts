@@ -1,8 +1,10 @@
+import { createAdminInvite } from '../../src/modules/admin/admin-auth.routes.js';
 import { runJobsOnce } from '../../src/jobs/scheduler.js';
 import type { DeviceSignals } from '../../src/modules/risk/engine.js';
 import { CONSENT_VERSION } from '../../src/modules/risk/signals.routes.js';
 import type { TestApp } from './app.js';
 import { call, type TestUser } from './client.js';
+import { SoftAuthenticator } from './soft-authenticator.js';
 
 export const calmSignals = (): DeviceSignals => ({
   collectedAt: new Date().toISOString(),
@@ -68,3 +70,15 @@ export async function addPayee(t: TestApp, u: TestUser, handle: string, nickname
 }
 
 export const tick = (t: TestApp) => runJobsOnce(t.ctx);
+
+/** Register a console staff member from a one-time invite and return their access token. */
+export async function registerStaff(t: TestApp, role: 'admin' | 'analyst', handle: string): Promise<{ adminId: string; accessToken: string }> {
+  const { url } = await createAdminInvite({ deps: t.deps }, role, null);
+  const inviteToken = new URL(url).searchParams.get('invite')!;
+  const auth = new SoftAuthenticator('http://localhost:5173');
+  const headers = { 'x-requested-with': 'cosign-dashboard' };
+  const start = await call(t, 'POST', '/v1/admin/auth/register/options', { body: { inviteToken, handle, displayName: handle }, headers });
+  const done = await call(t, 'POST', '/v1/admin/auth/register/verify', { body: { response: auth.create(start.body.options) }, headers });
+  if (done.status !== 200) throw new Error(`staff register failed: ${JSON.stringify(done.body)}`);
+  return { adminId: done.body.admin.id, accessToken: done.body.accessToken };
+}

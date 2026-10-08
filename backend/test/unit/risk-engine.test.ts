@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultRuleSet, evaluate, ruleSetSchema, type DeviceSignals, type ServerFacts } from '../../src/modules/risk/engine.js';
+import { defaultRuleSet, evaluate, replayRuleSets, ruleSetSchema, type DeviceSignals, type ServerFacts } from '../../src/modules/risk/engine.js';
 
 const now = new Date('2026-10-08T12:00:00Z');
 const facts = (over: Partial<ServerFacts> = {}): ServerFacts => ({
@@ -122,5 +122,48 @@ describe('rule set validation', () => {
     expect(ruleSetSchema.safeParse({ guardianThreshold: 50, rules: [d.rules[0], d.rules[0]] }).success).toBe(false);
     expect(ruleSetSchema.safeParse({ guardianThreshold: 0, rules: d.rules }).success).toBe(false);
     expect(ruleSetSchema.safeParse({ guardianThreshold: 50, rules: [{ ...d.rules[0]!, weight: 999 }] }).success).toBe(false);
+  });
+});
+
+describe('rule-set replay', () => {
+  const active = defaultRuleSet(); // call 40, remote 30, threshold 50
+  const history = [['call_unknown_number', 'remote_access_app'], ['call_unknown_number'], ['code_pasted'], []];
+  const withRules = (patch: (r: (typeof active.rules)[number]) => void, threshold = active.guardianThreshold) => {
+    const rules = active.rules.map((r) => ({ ...r }));
+    rules.forEach(patch);
+    return { guardianThreshold: threshold, rules };
+  };
+
+  it('is a no-op for an identical draft', () => {
+    expect(replayRuleSets(active, active, history)).toEqual({
+      assessed: 4,
+      guardedBefore: 1,
+      guardedAfter: 1,
+      newlyGuarded: 0,
+      noLongerGuarded: 0,
+      unobservable: [],
+    });
+  });
+
+  it('counts step-ups that a lower threshold or heavier rule would pause', () => {
+    expect(replayRuleSets(active, withRules(() => {}, 40), history)).toMatchObject({ guardedAfter: 2, newlyGuarded: 1, noLongerGuarded: 0 });
+    const heavier = withRules((r) => {
+      if (r.key === 'code_pasted') r.weight = 60;
+    });
+    expect(replayRuleSets(active, heavier, history)).toMatchObject({ guardedAfter: 2, newlyGuarded: 1 });
+  });
+
+  it('counts step-ups that disabling a rule would let through', () => {
+    const off = withRules((r) => {
+      if (r.key === 'remote_access_app') r.enabled = false;
+    });
+    expect(replayRuleSets(active, off, history)).toMatchObject({ guardedBefore: 1, guardedAfter: 0, noLongerGuarded: 1 });
+  });
+
+  it('flags rules switched on by the draft as unobservable in history', () => {
+    const activeOff = withRules((r) => {
+      if (r.key === 'late_night') r.enabled = false;
+    });
+    expect(replayRuleSets(activeOff, active, history).unobservable).toEqual(['late_night']);
   });
 });

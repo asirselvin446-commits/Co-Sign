@@ -138,3 +138,42 @@ export const ruleSetSchema = z.object({
     )
     .refine((rules) => new Set(rules.map((r) => r.key)).size === rules.length, 'each rule may appear once'),
 });
+
+export interface ReplayResult {
+  assessed: number;
+  guardedBefore: number;
+  guardedAfter: number;
+  newlyGuarded: number;
+  noLongerGuarded: number;
+  /** Rules the draft turns on that were off in the active set, so past matches were never recorded. */
+  unobservable: RiskRuleKey[];
+}
+
+function scoreKeys(set: Pick<RuleSet, 'rules'>, keys: readonly string[]): number {
+  let score = 0;
+  for (const key of keys) {
+    const rule = set.rules.find((r) => r.key === key);
+    if (rule?.enabled && rule.weight > 0) score += rule.weight;
+  }
+  return score;
+}
+
+/**
+ * Re-score past assessments (the rule keys each one matched) under the active and a draft rule set.
+ * Only weights and thresholds can be replayed: predicates are not re-run, so a rule that was off
+ * when an assessment happened never shows up in its keys.
+ */
+export function replayRuleSets(active: Omit<RuleSet, 'version'>, draft: Omit<RuleSet, 'version'>, history: ReadonlyArray<readonly string[]>): ReplayResult {
+  const result: ReplayResult = { assessed: history.length, guardedBefore: 0, guardedAfter: 0, newlyGuarded: 0, noLongerGuarded: 0, unobservable: [] };
+  for (const keys of history) {
+    const before = scoreKeys(active, keys) >= active.guardianThreshold;
+    const after = scoreKeys(draft, keys) >= draft.guardianThreshold;
+    if (before) result.guardedBefore++;
+    if (after) result.guardedAfter++;
+    if (after && !before) result.newlyGuarded++;
+    if (before && !after) result.noLongerGuarded++;
+  }
+  const isOn = (r: RuleConfig | undefined) => !!r && r.enabled && r.weight > 0;
+  result.unobservable = draft.rules.filter((r) => isOn(r) && !isOn(active.rules.find((a) => a.key === r.key))).map((r) => r.key);
+  return result;
+}

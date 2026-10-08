@@ -733,6 +733,27 @@ export const ERROR_CATALOG = {
       }
     }
   },
+  "RULES_CHANGED": {
+    "http": 409,
+    "tier": "public",
+    "generic": null,
+    "origin": "server",
+    "params": [],
+    "text": {
+      "en": {
+        "cause": "Someone published a newer version of the risk rules while you were editing.",
+        "next": "Reload to see the latest rules, then make your change again."
+      },
+      "ta": {
+        "cause": "நீங்கள் திருத்திக்கொண்டிருந்தபோது வேறொருவர் இடர் விதிகளின் புதிய பதிப்பை வெளியிட்டார்.",
+        "next": "சமீபத்திய விதிகளைப் பார்க்க மீண்டும் ஏற்றி, உங்கள் மாற்றத்தை மீண்டும் செய்யுங்கள்."
+      },
+      "hi": {
+        "cause": "जब आप बदलाव कर रहे थे, तब किसी और ने जोखिम नियमों का नया संस्करण प्रकाशित कर दिया।",
+        "next": "नए नियम देखने के लिए पेज फिर से लोड करें, फिर अपना बदलाव दोबारा करें।"
+      }
+    }
+  },
   "ACTION_NOT_COMPLETED": {
     "http": 403,
     "tier": "public",

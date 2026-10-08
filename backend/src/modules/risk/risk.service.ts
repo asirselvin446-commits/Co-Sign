@@ -2,6 +2,7 @@ import type { Prisma } from '@prisma/client';
 import type { Deps } from '../../deps.js';
 import type { Lang } from '../../generated/catalog.js';
 import { randomToken } from '../../lib/crypto.js';
+import { AppError } from '../../lib/errors.js';
 import type { CredentialsService } from '../auth/credentials.service.js';
 import { defaultRuleSet, evaluate, type DeviceSignals, type Evaluation, type RuleConfig, type RuleSet } from './engine.js';
 
@@ -48,12 +49,23 @@ export class RiskService {
     return set;
   }
 
-  async publishRuleSet(adminId: string, input: { guardianThreshold: number; rules: RuleConfig[]; note?: string }): Promise<RuleSet> {
-    const current = await this.activeRuleSet();
+  /**
+   * Publish a new rule-set version. With `baseVersion`, the publish is refused (RULES_CHANGED) if
+   * someone else published after the editor loaded that version.
+   */
+  async publishRuleSet(
+    adminId: string,
+    input: { guardianThreshold: number; rules: RuleConfig[]; note?: string; baseVersion?: number },
+  ): Promise<RuleSet> {
+    // Seeds the defaults on a fresh database, so there is always a version to build on.
+    await this.activeRuleSet();
     const version = await this.deps.audit.transaction(async (tx, log) => {
       // Lock the latest version row so two editors cannot publish the same version number.
-      const latest = await tx.$queryRaw<Array<{ version: number }>>`SELECT version FROM risk_rule_sets ORDER BY version DESC LIMIT 1 FOR UPDATE`;
-      const next = (latest[0]?.version ?? 0) + 1;
+      const latest = await tx.$queryRaw<Array<{ version: number; rules: RuleConfig[]; guardian_threshold: number }>>`
+        SELECT version, rules, guardian_threshold FROM risk_rule_sets ORDER BY version DESC LIMIT 1 FOR UPDATE`;
+      const current = { version: latest[0]?.version ?? 0, rules: latest[0]?.rules ?? [], threshold: latest[0]?.guardian_threshold ?? null };
+      if (input.baseVersion !== undefined && input.baseVersion !== current.version) throw new AppError('RULES_CHANGED');
+      const next = current.version + 1;
       await tx.riskRuleSet.create({
         data: {
           version: next,
@@ -75,7 +87,7 @@ export class RiskService {
         action: 'risk.rules_published',
         subjectType: 'risk_rule_set',
         subjectId: String(next),
-        payload: { version: next, previous: current.version, threshold: input.guardianThreshold, changes },
+        payload: { version: next, previous: current.version, threshold: input.guardianThreshold, previousThreshold: current.threshold, changes },
       });
       return next;
     });

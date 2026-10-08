@@ -66,6 +66,7 @@ class ErrorCodes {
   static const String REQUEST_EXPIRED = 'REQUEST_EXPIRED';
   static const String REQUEST_ALREADY_DECIDED = 'REQUEST_ALREADY_DECIDED';
   static const String IDEMPOTENCY_CONFLICT = 'IDEMPOTENCY_CONFLICT';
+  static const String RULES_CHANGED = 'RULES_CHANGED';
   static const String ACTION_NOT_COMPLETED = 'ACTION_NOT_COMPLETED';
   static const String RECOVERY_NOT_COMPLETED = 'RECOVERY_NOT_COMPLETED';
   static const String CONSENT_REQUIRED = 'CONSENT_REQUIRED';
@@ -513,6 +514,19 @@ const Map<String, ErrorEntry> kErrorCatalog = <String, ErrorEntry>{
       'en': ErrorText("This request was already sent with different details.", "Start a new transfer."),
       'ta': ErrorText("இந்தக் கோரிக்கை ஏற்கனவே வேறு விவரங்களுடன் அனுப்பப்பட்டது.", "புதிய பரிமாற்றத்தைத் தொடங்குங்கள்."),
       'hi': ErrorText("यह अनुरोध पहले ही अलग जानकारी के साथ भेजा जा चुका है।", "नया ट्रांसफ़र शुरू करें।"),
+    },
+  ),
+  'RULES_CHANGED': ErrorEntry(
+    code: 'RULES_CHANGED',
+    http: 409,
+    tier: 'public',
+    generic: null,
+    origin: 'server',
+    params: <String>[],
+    text: <String, ErrorText>{
+      'en': ErrorText("Someone published a newer version of the risk rules while you were editing.", "Reload to see the latest rules, then make your change again."),
+      'ta': ErrorText("நீங்கள் திருத்திக்கொண்டிருந்தபோது வேறொருவர் இடர் விதிகளின் புதிய பதிப்பை வெளியிட்டார்.", "சமீபத்திய விதிகளைப் பார்க்க மீண்டும் ஏற்றி, உங்கள் மாற்றத்தை மீண்டும் செய்யுங்கள்."),
+      'hi': ErrorText("जब आप बदलाव कर रहे थे, तब किसी और ने जोखिम नियमों का नया संस्करण प्रकाशित कर दिया।", "नए नियम देखने के लिए पेज फिर से लोड करें, फिर अपना बदलाव दोबारा करें।"),
     },
   ),
   'ACTION_NOT_COMPLETED': ErrorEntry(

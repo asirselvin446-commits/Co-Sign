@@ -5,7 +5,7 @@ import express from 'express';
 import session from 'express-session';
 import { config } from './config.js';
 import connectPgSimple from 'connect-pg-simple';
-import { read, init, pool, flush } from './db.js';
+import { read, write, init, pool, flush } from './db.js';
 import { subscribe } from './sse.js';
 import { counters } from './audit.js';
 import { tick } from './requests.js';
@@ -18,9 +18,14 @@ import recoveryRoutes from './routes/recovery.js';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const app = express();
 
-if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
-  throw new Error('SESSION_SECRET must be set in production');
-}
+await init();
+
+// Session signing secret: SESSION_SECRET if given, otherwise generated once and
+// kept with the stored state, so sign-ins survive restarts without a manual secret.
+const sessionSecret = process.env.SESSION_SECRET || read().meta?.sessionSecret || write((db) => {
+  db.meta = { ...db.meta, sessionSecret: crypto.randomBytes(32).toString('hex') };
+  return db.meta.sessionSecret;
+});
 
 app.set('trust proxy', true); // honour x-forwarded-proto from ngrok / the host's proxy
 app.disable('x-powered-by');
@@ -34,7 +39,7 @@ const PgStore = connectPgSimple(session);
 app.use(session({
   name: 'saathi.sid',
   store: pool ? new PgStore({ pool, tableName: 'user_sessions', createTableIfMissing: true }) : undefined,
-  secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
+  secret: sessionSecret,
   resave: false,
   saveUninitialized: false,
   cookie: { httpOnly: true, sameSite: 'lax', secure: 'auto', maxAge: 12 * 3600 * 1000 },
@@ -91,7 +96,6 @@ app.get('/vendor/simplewebauthn-browser.js', (req, res) => {
 });
 app.use(express.static(path.join(root, 'public'), { extensions: ['html'] }));
 
-await init();
 setInterval(tick, 1000).unref();
 
 const server = app.listen(config.port, () => {

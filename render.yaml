@@ -1,0 +1,24 @@
+# Render Blueprint: always-on Node web service + Postgres in the same region.
+# (A persistent server is required: live updates use Server-Sent Events and
+# timers run every second, which serverless platforms can't hold.)
+services:
+  - type: web
+    name: saathiauth
+    runtime: node
+    region: singapore
+    plan: free
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: saathiauth-db
+          property: connectionString
+
+databases:
+  - name: saathiauth-db
+    region: singapore
+    plan: free

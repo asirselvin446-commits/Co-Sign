@@ -42,6 +42,9 @@ object PauseController {
     /** Local pauses the person continued past before the server knew about them. */
     private val dismissedClientIds = LinkedHashSet<String>()
 
+    /** Local pauses the person left for the Co-Sign app before the server knew about them. */
+    private val openedClientIds = LinkedHashSet<String>()
+
     /** Strings in the language chosen inside Co-Sign, not the phone's system language. */
     private fun localized(ctx: Context): Context {
         val config = android.content.res.Configuration(ctx.resources.configuration)
@@ -103,6 +106,11 @@ object PauseController {
             MonitorHub.dismissPause(pauseId)
             return@post
         }
+        if (openedClientIds.remove(forClientId)) {
+            // They are already in Co-Sign, which shows the pause; do not cover the screen again.
+            handled += pauseId
+            return@post
+        }
         if (forClientId == clientId) {
             serverPauseId = pauseId
             if (askWhenAttached) ask()
@@ -146,7 +154,8 @@ object PauseController {
             addView(button(str(R.string.pause_ask), "ask", primary = true) { ask() })
             addView(
                 button(str(R.string.pause_open_app), "open", primary = false) {
-                    serverPauseId?.let { handled += it }
+                    val id = serverPauseId
+                    if (id != null) handled += id else clientId?.let { openedClientIds += it }
                     hide()
                     openApp(ctx)
                 },

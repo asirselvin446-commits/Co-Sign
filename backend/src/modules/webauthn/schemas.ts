@@ -32,7 +32,8 @@ export const authenticationResponseSchema = z
       clientDataJSON: b64url,
       authenticatorData: b64url,
       signature: b64url,
-      userHandle: b64url.optional().nullable().transform((v) => v ?? undefined),
+      // Some Android providers send an empty string instead of omitting the field.
+      userHandle: z.string().regex(/^[A-Za-z0-9_-]*$/).max(1024).optional().nullable().transform((v) => (v ? v : undefined)),
     }),
     clientExtensionResults: z.record(z.string(), z.unknown()).default({}),
     authenticatorAttachment: z.enum(['platform', 'cross-platform']).optional(),

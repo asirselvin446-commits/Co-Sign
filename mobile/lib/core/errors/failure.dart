@@ -64,6 +64,9 @@ String formatWait(int seconds, String lang) {
 
 String formatClock(DateTime t, String lang) => DateFormat.jm(_intlLocale(lang)).format(t.toLocal());
 
+/// Day and time, for anything that is not today ("9 Oct, 3:45 pm").
+String formatDate(DateTime t, String lang) => DateFormat.MMMd(_intlLocale(lang)).add_jm().format(t.toLocal());
+
 String _intlLocale(String lang) => switch (lang) {
       'ta' => 'ta_IN',
       'hi' => 'hi_IN',

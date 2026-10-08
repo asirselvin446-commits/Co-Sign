@@ -12,7 +12,6 @@ import '../../core/errors/failure.dart';
 import '../../core/providers.dart';
 import '../../core/signals/signal_collector.dart';
 import '../../ui/widgets.dart';
-import '../protection/protection_screens.dart';
 import '../stepup/stepup_flow.dart';
 
 final guardiansProvider = FutureProvider.autoDispose<GuardianList>((ref) => ref.watch(apiProvider).guardians());
@@ -78,8 +77,8 @@ class _GuardiansScreenState extends ConsumerState<GuardiansScreen> {
                       leading: const Icon(Icons.shield),
                       title: Text(x.displayName),
                       subtitle: Text(switch (x.status) {
-                        'pending_activation' => l.pendingActivation(formatClock(x.activatesAt!, lang)),
-                        'pending_removal' => l.pendingRemoval(formatClock(x.removesAt!, lang)),
+                        'pending_activation' => l.pendingActivation(formatDate(x.activatesAt!, lang)),
+                        'pending_removal' => l.pendingRemoval(formatDate(x.removesAt!, lang)),
                         _ => l.activeGuardian,
                       }),
                     ),
@@ -151,7 +150,7 @@ class _InviteGuardianScreenState extends ConsumerState<InviteGuardianScreen> {
                 style: Theme.of(context).textTheme.displaySmall?.copyWith(letterSpacing: 6, fontWeight: FontWeight.w700),
                 semanticsLabel: i.code.split('').join(' '),
               ),
-              Text(l.expires(formatClock(i.expiresAt, lang))),
+              Text(l.expires(formatDate(i.expiresAt, lang))),
               const Gap(),
               SecondaryButton(
                 label: l.shareLink,
@@ -309,114 +308,17 @@ class _BecomeGuardianScreenState extends ConsumerState<BecomeGuardianScreen> {
 
 final inboxProvider = FutureProvider.autoDispose<GuardianInbox>((ref) => ref.watch(apiProvider).inbox());
 
-class GuardianInboxScreen extends ConsumerStatefulWidget {
-  const GuardianInboxScreen({super.key});
-  @override
-  ConsumerState<GuardianInboxScreen> createState() => _GuardianInboxScreenState();
-}
-
-class _GuardianInboxScreenState extends ConsumerState<GuardianInboxScreen> {
-  StreamSubscription<Object>? _events;
-
-  @override
-  void initState() {
-    super.initState();
-    const names = {'guardian.request', 'guardian.request.closed', 'guardian.recovery', 'guarding.changed', 'guardian.alert'};
-    _events = ref.read(realtimeProvider).events.where((e) => names.contains(e.name)).listen((_) {
-      ref
-        ..invalidate(inboxProvider)
-        ..invalidate(peopleProvider)
-        ..invalidate(alertsProvider);
-    });
-  }
-
-  @override
-  void dispose() {
-    unawaited(_events?.cancel());
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l = context.l10n;
-    final lang = ref.watch(settingsProvider).language;
-    final inbox = ref.watch(inboxProvider);
-    final people = ref.watch(peopleProvider);
-    final alerts = ref.watch(alertsProvider);
-    return AppPage(
-      title: l.inboxTitle,
-      bottom: SecondaryButton(label: l.beGuardian, icon: Icons.volunteer_activism, onPressed: () => context.push('/guardian/accept')),
-      children: [
-        SectionTitle(l.alertsTitle),
-        AsyncBody<List<GuardianAlert>>(
-          value: alerts,
-          onRetry: () => ref.invalidate(alertsProvider),
-          builder: (list) => list.isEmpty ? BodyText(l.noAlerts) : Column(children: [for (final a in list.take(10)) AlertTile(alert: a)]),
-        ),
-        SectionTitle(l.guardianRequests),
-        AsyncBody<GuardianInbox>(
-          value: inbox,
-          onRetry: () => ref.invalidate(inboxProvider),
-          builder: (box) => box.isEmpty
-              ? BodyText(l.inboxEmpty)
-              : Column(children: [
-                  for (final r in box.requests)
-                    Card(
-                      color: Theme.of(context).colorScheme.tertiaryContainer,
-                      child: ListTile(
-                        leading: const Icon(Icons.gpp_maybe),
-                        title: Text(l.approveTitle(r.requesterName)),
-                        subtitle: Text('${r.actionLabel}\n${l.receivedAt(formatClock(r.createdAt, lang))}'),
-                        isThreeLine: true,
-                        onTap: () => context.push('/guardian/request/${r.id}'),
-                      ),
-                    ),
-                  for (final r in box.recoveries)
-                    Card(
-                      color: Theme.of(context).colorScheme.tertiaryContainer,
-                      child: ListTile(
-                        leading: const Icon(Icons.phonelink_lock),
-                        title: Text(l.recoveryRequestTitle(r.requesterName)),
-                        subtitle: Text(l.newPhone(r.newDeviceName)),
-                        onTap: () => context.push('/guardian/recovery/${r.id}'),
-                      ),
-                    ),
-                ]),
-        ),
-        SectionTitle(l.peopleIGuard),
-        AsyncBody<List<Person>>(
-          value: people,
-          onRetry: () => ref.invalidate(peopleProvider),
-          builder: (list) => Column(children: [
-            for (final p in list)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.person_outline),
-                title: Text(p.displayName),
-                subtitle: Text(p.status == 'active' ? l.activeGuardian : p.status),
-                trailing: p.status == 'active'
-                    ? TextButton(
-                        onPressed: () async {
-                          if (!await confirmDialog(context, l.stepDownConfirm)) return;
-                          await ref.read(apiProvider).resign(p.linkId);
-                          ref.invalidate(peopleProvider);
-                        },
-                        child: Text(l.stepDown),
-                      )
-                    : null,
-              ),
-          ]),
-        ),
-      ],
-    );
-  }
-}
-
 /// A guardian deciding on a step-up. The decision is a passkey signature over a challenge bound
-/// to this exact request; the guardian sees the reasons, never the person's balance.
+/// to this exact request; the guardian sees what is being changed and why it looked risky.
+///
+/// From a notification's Approve or Deny button ([act]), the passkey prompt opens as soon as the
+/// request loads: one tap and a fingerprint, with the same signed challenge as from this screen.
 class GuardianRequestScreen extends ConsumerStatefulWidget {
-  const GuardianRequestScreen({super.key, required this.requestId});
+  const GuardianRequestScreen({super.key, required this.requestId, this.act});
   final String requestId;
+
+  /// "approve" or "deny".
+  final String? act;
   @override
   ConsumerState<GuardianRequestScreen> createState() => _GuardianRequestScreenState();
 }
@@ -448,10 +350,17 @@ class _GuardianRequestScreenState extends ConsumerState<GuardianRequestScreen> {
     super.dispose();
   }
 
+  bool _actedFromNotification = false;
+
   Future<void> _load() async {
     try {
       final r = await ref.read(apiProvider).guardianRequest(widget.requestId);
       if (mounted) setState(() => _req = r);
+      final act = widget.act;
+      if (mounted && !_actedFromNotification && (act == 'approve' || act == 'deny') && r.status == 'pending_guardians' && r.myDecision == null) {
+        _actedFromNotification = true;
+        unawaited(_decide(act!));
+      }
     } on AppFailure catch (f) {
       if (mounted) setState(() => _error = f);
     }

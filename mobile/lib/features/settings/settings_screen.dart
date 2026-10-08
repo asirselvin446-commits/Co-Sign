@@ -10,7 +10,6 @@ import '../../core/api/models.dart';
 import '../../core/errors/failure.dart';
 import '../../core/providers.dart';
 import '../../core/session/session_controller.dart';
-import '../../ui/money.dart';
 import '../../ui/widgets.dart';
 import '../onboarding/onboarding_screens.dart';
 import '../stepup/stepup_flow.dart';
@@ -36,19 +35,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  Future<String?> _ask(String label, {TextInputType? keyboard}) {
-    final c = TextEditingController();
-    return showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        content: TextField(controller: c, autofocus: true, keyboardType: keyboard, decoration: InputDecoration(labelText: label)),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(ctx.l10n.cancel)),
-          FilledButton(onPressed: () => Navigator.pop(ctx, c.text.trim()), child: Text(ctx.l10n.continueLabel)),
-        ],
-      ),
-    ).whenComplete(c.dispose);
-  }
+  Future<String?> _ask(String label, {TextInputType? keyboard}) =>
+      showDialog<String>(context: context, builder: (_) => _AskDialog(label: label, keyboard: keyboard));
 
   Future<void> _changePhone() => _guard(() async {
         final phone = await _ask(context.l10n.phoneLabel, keyboard: TextInputType.phone);
@@ -66,19 +54,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         final email = await _ask(context.l10n.emailLabel, keyboard: TextInputType.emailAddress);
         if (email == null || email.isEmpty || !mounted) return;
         await runSensitiveAction(context, ref, 'change_email', {'email': email});
-      });
-
-  Future<void> _limit({required bool raise}) => _guard(() async {
-        final raw = await _ask(context.l10n.newLimitLabel, keyboard: const TextInputType.numberWithOptions(decimal: true));
-        final value = raw == null ? null : parseAmount(raw);
-        if (value == null || !mounted) return;
-        if (raise) {
-          final done = await runSensitiveAction(context, ref, 'raise_transfer_limit', {'newLimitMinor': value.toString()});
-          if (done?.status != StepupStatus.completed) return;
-        } else {
-          await ref.read(apiProvider).lowerLimit(value);
-        }
-        if (mounted) showMessage(context, context.l10n.limitUpdated);
       });
 
   Future<void> _recoveryCodes() => _guard(() async {
@@ -153,8 +128,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         SectionTitle(l.account),
         ListTile(title: Text(l.changePhone), onTap: _changePhone),
         ListTile(title: Text(l.changeEmail), onTap: _changeEmail),
-        ListTile(title: Text(l.raiseLimit), onTap: () => _limit(raise: true)),
-        ListTile(title: Text(l.lowerLimit), onTap: () => _limit(raise: false)),
         ListTile(title: Text(l.recoveryCodes), onTap: _recoveryCodes),
         if (_codes != null)
           Card(
@@ -179,4 +152,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ],
     );
   }
+}
+
+/// One-field dialog. It owns its text controller, so the controller lives until the dialog has
+/// finished closing (disposing it when the dialog's future completes is too early).
+class _AskDialog extends StatefulWidget {
+  const _AskDialog({required this.label, this.keyboard});
+  final String label;
+  final TextInputType? keyboard;
+  @override
+  State<_AskDialog> createState() => _AskDialogState();
+}
+
+class _AskDialogState extends State<_AskDialog> {
+  final _c = TextEditingController();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+        content: TextField(controller: _c, autofocus: true, keyboardType: widget.keyboard, decoration: InputDecoration(labelText: widget.label)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(context.l10n.cancel)),
+          FilledButton(onPressed: () => Navigator.pop(context, _c.text.trim()), child: Text(context.l10n.continueLabel)),
+        ],
+      );
 }

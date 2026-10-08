@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Only two policies: count wrong screen-lock attempts, and lock the screen when a guardian asks.
+     No wipe, reset, password-change or camera policies. -->
+<device-admin xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-policies>
+        <watch-login />
+        <force-lock />
+    </uses-policies>
+</device-admin>

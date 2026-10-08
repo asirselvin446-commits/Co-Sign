@@ -15,22 +15,47 @@ const _channel = AndroidNotificationChannel(
 
 final _local = FlutterLocalNotificationsPlugin();
 
-/// Where a notification should take the person, from its data payload.
-String? routeForPush(Map<String, Object?> data) {
+/// Where a notification should take the person, from its data payload and (if they pressed one)
+/// the notification button. Buttons are one-tap: Approve/Deny open the passkey prompt straight
+/// away, "Pause their phone" and "Let them continue" act as soon as the screen opens.
+String? routeForPush(Map<String, Object?> data, {String? actionId}) {
   final screen = data['screen'];
   final requestId = data['requestId'];
   final recoveryId = data['recoveryId'];
   final alertId = data['alertId'];
+  final pauseId = data['pauseId'];
+  final linkId = data['linkId'];
+  if (actionId == 'release' && pauseId is String) return '/guardian/pause/$pauseId?act=release';
+  if (actionId == 'pause' && linkId is String) return '/guardian/person/$linkId?act=pause';
   return switch (screen) {
+    'guardian_request' when requestId is String && (actionId == 'approve' || actionId == 'deny') => '/guardian/request/$requestId?act=$actionId',
     'guardian_request' when requestId is String => '/guardian/request/$requestId',
     'guardian_recovery' when recoveryId is String => '/guardian/recovery/$recoveryId',
     'guardian_alert' when alertId is String => '/guardian/alerts/$alertId',
+    'guardian_pause' when pauseId is String => '/guardian/pause/$pauseId',
+    'guardian_person' when linkId is String => '/guardian/person/$linkId',
     'stepup' when requestId is String => '/stepup/$requestId',
     'recovery_alert' => '/home',
     'guardians' => '/guardians',
     'devices' => '/devices',
     _ => null,
   };
+}
+
+/// The buttons the server asked for, e.g. [("approve", "Approve"), ("deny", "Deny")].
+List<(String, String)> pushActions(Map<String, Object?> data) {
+  final raw = data['actions'];
+  if (raw is! String || raw.isEmpty) return const [];
+  try {
+    return (jsonDecode(raw) as List<Object?>)
+        .whereType<Map<Object?, Object?>>()
+        .map((a) => (a['id'], a['label']))
+        .where((a) => a.$1 is String && a.$2 is String)
+        .map((a) => (a.$1! as String, a.$2! as String))
+        .toList();
+  } on FormatException {
+    return const [];
+  }
 }
 
 Future<void> _showLocal(RemoteMessage m) async {
@@ -52,6 +77,11 @@ Future<void> _showLocal(RemoteMessage m) async {
         category: AndroidNotificationCategory.message,
         visibility: NotificationVisibility.private,
         styleInformation: BigTextStyleInformation(body ?? ''),
+        // Each button opens the app (unlocking the phone first), so a stranger holding a locked
+        // phone cannot approve anything; approvals still need the guardian's passkey.
+        actions: [
+          for (final (id, label) in pushActions(data)) AndroidNotificationAction(id, label, showsUserInterface: true, cancelNotification: true),
+        ],
       ),
       iOS: const DarwinNotificationDetails(),
     ),
@@ -80,7 +110,7 @@ Future<void> _initLocal(void Function(String route)? onOpen) async {
     onDidReceiveNotificationResponse: (r) {
       final payload = r.payload;
       if (payload == null || onOpen == null) return;
-      final route = routeForPush((jsonDecode(payload) as Map).cast<String, Object?>());
+      final route = routeForPush((jsonDecode(payload) as Map).cast<String, Object?>(), actionId: r.actionId);
       if (route != null) onOpen(route);
     },
   );
@@ -126,7 +156,7 @@ class FirebasePush implements Push {
     final route = initial != null
         ? routeForPush(initial.data)
         : launch?.didNotificationLaunchApp == true && launch?.notificationResponse?.payload != null
-            ? routeForPush((jsonDecode(launch!.notificationResponse!.payload!) as Map).cast<String, Object?>())
+            ? routeForPush((jsonDecode(launch!.notificationResponse!.payload!) as Map).cast<String, Object?>(), actionId: launch.notificationResponse!.actionId)
             : null;
     if (route != null) onOpen(route);
   }

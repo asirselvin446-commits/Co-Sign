@@ -4,7 +4,6 @@ typedef Json = Map<String, Object?>;
 
 DateTime _date(Object? v) => DateTime.parse(v! as String);
 DateTime? _dateOrNull(Object? v) => v == null ? null : DateTime.parse(v as String);
-BigInt _big(Object? v) => BigInt.parse(v! as String);
 List<Json> _list(Object? v) => (v as List<Object?>? ?? const []).cast<Json>();
 
 class UserSummary {
@@ -52,63 +51,6 @@ class Me {
   final String? phone;
   final int guardians;
   final int guarding;
-}
-
-class Account {
-  const Account({
-    required this.currency,
-    required this.balanceMinor,
-    required this.transferLimitMinor,
-    required this.usedTodayMinor,
-    required this.remainingTodayMinor,
-  });
-  factory Account.fromJson(Json j) => Account(
-        currency: j['currency']! as String,
-        balanceMinor: _big(j['balanceMinor']),
-        transferLimitMinor: _big(j['transferLimitMinor']),
-        usedTodayMinor: _big(j['usedTodayMinor']),
-        remainingTodayMinor: _big(j['remainingTodayMinor']),
-      );
-  final String currency;
-  final BigInt balanceMinor;
-  final BigInt transferLimitMinor;
-  final BigInt usedTodayMinor;
-  final BigInt remainingTodayMinor;
-}
-
-class ActivityItem {
-  const ActivityItem({required this.id, required this.outgoing, required this.amountMinor, required this.currency, required this.counterpartyName, required this.counterpartyHandle, required this.memo, required this.createdAt});
-  factory ActivityItem.fromJson(Json j) {
-    final cp = j['counterparty']! as Json;
-    return ActivityItem(
-      id: j['id']! as String,
-      outgoing: j['direction'] == 'out',
-      amountMinor: _big(j['amountMinor']),
-      currency: j['currency']! as String,
-      counterpartyName: cp['displayName']! as String,
-      counterpartyHandle: cp['handle']! as String,
-      memo: j['memo'] as String?,
-      createdAt: _date(j['createdAt']),
-    );
-  }
-  final String id;
-  final bool outgoing;
-  final BigInt amountMinor;
-  final String currency;
-  final String counterpartyName;
-  final String counterpartyHandle;
-  final String? memo;
-  final DateTime createdAt;
-}
-
-class Payee {
-  const Payee({required this.id, required this.nickname, required this.handle, required this.displayName});
-  factory Payee.fromJson(Json j) =>
-      Payee(id: j['id']! as String, nickname: j['nickname']! as String, handle: j['handle']! as String, displayName: j['displayName']! as String);
-  final String id;
-  final String nickname;
-  final String handle;
-  final String displayName;
 }
 
 class DeviceView {
@@ -320,12 +262,51 @@ class GuardianInbox {
   bool get isEmpty => requests.isEmpty && recoveries.isEmpty;
 }
 
+/// Someone I guard, with their protection status (null while my guardian link is not active yet).
 class Person {
-  const Person({required this.linkId, required this.displayName, required this.status});
-  factory Person.fromJson(Json j) => Person(linkId: j['linkId']! as String, displayName: j['displayName']! as String, status: j['status']! as String);
+  const Person({required this.linkId, required this.displayName, required this.handle, required this.status, required this.activatesAt, this.protection});
+  factory Person.fromJson(Json j) => Person(
+        linkId: j['linkId']! as String,
+        displayName: j['displayName']! as String,
+        handle: j['handle'] as String? ?? '',
+        status: j['status']! as String,
+        activatesAt: _dateOrNull(j['activatesAt']),
+        protection: j['protection'] == null ? null : Protection.fromJson(j['protection']! as Json),
+      );
   final String linkId;
   final String displayName;
+  final String handle;
   final String status;
+  final DateTime? activatesAt;
+  final Protection? protection;
+
+  bool get canAct => status == 'active' || status == 'pending_removal';
+}
+
+class Protection {
+  const Protection({required this.on, required this.lastSeenAt, required this.pauseId, required this.pausedByGuardian, required this.lastAlertSeverity, required this.lastAlertAt, required this.lastAlertId});
+  factory Protection.fromJson(Json j) {
+    final pause = j['activePause'] as Json?;
+    final alert = j['lastAlert'] as Json?;
+    return Protection(
+      on: j['on']! as bool,
+      lastSeenAt: _dateOrNull(j['lastSeenAt']),
+      pauseId: pause?['id'] as String?,
+      pausedByGuardian: pause?['byGuardian'] as bool? ?? false,
+      lastAlertSeverity: alert?['severity'] as String?,
+      lastAlertAt: _dateOrNull(alert?['occurredAt']),
+      lastAlertId: alert?['id'] as String?,
+    );
+  }
+  final bool on;
+  final DateTime? lastSeenAt;
+  final String? pauseId;
+  final bool pausedByGuardian;
+  final String? lastAlertSeverity;
+  final DateTime? lastAlertAt;
+  final String? lastAlertId;
+
+  bool get paused => pauseId != null;
 }
 
 class RecoveryStart {
@@ -405,6 +386,7 @@ class GuardianAlert {
   const GuardianAlert({
     required this.id,
     required this.personName,
+    this.personLinkId,
     required this.kind,
     required this.appCategory,
     required this.appPackage,
@@ -423,6 +405,7 @@ class GuardianAlert {
     return GuardianAlert(
       id: j['id']! as String,
       personName: (j['person']! as Json)['displayName']! as String,
+      personLinkId: (j['person']! as Json)['linkId'] as String?,
       kind: j['kind']! as String,
       appCategory: app?['category'] as String?,
       appPackage: app?['package'] as String?,
@@ -438,6 +421,7 @@ class GuardianAlert {
   }
   final String id;
   final String personName;
+  final String? personLinkId;
   final String kind;
   final String? appCategory;
   final String? appPackage;
@@ -452,4 +436,46 @@ class GuardianAlert {
 
   bool get critical => severity == 'critical';
   bool get pauseActive => pauseStatus == 'active';
+}
+
+/// One of my own recent warnings (the protected person sees what their guardians see).
+class MyAlert {
+  const MyAlert({required this.id, required this.kind, required this.severity, required this.reasons, required this.occurredAt, required this.paused});
+  factory MyAlert.fromJson(Json j) => MyAlert(
+        id: j['id']! as String,
+        kind: j['kind']! as String,
+        severity: j['severity']! as String,
+        reasons: _list(j['reasons']).map(Reason.fromJson).toList(),
+        occurredAt: _date(j['occurredAt']),
+        paused: j['paused']! as bool,
+      );
+  final String id;
+  final String kind;
+  final String severity;
+  final List<Reason> reasons;
+  final DateTime occurredAt;
+  final bool paused;
+
+  bool get critical => severity == 'critical';
+}
+
+/// A safety pause as the guardian sees it (from "asking to continue").
+class PauseView {
+  const PauseView({required this.id, required this.status, required this.byGuardian, required this.personName, required this.reasons, required this.expiresAt});
+  factory PauseView.fromJson(Json j) => PauseView(
+        id: j['id']! as String,
+        status: j['status']! as String,
+        byGuardian: j['byGuardian']! as bool,
+        personName: (j['person']! as Json)['displayName']! as String,
+        reasons: _list(j['reasons']).map(Reason.fromJson).toList(),
+        expiresAt: _date(j['expiresAt']),
+      );
+  final String id;
+  final String status;
+  final bool byGuardian;
+  final String personName;
+  final List<Reason> reasons;
+  final DateTime expiresAt;
+
+  bool get active => status == 'active';
 }

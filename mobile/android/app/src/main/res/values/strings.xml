@@ -11,5 +11,12 @@
     <string name="monitor_channel">Family protection</string>
     <string name="monitor_notification_title">Co-Sign is protecting this phone</string>
     <string name="monitor_notification_body">Your guardians are told if something looks like a scam. Tap to change settings.</string>
-    <string name="accessibility_description">Co-Sign family protection notices when a bank, payment or email sign-in screen opens during a call with an unknown number, and pauses it so you can check first. It only sees what kind of screen is open. It never reads what is on the screen or what you type.</string>
+    <string name="accessibility_description">Co-Sign family protection notices when a bank, payment or email sign-in screen opens during a call with an unknown number, when a chat app is opened right after a one-time code arrives, or when screen sharing is about to start, and pauses it so you can check first. It only sees what kind of screen is open. It never reads what is on the screen or what you type.</string>
+    <string name="pause_guardian_title">Your guardian paused this phone for a few minutes.</string>
+    <string name="pause_ask">Ask my guardian to let me continue</string>
+    <string name="pause_asking">Asking your guardian…</string>
+    <string name="pause_asked">Your guardian has been asked. Please wait for them to call you.</string>
+    <string name="pause_ask_failed">Could not reach your guardian. Call them yourself on a number you know.</string>
+    <string name="device_admin_label">Co-Sign wrong-PIN watch</string>
+    <string name="device_admin_description">Lets Co-Sign tell your guardian when the wrong screen-lock PIN is entered many times, and lets your guardian lock the screen in an emergency. Co-Sign cannot erase the phone or change your PIN.</string>
 </resources>

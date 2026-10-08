@@ -1,5 +1,3 @@
-import 'package:uuid/uuid.dart';
-
 import 'api_client.dart';
 import 'models.dart';
 
@@ -16,12 +14,6 @@ abstract class CoSignApi {
   // account
   Future<Me> me();
   Future<void> updateMe({String? locale, String? displayName});
-  Future<Account> account();
-  Future<List<ActivityItem>> activity();
-  Future<List<Payee>> payees();
-  Future<void> removePayee(String id);
-  Future<({String transferId, BigInt balanceMinor})> transfer({required String payeeId, required BigInt amountMinor, String? memo, required String idempotencyKey});
-  Future<void> lowerLimit(BigInt newLimitMinor);
 
   // devices
   Future<List<DeviceView>> devices();
@@ -84,6 +76,11 @@ abstract class CoSignApi {
   Future<List<GuardianAlert>> guardianAlerts();
   Future<void> acknowledgeAlert(String id);
   Future<void> releasePause(String pauseId);
+  Future<PauseView> guardianPause(String pauseId);
+  Future<void> pausePhone(String linkId);
+  Future<void> lockPhone(String linkId);
+  Future<List<MyAlert>> myAlerts();
+  Future<void> askForHelp();
 }
 
 class HttpCoSignApi implements CoSignApi {
@@ -112,32 +109,6 @@ class HttpCoSignApi implements CoSignApi {
 
   @override
   Future<void> updateMe({String? locale, String? displayName}) => http.patch('/v1/me', {'locale': ?locale, 'displayName': ?displayName});
-
-  @override
-  Future<Account> account() async => Account.fromJson(await http.get('/v1/account'));
-
-  @override
-  Future<List<ActivityItem>> activity() async =>
-      ((await http.get('/v1/account/activity'))['items']! as List<Object?>).cast<Json>().map(ActivityItem.fromJson).toList();
-
-  @override
-  Future<List<Payee>> payees() async => ((await http.get('/v1/payees'))['payees']! as List<Object?>).cast<Json>().map(Payee.fromJson).toList();
-
-  @override
-  Future<void> removePayee(String id) => http.delete('/v1/payees/$id');
-
-  @override
-  Future<({String transferId, BigInt balanceMinor})> transfer({required String payeeId, required BigInt amountMinor, String? memo, required String idempotencyKey}) async {
-    final r = await http.post(
-      '/v1/transfers',
-      {'payeeId': payeeId, 'amountMinor': amountMinor.toString(), if (memo != null && memo.isNotEmpty) 'memo': memo},
-      {'idempotency-key': idempotencyKey},
-    );
-    return (transferId: r['transferId']! as String, balanceMinor: BigInt.parse(r['balanceMinor']! as String));
-  }
-
-  @override
-  Future<void> lowerLimit(BigInt newLimitMinor) => http.post('/v1/account/limit/lower', {'newLimitMinor': newLimitMinor.toString()});
 
   @override
   Future<List<DeviceView>> devices() async => ((await http.get('/v1/devices'))['devices']! as List<Object?>).cast<Json>().map(DeviceView.fromJson).toList();
@@ -307,7 +278,19 @@ class HttpCoSignApi implements CoSignApi {
 
   @override
   Future<void> releasePause(String pauseId) => http.post('/v1/guardian/pauses/$pauseId/release');
-}
 
-const _uuid = Uuid();
-String newIdempotencyKey() => _uuid.v4();
+  @override
+  Future<PauseView> guardianPause(String pauseId) async => PauseView.fromJson(await http.get('/v1/guardian/pauses/$pauseId'));
+
+  @override
+  Future<void> pausePhone(String linkId) => http.post('/v1/guardian/people/$linkId/pause');
+
+  @override
+  Future<void> lockPhone(String linkId) => http.post('/v1/guardian/people/$linkId/lock');
+
+  @override
+  Future<List<MyAlert>> myAlerts() async => ((await http.get('/v1/monitor/mine'))['alerts']! as List<Object?>).cast<Json>().map(MyAlert.fromJson).toList();
+
+  @override
+  Future<void> askForHelp() => http.post('/v1/monitor/help');
+}

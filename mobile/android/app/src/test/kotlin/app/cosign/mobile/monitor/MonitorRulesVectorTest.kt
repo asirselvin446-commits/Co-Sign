@@ -37,6 +37,10 @@ class MonitorRulesVectorTest {
                 amountBucket = if (e.isNull("amountBucket")) null else e.getString("amountBucket"),
                 call = call?.let { MonitorRules.Call(it.getBoolean("active"), it.getLong("durationSec"), it.getString("caller"), it.optInt("repeatCount", 0)) },
                 localHour = e.getInt("localHour"),
+                sinceOtpSec = if (e.isNull("sinceOtpSec")) null else e.getInt("sinceOtpSec"),
+                attempts = if (e.isNull("attempts")) null else e.getInt("attempts"),
+                installer = if (e.isNull("installer")) null else e.getString("installer"),
+                grant = if (e.isNull("grant")) null else e.getString("grant"),
             )
             val ctx = v.getJSONObject("context")
             val usual = if (ctx.isNull("usualMaxDebitBucket")) null else ctx.getString("usualMaxDebitBucket")

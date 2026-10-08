@@ -63,6 +63,7 @@ class FakeSignalsChannel implements SignalsChannel {
         'accessibility': false,
         'overlay': true,
         'batteryUnrestricted': false,
+        'deviceAdmin': false,
       };
 
   @override
@@ -100,14 +101,6 @@ class FakeRealtime implements Realtime {
 
 class FakePush extends NoPush {}
 
-class _Payee {
-  _Payee(this.id, this.nickname, this.handle, this.name);
-  final String id;
-  final String nickname;
-  final String handle;
-  final String name;
-}
-
 class _Guardian {
   _Guardian(this.linkId, this.name, this.handle, this.status, {this.activatesAt});
   final String linkId;
@@ -140,7 +133,6 @@ class FakeCoSignApi implements CoSignApi {
 
   final String Function() language;
   final FakeRealtime realtime;
-  static const currency = 'XTS';
   static const guardianDelay = Duration(seconds: 7);
 
   int _seq = 0;
@@ -148,15 +140,9 @@ class FakeCoSignApi implements CoSignApi {
 
   UserSummary _user = const UserSummary(id: 'test-user', handle: 'asha', displayName: 'Asha', locale: 'en');
   String? _email;
+  String? get email => _email;
   String? _phone;
-  BigInt _balance = BigInt.from(5000000);
-  BigInt _limit = BigInt.from(1000000);
   bool _consent = true;
-  final List<ActivityItem> _activity = [];
-  final List<_Payee> _payees = [
-    _Payee('payee-ravi', 'Ravi (son)', 'ravi', 'Ravi Kumar'),
-    _Payee('payee-meena', 'Meena Stores', 'meena.stores', 'Meena Stores'),
-  ];
   final List<_Guardian> _guardians = [
     _Guardian('link-ravi', 'Ravi Kumar', 'ravi', 'active'),
     _Guardian('link-divya', 'Divya', 'divya', 'pending_activation', activatesAt: DateTime.now().add(const Duration(hours: 20))),
@@ -168,16 +154,13 @@ class FakeCoSignApi implements CoSignApi {
   bool _monitorConsent = false;
   bool _monitorEnabled = false;
   final List<GuardianAlert> _alerts = [];
+  final List<MyAlert> _mine = [];
+  final Map<String, String?> _personPause = {};
+  int helpRequests = 0;
+  final List<String> locked = [];
 
   void _seed() {
     final now = DateTime.now();
-    _activity
-      ..clear()
-      ..addAll([
-        ActivityItem(id: 'a1', outgoing: true, amountMinor: BigInt.from(125000), currency: currency, counterpartyName: 'Meena Stores', counterpartyHandle: 'meena.stores', memo: 'Groceries', createdAt: now.subtract(const Duration(hours: 3))),
-        ActivityItem(id: 'a2', outgoing: false, amountMinor: BigInt.from(1500000), currency: currency, counterpartyName: 'Ravi Kumar', counterpartyHandle: 'ravi', memo: 'Pension top-up', createdAt: now.subtract(const Duration(days: 1, hours: 2))),
-        ActivityItem(id: 'a3', outgoing: true, amountMinor: BigInt.from(48000), currency: currency, counterpartyName: 'Meena Stores', counterpartyHandle: 'meena.stores', memo: null, createdAt: now.subtract(const Duration(days: 2))),
-      ]);
     _devices
       ..clear()
       ..addAll([
@@ -187,18 +170,32 @@ class FakeCoSignApi implements CoSignApi {
     _alerts
       ..clear()
       ..addAll([
-        _alert('alert-1', 'Amma', 'payment_screen', 'upi', 'com.phonepe.app', 'critical', ['payment_screen_during_call', 'long_unknown_call'], now.subtract(const Duration(minutes: 4)), pause: 'active'),
-        _alert('alert-2', 'Arun (grandson)', 'notification_login', 'social', 'com.instagram.android', 'warn', ['new_login_alert', 'late_night_activity'], now.subtract(const Duration(hours: 9))),
-        _alert('alert-3', 'Amma', 'call_update', null, null, 'critical', ['long_unknown_call', 'repeated_unknown_caller', 'very_long_unknown_call'], now.subtract(const Duration(days: 1)), acknowledged: true),
+        _alert('alert-1', 'Amma', 'link-amma', 'payment_screen', 'upi', 'com.phonepe.app', 'critical', ['payment_screen_during_call', 'long_unknown_call'], now.subtract(const Duration(minutes: 4)), pause: 'active'),
+        _alert('alert-2', 'Arun (grandson)', 'link-arun', 'notification_login', 'social', 'com.instagram.android', 'warn', ['new_login_alert', 'late_night_activity'], now.subtract(const Duration(hours: 9))),
+        _alert('alert-3', 'Amma', 'link-amma', 'call_update', null, null, 'critical', ['long_unknown_call', 'repeated_unknown_caller', 'very_long_unknown_call'], now.subtract(const Duration(days: 1)), acknowledged: true),
       ]);
+    _personPause
+      ..clear()
+      ..addAll({'link-amma': 'pause-alert-1', 'link-arun': null});
+    // This phone's own warnings (the person sees what their guardians see).
+    _mine
+      ..clear()
+      ..add(MyAlert(
+        id: 'mine-1',
+        kind: 'app_installed',
+        severity: 'warn',
+        reasons: [for (final r in ['remote_access_installed']) Reason(r, kMonitorWeights[r] ?? 0, kMonitorReasons[r]?[_lang] ?? r)],
+        occurredAt: now.subtract(const Duration(days: 2)),
+        paused: false,
+      ));
     // Someone this person guards needs help: shows the guardian approval screen.
     _requests['guard-req-1'] = GuardianRequest(
       id: 'guard-req-1',
       requesterName: 'Amma',
       requesterHandle: 'amma',
-      action: 'transfer_above_limit',
-      actionLabel: _label('transfer_above_limit'),
-      summary: '45,000.00 XTS → @quick.refund.desk',
+      action: 'change_email',
+      actionLabel: _label('change_email'),
+      summary: null,
       score: 70,
       reasons: _reasons(['call_unknown_number', 'remote_access_app']),
       status: 'pending_guardians',
@@ -208,10 +205,11 @@ class FakeCoSignApi implements CoSignApi {
     );
   }
 
-  GuardianAlert _alert(String id, String name, String kind, String? category, String? package, String severity, List<String> rules, DateTime at, {String? pause, bool acknowledged = false}) =>
+  GuardianAlert _alert(String id, String name, String linkId, String kind, String? category, String? package, String severity, List<String> rules, DateTime at, {String? pause, bool acknowledged = false}) =>
       GuardianAlert(
         id: id,
         personName: name,
+        personLinkId: linkId,
         kind: kind,
         appCategory: category,
         appPackage: package,
@@ -298,46 +296,6 @@ class FakeCoSignApi implements CoSignApi {
   @override
   Future<void> updateMe({String? locale, String? displayName}) async {}
 
-  BigInt get _usedToday => _activity
-      .where((a) => a.outgoing && DateTime.now().difference(a.createdAt) < const Duration(hours: 24))
-      .fold(BigInt.zero, (s, a) => s + a.amountMinor);
-
-  @override
-  Future<Account> account() => _later(() {
-        final used = _usedToday;
-        final remaining = _limit > used ? _limit - used : BigInt.zero;
-        return Account(currency: currency, balanceMinor: _balance, transferLimitMinor: _limit, usedTodayMinor: used, remainingTodayMinor: remaining);
-      });
-
-  @override
-  Future<List<ActivityItem>> activity() => _later(() => List.of(_activity)..sort((a, b) => b.createdAt.compareTo(a.createdAt)));
-  @override
-  Future<List<Payee>> payees() => _later(() => [for (final p in _payees) Payee(id: p.id, nickname: p.nickname, handle: p.handle, displayName: p.name)]);
-  @override
-  Future<void> removePayee(String id) => _later(() => _payees.removeWhere((p) => p.id == id));
-
-  void _move(String payeeId, BigInt amount, String? memo) {
-    final p = _payees.firstWhere((x) => x.id == payeeId, orElse: () => throw AppFailure(ErrorCodes.NOT_FOUND));
-    if (amount > _balance) throw AppFailure(ErrorCodes.INSUFFICIENT_FUNDS);
-    _balance -= amount;
-    _activity.add(ActivityItem(id: _id('t'), outgoing: true, amountMinor: amount, currency: currency, counterpartyName: p.name, counterpartyHandle: p.handle, memo: memo, createdAt: DateTime.now()));
-    realtime.emit('account.updated', {});
-  }
-
-  @override
-  Future<({String transferId, BigInt balanceMinor})> transfer({required String payeeId, required BigInt amountMinor, String? memo, required String idempotencyKey}) => _later(() {
-        final remaining = _limit - _usedToday;
-        if (amountMinor > remaining) throw AppFailure(ErrorCodes.LIMIT_STEPUP_REQUIRED, extra: {'action': 'transfer_above_limit'});
-        _move(payeeId, amountMinor, memo);
-        return (transferId: _id('t'), balanceMinor: _balance);
-      });
-
-  @override
-  Future<void> lowerLimit(BigInt newLimitMinor) => _later(() {
-        if (newLimitMinor > _limit) throw AppFailure(ErrorCodes.INVALID_INPUT);
-        _limit = newLimitMinor;
-      });
-
   // ------------------------------------------------------------------ devices
 
   @override
@@ -379,11 +337,6 @@ class FakeCoSignApi implements CoSignApi {
 
   @override
   Future<StepupStart> startStepup(String action, Json params, Json? signals) => _later(() {
-        if (action == 'add_payee') {
-          final handle = '${params['handle']}';
-          if (_payees.any((p) => p.handle == handle)) throw AppFailure(ErrorCodes.PAYEE_EXISTS);
-        }
-        if (action == 'raise_transfer_limit' && BigInt.parse('${params['newLimitMinor']}') <= _limit) throw AppFailure(ErrorCodes.LIMIT_NOT_HIGHER);
         final a = _assess(signals);
         final s = _Stepup(id: _id('stepup'), action: action, params: params, score: a.score, reasons: a.keys, needsGuardian: a.score >= 50);
         _stepups[s.id] = s;
@@ -422,16 +375,6 @@ class FakeCoSignApi implements CoSignApi {
     final p = s.params;
     try {
       switch (s.action) {
-        case 'add_payee':
-          final id = _id('payee');
-          _payees.add(_Payee(id, '${p['nickname']}', '${p['handle']}', '${p['nickname']}'));
-          s.result = {'payeeId': id};
-        case 'transfer_above_limit':
-          _move('${p['payeeId']}', BigInt.parse('${p['amountMinor']}'), p['memo'] as String?);
-          s.result = {'transferId': _id('t')};
-        case 'raise_transfer_limit':
-          _limit = BigInt.parse('${p['newLimitMinor']}');
-          s.result = {'transferLimitMinor': '$_limit'};
         case 'remove_guardian':
           final g = _guardians.firstWhere((x) => x.linkId == p['linkId']);
           g
@@ -499,10 +442,22 @@ class FakeCoSignApi implements CoSignApi {
   @override
   Future<DateTime> acceptInvite({String? token, String? code}) => _later(() => DateTime.now().add(const Duration(hours: 24)));
   @override
-  Future<List<Person>> people() => _later(() => const [
-        Person(linkId: 'link-amma', displayName: 'Amma', status: 'active'),
-        Person(linkId: 'link-arun', displayName: 'Arun (grandson)', status: 'active'),
-      ]);
+  Future<List<Person>> people() => _later(() {
+        final now = DateTime.now();
+        Protection p(String linkId, String severity, DateTime at) => Protection(
+              on: true,
+              lastSeenAt: now.subtract(const Duration(minutes: 1)),
+              pauseId: _personPause[linkId],
+              pausedByGuardian: false,
+              lastAlertSeverity: severity,
+              lastAlertAt: at,
+              lastAlertId: null,
+            );
+        return [
+          Person(linkId: 'link-amma', displayName: 'Amma', handle: 'amma', status: 'active', activatesAt: null, protection: p('link-amma', 'critical', now.subtract(const Duration(minutes: 4)))),
+          Person(linkId: 'link-arun', displayName: 'Arun (grandson)', handle: 'arun', status: 'active', activatesAt: null, protection: p('link-arun', 'warn', now.subtract(const Duration(hours: 9)))),
+        ];
+      });
   @override
   Future<void> resign(String linkId) async {}
 
@@ -597,7 +552,6 @@ class FakeCoSignApi implements CoSignApi {
   Future<Json> exportData() => _later(() => {
         'test': true,
         'profile': {'handle': _user.handle, 'displayName': _user.displayName, 'email': _email, 'phone': _phone},
-        'payees': [for (final p in _payees) p.handle],
       });
 
 
@@ -638,6 +592,7 @@ class FakeCoSignApi implements CoSignApi {
         _alerts[i] = GuardianAlert(
           id: a.id,
           personName: a.personName,
+          personLinkId: a.personLinkId,
           kind: a.kind,
           appCategory: a.appCategory,
           appPackage: a.appPackage,
@@ -654,11 +609,14 @@ class FakeCoSignApi implements CoSignApi {
 
   @override
   Future<void> releasePause(String pauseId) => _later(() {
+        _personPause.updateAll((_, v) => v == pauseId ? null : v);
         final i = _alerts.indexWhere((a) => a.pauseId == pauseId);
+        if (i < 0) return;
         final a = _alerts[i];
         _alerts[i] = GuardianAlert(
           id: a.id,
           personName: a.personName,
+          personLinkId: a.personLinkId,
           kind: a.kind,
           appCategory: a.appCategory,
           appPackage: a.appPackage,
@@ -673,4 +631,30 @@ class FakeCoSignApi implements CoSignApi {
         );
         realtime.emit('guardian.alert', {'pauseId': pauseId, 'status': 'released'});
       });
+
+  @override
+  Future<PauseView> guardianPause(String pauseId) => _later(() {
+        final linkId = _personPause.entries.where((e) => e.value == pauseId).firstOrNull?.key;
+        final released = linkId == null;
+        return PauseView(
+          id: pauseId,
+          status: released ? 'released' : 'active',
+          byGuardian: false,
+          personName: 'Amma',
+          reasons: [for (final r in ['payment_screen_during_call', 'long_unknown_call']) Reason(r, kMonitorWeights[r] ?? 0, kMonitorReasons[r]?[_lang] ?? r)],
+          expiresAt: DateTime.now().add(const Duration(minutes: 25)),
+        );
+      });
+
+  @override
+  Future<void> pausePhone(String linkId) => _later(() => _personPause[linkId] = _id('pause'));
+
+  @override
+  Future<void> lockPhone(String linkId) => _later(() => locked.add(linkId));
+
+  @override
+  Future<List<MyAlert>> myAlerts() => _later(() => List.of(_mine));
+
+  @override
+  Future<void> askForHelp() => _later(() => helpRequests++);
 }

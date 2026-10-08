@@ -48,7 +48,6 @@ dependencies:
   app_links: ^7.2.2
   intl: ^0.20.3
   crypto: ^3.0.7
-  uuid: ^4.6.0
   passkeys: ^2.23.1
   package_info_plus: ^10.2.2
   device_info_plus: ^13.3.0

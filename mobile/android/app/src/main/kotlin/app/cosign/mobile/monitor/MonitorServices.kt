@@ -7,6 +7,10 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.app.admin.DeviceAdminReceiver
+import android.app.admin.DevicePolicyManager
+import android.content.ComponentName
+import android.content.IntentFilter
 import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
 import android.content.BroadcastReceiver
@@ -19,7 +23,9 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.UserHandle
 import android.provider.ContactsContract
+import android.provider.Settings
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.telecom.Call
@@ -33,8 +39,9 @@ import app.cosign.mobile.R
 
 /**
  * Accessibility service. Reports only *which kind of screen* is in front: a categorised app
- * (bank, UPI, wallet, email, remote control), a sign-in field, or a payment PIN pad. It never
- * reads window contents (canRetrieveWindowContent=false) and never sees what is typed.
+ * (bank, UPI, wallet, email, chat, remote control), a sign-in field, a payment PIN pad, or the
+ * system "share your screen?" prompt. It never reads window contents (canRetrieveWindowContent=false)
+ * and never sees what is typed.
  */
 class CoSignAccessibilityService : AccessibilityService() {
     private var lastPackage: String? = null
@@ -51,6 +58,7 @@ class CoSignAccessibilityService : AccessibilityService() {
         val category = AppCatalog.categoryOf(pkg)
         when (event.eventType) {
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
+                if (ScreenShareDetector.isSharePrompt(pkg, event.className?.toString())) MonitorHub.report("screen_share_prompt", null, null)
                 if (pkg != lastPackage) {
                     lastPackage = pkg
                     if (category != null) MonitorHub.report("app_foreground", pkg, category)
@@ -82,8 +90,8 @@ class CoSignAccessibilityService : AccessibilityService() {
 }
 
 /**
- * Notification listener: classifies bank, UPI, OTP and sign-in alerts on the phone. Only the
- * category and an amount range are reported; the text is discarded immediately.
+ * Notification listener: classifies bank, UPI, OTP, sign-in and failed sign-in alerts on the phone.
+ * Only the category and an amount range are reported; the text is discarded immediately.
  */
 class CoSignNotificationListener : NotificationListenerService() {
     override fun onListenerConnected() {
@@ -97,9 +105,9 @@ class CoSignNotificationListener : NotificationListenerService() {
         val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()
         val text = (extras.getCharSequence(Notification.EXTRA_BIG_TEXT) ?: extras.getCharSequence(Notification.EXTRA_TEXT))?.toString()
         val result = NotificationClassifier.classify(title, text) ?: return
-        // SMS apps carry bank messages; report the event without naming the messaging app.
-        val category = AppCatalog.categoryOf(sbn.packageName)
-        MonitorHub.report(result.kind.wire, if (category != null) sbn.packageName else null, category, result.amountBucket)
+        // SMS and chat apps carry bank messages; report the event without naming the messaging app.
+        val category = AppCatalog.categoryOf(sbn.packageName)?.takeIf { it != AppCatalog.MESSAGING }
+        MonitorHub.onNotification(result.kind, if (category != null) sbn.packageName else null, category, result.amountBucket)
     }
 }
 
@@ -139,14 +147,19 @@ class CoSignCallScreeningService : CallScreeningService() {
 
 /**
  * Keeps protection running with a visible, permanent notification (monitoring is never hidden).
- * Watches long calls and, when the accessibility service is off, which app is in front via
- * usage access. Also retries uploads.
+ * Watches long calls, newly installed apps, apps newly given screen-control or administrator
+ * access, and (when the accessibility service is off) which app is in front via usage access.
+ * Asks the server every 20 seconds whether a guardian paused or locked the phone. Retries uploads.
  */
 class MonitorForegroundService : Service() {
     private val main = Handler(Looper.getMainLooper())
     private var lastForeground: String? = null
     private var lastUsageQuery = System.currentTimeMillis()
     private var reportedCallMinutes = 0L
+    private var ticks = 0
+    private var accessibilityApps: Set<String>? = null
+    private var adminApps: Set<String>? = null
+    private var installReceiver: BroadcastReceiver? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -158,6 +171,7 @@ class MonitorForegroundService : Service() {
         }
         startInForeground()
         CallWatcher.start(this)
+        watchInstalls()
         main.removeCallbacksAndMessages(null)
         main.post(loop)
         return START_STICKY
@@ -171,6 +185,10 @@ class MonitorForegroundService : Service() {
             }
             if (PauseController.accessibilityContext == null) watchForegroundApp()
             watchCall()
+            // Every ~21 s: guardian commands. Every ~30 s: access grants.
+            if (ticks % 7 == 0) MonitorHub.runOnWorker { applyCommands() }
+            if (ticks % 10 == 0) watchAccessGrants()
+            ticks++
             main.postDelayed(this, 3000)
         }
     }
@@ -193,6 +211,54 @@ class MonitorForegroundService : Service() {
             }
         }
     }
+
+    private fun applyCommands() {
+        val c = MonitorHub.commands() ?: return
+        if (c.lock) CoSignDeviceAdmin.lockNow(this)
+        if (c.pauseId != null) PauseController.showServer(c.pauseId, c.pauseRules, c.byGuardian)
+    }
+
+    /** A new app was installed: report remote-control apps and apps from outside an app store. */
+    private fun watchInstalls() {
+        if (installReceiver != null) return
+        val r = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                if (intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)) return
+                val pkg = intent.data?.schemeSpecificPart ?: return
+                if (pkg == packageName) return
+                val source = InstallClassifier.installer(installerOf(pkg))
+                val category = AppCatalog.categoryOf(pkg) ?: "other"
+                // Only report installs that matter; ordinary store installs stay private.
+                if (category == AppCatalog.REMOTE_ACCESS || source == "unknown") {
+                    MonitorHub.report("app_installed", pkg, category, installer = source, dedupe = false)
+                }
+            }
+        }
+        val filter = IntentFilter(Intent.ACTION_PACKAGE_ADDED).apply { addDataScheme("package") }
+        ContextCompat.registerReceiver(this, r, filter, ContextCompat.RECEIVER_EXPORTED)
+        installReceiver = r
+    }
+
+    private fun installerOf(pkg: String): String? = try {
+        if (Build.VERSION.SDK_INT >= 30) packageManager.getInstallSourceInfo(pkg).installingPackageName
+        else @Suppress("DEPRECATION") packageManager.getInstallerPackageName(pkg)
+    } catch (_: Exception) {
+        null
+    }
+
+    /** Another app was switched on as an accessibility service or a device administrator. */
+    private fun watchAccessGrants() {
+        val a11y = AccessWatch.packagesFromSetting(Settings.Secure.getString(contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES))
+        val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        val admins = dpm.activeAdmins.orEmpty().map { it.packageName }.toSet()
+        accessibilityApps?.let { prev -> AccessWatch.newlyGranted(prev, a11y, packageName).forEach { reportGrant(it, "accessibility") } }
+        adminApps?.let { prev -> AccessWatch.newlyGranted(prev, admins, packageName).forEach { reportGrant(it, "device_admin") } }
+        accessibilityApps = a11y
+        adminApps = admins
+    }
+
+    private fun reportGrant(pkg: String, grant: String) =
+        MonitorHub.report("access_granted", pkg, AppCatalog.categoryOf(pkg) ?: "other", grant = grant, dedupe = false)
 
     /** Report a long call at 15 and 45 minutes, even if nothing else happens on the phone. */
     private fun watchCall() {
@@ -229,6 +295,8 @@ class MonitorForegroundService : Service() {
 
     override fun onDestroy() {
         main.removeCallbacksAndMessages(null)
+        installReceiver?.let { unregisterReceiver(it) }
+        installReceiver = null
         super.onDestroy()
     }
 
@@ -242,6 +310,40 @@ class MonitorForegroundService : Service() {
 
         fun stop(ctx: Context) {
             ctx.stopService(Intent(ctx, MonitorForegroundService::class.java))
+        }
+    }
+}
+
+/**
+ * Device administrator with two policies only: "watch login" (to count wrong screen-lock PINs) and
+ * "force lock" (so a guardian can lock the screen remotely). It cannot wipe, reset or change the
+ * screen lock. Switched on by the person from the protection checklist.
+ */
+class CoSignDeviceAdmin : DeviceAdminReceiver() {
+    override fun onPasswordFailed(context: Context, intent: Intent, user: UserHandle) {
+        MonitorHub.init(context)
+        MonitorHub.onUnlockFailed()
+    }
+
+    override fun onPasswordSucceeded(context: Context, intent: Intent, user: UserHandle) {
+        MonitorHub.init(context)
+        MonitorHub.onUnlockSucceeded()
+    }
+
+    companion object {
+        fun component(ctx: Context) = ComponentName(ctx, CoSignDeviceAdmin::class.java)
+
+        fun isActive(ctx: Context): Boolean =
+            (ctx.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager).isAdminActive(component(ctx))
+
+        /** Lock the screen now (guardian request). The person unlocks with their own PIN. */
+        fun lockNow(ctx: Context) {
+            if (!isActive(ctx)) return
+            try {
+                (ctx.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager).lockNow()
+            } catch (_: SecurityException) {
+                // Policy not granted.
+            }
         }
     }
 }

@@ -590,7 +590,7 @@ const Map<String, Map<String, String>> kMonitorReasons = <String, Map<String, St
   'many_unlock_failures': <String, String>{'en': "The wrong PIN was entered 5 or more times within a few minutes.", 'ta': "சில நிமிடங்களுக்குள் தவறான PIN 5 அல்லது அதற்கு மேல் முறை உள்ளிடப்பட்டது.", 'hi': "कुछ ही मिनटों में गलत PIN 5 या ज़्यादा बार डाला गया।"},
   'failed_login_alert': <String, String>{'en': "An app reported a failed sign-in or a wrong password or PIN.", 'ta': "ஒரு செயலி தோல்வியடைந்த உள்நுழைவு அல்லது தவறான கடவுச்சொல் அல்லது PIN பற்றித் தெரிவித்தது.", 'hi': "एक ऐप ने बताया कि साइन-इन नहीं हो सका या गलत पासवर्ड या PIN डाला गया।"},
   'repeated_failed_logins': <String, String>{'en': "Several failed sign-ins were reported in a short time.", 'ta': "குறுகிய நேரத்தில் பல உள்நுழைவுத் தோல்விகள் தெரிவிக்கப்பட்டன.", 'hi': "थोड़े ही समय में कई बार साइन-इन न हो पाने की सूचना मिली।"},
-  'guardian_paused': <String, String>{'en': "Your guardian paused this phone for a few minutes to keep you safe.", 'ta': "உங்களைப் பாதுகாக்க உங்கள் காப்பாளர் இந்தப் போனைச் சில நிமிடங்கள் நிறுத்தி வைத்துள்ளார்.", 'hi': "आपकी सुरक्षा के लिए आपके अभिभावक ने इस फ़ोन को कुछ मिनटों के लिए रोका है।"},
+  'guardian_paused': <String, String>{'en': "Your guardian paused this phone for a few minutes to keep you safe.", 'ta': "உங்களைப் பாதுகாக்க உங்கள் பாதுகாவலர் இந்தப் போனைச் சில நிமிடங்கள் நிறுத்தி வைத்துள்ளார்.", 'hi': "आपकी सुरक्षा के लिए आपके संरक्षक ने इस फ़ोन को कुछ मिनटों के लिए रोका है।"},
 };
 
 const Map<String, Map<String, String>> kActionLabels = <String, Map<String, String>>{

@@ -1,7 +1,9 @@
 package app.cosign.mobile.monitor
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NotificationClassifierTest {
@@ -24,6 +26,16 @@ class NotificationClassifierTest {
     fun recognisesNewSignInAlerts() {
         assertEquals(NotificationClassifier.Kind.LOGIN, kind("Google", "New sign-in on Windows. If this was not you, check activity."))
         assertEquals(NotificationClassifier.Kind.LOGIN, kind("Instagram", "We noticed a new login from a device near Lagos"))
+    }
+
+    @Test
+    fun recognisesFailedSignInsAndWrongPins() {
+        assertEquals(NotificationClassifier.Kind.FAILED_LOGIN, kind("SBI YONO", "Incorrect MPIN entered. 2 attempts remaining."))
+        assertEquals(NotificationClassifier.Kind.FAILED_LOGIN, kind("Google", "Sign-in attempt was blocked"))
+        // "failed login attempt" also says "login attempt"; it must count as a failure, not a sign-in.
+        assertEquals(NotificationClassifier.Kind.FAILED_LOGIN, kind("Bank", "Failed login attempt on your account"))
+        assertEquals(NotificationClassifier.Kind.FAILED_LOGIN, kind(null, "आपने गलत पिन डाला है"))
+        assertEquals(NotificationClassifier.Kind.FAILED_LOGIN, kind(null, "தவறான கடவுச்சொல் உள்ளிடப்பட்டது"))
     }
 
     @Test
@@ -95,5 +107,57 @@ class RepeatCallTrackerTest {
         assertEquals(3, t.record("9811111111"))
         now += 3 * 60 * 60_000
         assertEquals(1, t.record("9811111111"))
+    }
+}
+
+class DetectorTest {
+    @Test
+    fun countsAttemptsInsideTheWindowOnly() {
+        var now = 0L
+        val c = AttemptCounter(15 * 60_000L) { now }
+        assertEquals(1, c.add())
+        now += 5 * 60_000
+        assertEquals(2, c.add())
+        now += 5 * 60_000
+        assertEquals(3, c.add())
+        now += 11 * 60_000 // the first two fall out of the window
+        assertEquals(2, c.add())
+        c.clear()
+        assertEquals(1, c.add())
+    }
+
+    @Test
+    fun recognisesTheSystemScreenSharePrompt() {
+        assertTrue(ScreenShareDetector.isSharePrompt("com.android.systemui", "com.android.systemui.mediaprojection.permission.MediaProjectionPermissionActivity"))
+        assertTrue(ScreenShareDetector.isSharePrompt("com.android.systemui", "com.android.systemui.media.MediaProjectionPermissionActivity"))
+        assertFalse(ScreenShareDetector.isSharePrompt("com.android.systemui", "com.android.systemui.statusbar.phone.StatusBar"))
+        // Only System UI can show the real prompt; an app naming a class like it is ignored.
+        assertFalse(ScreenShareDetector.isSharePrompt("com.fake.app", "MediaProjectionPermissionActivity"))
+    }
+
+    @Test
+    fun tellsStoreInstallsFromDownloadedApps() {
+        assertEquals("store", InstallClassifier.installer("com.android.vending"))
+        assertEquals("store", InstallClassifier.installer("com.sec.android.app.samsungapps"))
+        assertEquals("unknown", InstallClassifier.installer("com.google.android.packageinstaller"))
+        assertEquals("unknown", InstallClassifier.installer("com.whatsapp"))
+        assertEquals("unknown", InstallClassifier.installer(null))
+    }
+
+    @Test
+    fun findsNewlyGrantedScreenControlApps() {
+        val before = AccessWatch.packagesFromSetting("com.google.android.marvin.talkback/.TalkBackService:app.cosign.mobile/app.cosign.mobile.monitor.CoSignAccessibilityService")
+        assertEquals(setOf("com.google.android.marvin.talkback", "app.cosign.mobile"), before)
+        val after = before + "com.anydesk.anydeskandroid"
+        assertEquals(setOf("com.anydesk.anydeskandroid"), AccessWatch.newlyGranted(before, after, "app.cosign.mobile"))
+        assertEquals(emptySet<String>(), AccessWatch.newlyGranted(after, after, "app.cosign.mobile"))
+        assertEquals(emptySet<String>(), AccessWatch.packagesFromSetting(null))
+    }
+
+    @Test
+    fun chatAppsAreTheirOwnCategory() {
+        assertEquals(AppCatalog.MESSAGING, AppCatalog.categoryOf("com.whatsapp"))
+        assertEquals(AppCatalog.MESSAGING, AppCatalog.categoryOf("com.google.android.apps.messaging"))
+        assertEquals(AppCatalog.SOCIAL, AppCatalog.categoryOf("com.instagram.android"))
     }
 }

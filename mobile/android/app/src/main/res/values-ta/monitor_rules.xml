@@ -30,5 +30,5 @@
     <string name="rule_many_unlock_failures">சில நிமிடங்களுக்குள் தவறான PIN 5 அல்லது அதற்கு மேல் முறை உள்ளிடப்பட்டது.</string>
     <string name="rule_failed_login_alert">ஒரு செயலி தோல்வியடைந்த உள்நுழைவு அல்லது தவறான கடவுச்சொல் அல்லது PIN பற்றித் தெரிவித்தது.</string>
     <string name="rule_repeated_failed_logins">குறுகிய நேரத்தில் பல உள்நுழைவுத் தோல்விகள் தெரிவிக்கப்பட்டன.</string>
-    <string name="rule_guardian_paused">உங்களைப் பாதுகாக்க உங்கள் காப்பாளர் இந்தப் போனைச் சில நிமிடங்கள் நிறுத்தி வைத்துள்ளார்.</string>
+    <string name="rule_guardian_paused">உங்களைப் பாதுகாக்க உங்கள் பாதுகாவலர் இந்தப் போனைச் சில நிமிடங்கள் நிறுத்தி வைத்துள்ளார்.</string>
 </resources>

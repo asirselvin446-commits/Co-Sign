@@ -7,13 +7,27 @@ package app.cosign.mobile.monitor
  * Keywords cover English, Hindi and Tamil wording used by Indian banks, UPI apps and big platforms.
  */
 object NotificationClassifier {
-    enum class Kind(val wire: String) { OTP("notification_otp"), LOGIN("notification_login"), DEBIT("notification_debit"), CREDIT("notification_credit") }
+    enum class Kind(val wire: String) {
+        OTP("notification_otp"),
+        FAILED_LOGIN("notification_failed_login"),
+        LOGIN("notification_login"),
+        DEBIT("notification_debit"),
+        CREDIT("notification_credit"),
+    }
 
     data class Result(val kind: Kind, val amountBucket: String?)
 
     private val otpWords = listOf(
         "otp", "one time password", "one-time password", "verification code", "security code", "login code", "passcode",
         "ओटीपी", "सत्यापन कोड", "ஓடிபி", "சரிபார்ப்புக் குறியீடு",
+    )
+    /** Wrong password or PIN, or a sign-in that failed or was blocked: someone may be guessing. */
+    private val failedLoginWords = listOf(
+        "incorrect pin", "incorrect password", "incorrect mpin", "wrong pin", "wrong password", "wrong mpin", "invalid pin",
+        "invalid password", "invalid mpin", "failed login", "login failed", "failed sign-in", "failed sign in", "sign-in failed",
+        "unsuccessful login", "unsuccessful attempt", "unsuccessful sign", "failed attempt", "attempt was blocked", "blocked a sign-in",
+        "गलत पिन", "गलत पासवर्ड", "असफल लॉगिन", "लॉगिन विफल", "लॉगिन असफल",
+        "தவறான பின்", "தவறான கடவுச்சொல்", "உள்நுழைவு தோல்வி", "தோல்வியடைந்த உள்நுழைவு",
     )
     private val loginWords = listOf(
         "new sign-in", "new sign in", "new login", "logged in", "login attempt", "signed in", "new device", "unusual login",
@@ -35,6 +49,8 @@ object NotificationClassifier {
         // Order matters: an OTP message often mentions an amount too ("OTP for txn of Rs 5000").
         return when {
             otpWords.any { it in body } && digitsCode.containsMatchIn(body) -> Result(Kind.OTP, null)
+            // Before sign-in alerts: "failed login attempt" also contains "login attempt".
+            failedLoginWords.any { it in body } -> Result(Kind.FAILED_LOGIN, null)
             loginWords.any { it in body } -> Result(Kind.LOGIN, null)
             amount != null && creditWords.any { it in body } && debitWords.none { it in body } -> Result(Kind.CREDIT, bucket(amount))
             amount != null && debitWords.any { it in body } -> Result(Kind.DEBIT, bucket(amount))

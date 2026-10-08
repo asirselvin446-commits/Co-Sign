@@ -30,5 +30,5 @@
     <string name="rule_many_unlock_failures">कुछ ही मिनटों में गलत PIN 5 या ज़्यादा बार डाला गया।</string>
     <string name="rule_failed_login_alert">एक ऐप ने बताया कि साइन-इन नहीं हो सका या गलत पासवर्ड या PIN डाला गया।</string>
     <string name="rule_repeated_failed_logins">थोड़े ही समय में कई बार साइन-इन न हो पाने की सूचना मिली।</string>
-    <string name="rule_guardian_paused">आपकी सुरक्षा के लिए आपके अभिभावक ने इस फ़ोन को कुछ मिनटों के लिए रोका है।</string>
+    <string name="rule_guardian_paused">आपकी सुरक्षा के लिए आपके संरक्षक ने इस फ़ोन को कुछ मिनटों के लिए रोका है।</string>
 </resources>

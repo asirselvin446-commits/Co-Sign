@@ -45,44 +45,6 @@
   "nameLabel": "Your name",
   "createPasskey": "Create passkey",
   "passkeyExplain": "Your phone will ask for your fingerprint, face or screen lock. That is your password from now on. There is nothing to remember.",
-  "homeTitle": "Home",
-  "balance": "Balance",
-  "dailyLimit": "Daily limit {amount}",
-  "@dailyLimit": {
-    "placeholders": {
-      "amount": {
-        "type": "String"
-      }
-    }
-  },
-  "remainingToday": "{amount} left to send today",
-  "@remainingToday": {
-    "placeholders": {
-      "amount": {
-        "type": "String"
-      }
-    }
-  },
-  "recentActivity": "Recent activity",
-  "noActivity": "No money moved yet.",
-  "sentTo": "Sent to {name}",
-  "@sentTo": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "receivedFrom": "Received from {name}",
-  "@receivedFrom": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "sendMoney": "Send money",
-  "payees": "Payees",
   "guardians": "Guardians",
   "phones": "Phones",
   "settings": "Settings",
@@ -100,33 +62,7 @@
   },
   "cancelRecovery": "Cancel recovery",
   "recoveryCancelled": "Recovery cancelled. Your account stays on this phone.",
-  "transferTitle": "Send money",
-  "toPayee": "To",
-  "choosePayee": "Choose a payee",
-  "noPayees": "Add a payee before sending money.",
-  "amountLabel": "Amount",
-  "amountHint": "For example 250.00",
-  "memoLabel": "Note (optional)",
-  "send": "Send",
-  "aboveLimitNote": "This is above your daily limit, so it needs an extra safety check.",
-  "sentSuccess": "Sent {amount} to {name}.",
-  "@sentSuccess": {
-    "placeholders": {
-      "amount": {
-        "type": "String"
-      },
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "invalidAmount": "Enter an amount like 250 or 250.50.",
-  "payeesTitle": "Payees",
-  "addPayee": "Add payee",
-  "payeeHandle": "Their account name",
-  "payeeNickname": "Name to show",
   "remove": "Remove",
-  "payeeAdded": "Payee added.",
   "phonesTitle": "Phones",
   "thisPhone": "This phone",
   "addedOn": "Added {date}",
@@ -373,10 +309,6 @@
   "verifyPhone": "Verify phone number",
   "smsCodeLabel": "Code from SMS",
   "phoneVerified": "Phone number verified.",
-  "raiseLimit": "Raise daily limit",
-  "lowerLimit": "Lower daily limit",
-  "newLimitLabel": "New daily limit",
-  "limitUpdated": "Daily limit updated.",
   "recoveryCodes": "Recovery codes",
   "recoveryCodesWarning": "Write these down on paper and keep them safe. Each works once. Never share them, not even with someone who says they are from your bank.",
   "privacy": "Your data",
@@ -440,5 +372,139 @@
   "catWallet": "Money app",
   "catEmail": "Email",
   "catSocial": "Social app",
-  "catRemote": "Screen-control app"
+  "catRemote": "Screen-control app",
+  "tabProtection": "Protection",
+  "tabFamily": "Family",
+  "tabAccount": "Account",
+  "statusProtected": "You are protected",
+  "statusProtectedBody": "If something on this phone looks like a scam, {names} will be told at once.",
+  "@statusProtectedBody": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "statusPaused": "Paused for your safety",
+  "statusPausedBody": "Your guardian knows. Call them on a number you know before you do anything else.",
+  "statusWarning": "Check before you continue",
+  "statusWarningBody": "Something on this phone looked like a scam at {time}. Your guardians were told.",
+  "@statusWarningBody": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "statusOff": "Protection is off",
+  "statusOffBody": "Turn it on so your guardians can step in if a scammer calls.",
+  "statusNoGuardian": "Add someone you trust",
+  "statusNoGuardianBody": "A guardian is told when something looks like a scam, and can pause your phone to keep you safe.",
+  "turnOnProtection": "Turn on protection",
+  "needHelp": "I need help",
+  "needHelpSent": "Your guardians have been told. Stay where you are; they will call you.",
+  "watchTitle": "What Co-Sign watches for you",
+  "watchCodes": "One-time codes read out on a call or sent in a chat",
+  "watchScreens": "Screen sharing and screen-control apps",
+  "watchPins": "Wrong PINs and failed sign-ins",
+  "watchMoney": "Unusual payments from your bank and UPI apps",
+  "watchCalls": "Long calls from unknown or hidden numbers",
+  "watchNotReady": "Not set up yet",
+  "setUpProtection": "Set up protection",
+  "myWarnings": "Recent warnings on this phone",
+  "noMyWarnings": "No warnings in the last 7 days.",
+  "familyEmpty": "You are not anyone's guardian yet. Ask them to invite you from their Co-Sign app.",
+  "personProtected": "Protected",
+  "personOff": "Protection is off on their phone",
+  "personPaused": "Their phone is paused",
+  "personWarning": "Warning at {time}",
+  "@personWarning": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "personUrgent": "Urgent alert at {time}",
+  "@personUrgent": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "personPending": "You become their guardian on {date}",
+  "@personPending": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "personLastSeen": "Their phone last checked in at {time}",
+  "@personLastSeen": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "pausePhone": "Pause their phone",
+  "lockPhone": "Lock their screen",
+  "pausePhoneConfirm": "Pause {name}'s phone now? They will see a warning and a button to ask you to let them continue. They can still continue themselves after a minute.",
+  "@pausePhoneConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "lockPhoneConfirm": "Lock {name}'s screen now? They can unlock it with their own PIN.",
+  "@lockPhoneConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "phonePaused": "{name}'s phone will pause within a minute. Call them now.",
+  "@phonePaused": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "phoneLocked": "{name}'s screen will lock within a minute.",
+  "@phoneLocked": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "needsAnswer": "Waiting for your answer",
+  "pauseAskTitle": "{name} is asking to continue",
+  "@pauseAskTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "pauseByYou": "A guardian paused this phone.",
+  "pauseEnded": "This pause has already ended.",
+  "letContinue": "Let them continue",
+  "letContinueDone": "{name} can continue now.",
+  "@letContinueDone": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmingNow": "Confirm with your fingerprint, face or screen lock.",
+  "fpUnlockWatch": "Tell my guardian about wrong PIN attempts, and let them lock my screen",
+  "catMessaging": "Chat app",
+  "myAccount": "Your account"
 }

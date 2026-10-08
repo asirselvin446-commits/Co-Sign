@@ -25,6 +25,11 @@
     <!-- Pause screen over a payment app when the accessibility service is off. -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!-- Told when an app is installed, so a remote-control or downloaded (non-store) app installed during a
+         scam call can be flagged. Only that install is reported; the list of installed apps never leaves the phone. -->
+    <uses-permission
+        android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
 
     <application
         android:label="Co-Sign"
@@ -68,7 +73,7 @@
             android:foregroundServiceType="specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Family scam protection: warns the person and their guardian when banking or payment apps are used during a suspicious call." />
+                android:value="Family scam protection: warns the person and their guardian when banking, payment or chat apps are used during a suspicious call, and applies a pause or screen lock the guardian asks for." />
         </service>
         <service
             android:name=".monitor.CoSignAccessibilityService"
@@ -99,6 +104,20 @@
                 <action android:name="android.telecom.CallScreeningService" />
             </intent-filter>
         </service>
+        <!-- Wrong-PIN watch and guardian screen lock (watch-login and force-lock only). -->
+        <receiver
+            android:name=".monitor.CoSignDeviceAdmin"
+            android:exported="true"
+            android:label="@string/device_admin_label"
+            android:description="@string/device_admin_description"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
         <receiver
             android:name=".monitor.MonitorBootReceiver"
             android:exported="false">
@@ -120,7 +139,7 @@
             <action android:name="android.intent.action.PROCESS_TEXT" />
             <data android:mimeType="text/plain" />
         </intent>
-        <!-- Screen-control apps scammers ask people to install. Declared explicitly: no QUERY_ALL_PACKAGES. -->
+        <!-- Screen-control apps scammers ask people to install. -->
         <package android:name="com.anydesk.anydeskandroid" />
         <package android:name="com.teamviewer.quicksupport.market" />
         <package android:name="com.teamviewer.teamviewer.market.mobile" />

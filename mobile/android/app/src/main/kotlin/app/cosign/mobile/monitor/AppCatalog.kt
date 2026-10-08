@@ -10,6 +10,8 @@ object AppCatalog {
     const val WALLET = "wallet"
     const val EMAIL = "email"
     const val SOCIAL = "social"
+    /** Chat and SMS apps: where people are asked to send a one-time code. */
+    const val MESSAGING = "messaging"
     const val REMOTE_ACCESS = "remote_access"
 
     private val builtIn: Map<String, String> = buildMap {
@@ -53,7 +55,17 @@ object AppCatalog {
         // Email (account takeover usually starts here)
         listOf("com.google.android.gm", "com.microsoft.office.outlook", "com.yahoo.mobile.client.android.mail").forEach { put(it, EMAIL) }
         // Social (sign-in alerts)
-        listOf("com.whatsapp", "com.instagram.android", "com.facebook.katana", "org.telegram.messenger", "com.twitter.android").forEach { put(it, SOCIAL) }
+        listOf("com.instagram.android", "com.facebook.katana", "com.twitter.android").forEach { put(it, SOCIAL) }
+        // Chat and SMS (codes are sent onwards from here)
+        listOf(
+            "com.whatsapp",
+            "org.telegram.messenger",
+            "org.thoughtcrime.securesms", // Signal
+            "com.google.android.apps.messaging", // Google Messages
+            "com.samsung.android.messaging",
+            "com.android.mms",
+            "com.facebook.orca", // Messenger
+        ).forEach { put(it, MESSAGING) }
         // Screen control
         listOf(
             "com.anydesk.anydeskandroid",
@@ -69,7 +81,7 @@ object AppCatalog {
 
     /** Server-delivered additions, e.g. "com.example.bank=bank". */
     fun setExtra(entries: Map<String, String>) {
-        extra = entries.filterValues { it in setOf(BANK, UPI, WALLET, EMAIL, SOCIAL, REMOTE_ACCESS) }
+        extra = entries.filterValues { it in setOf(BANK, UPI, WALLET, EMAIL, SOCIAL, MESSAGING, REMOTE_ACCESS) }
     }
 
     fun categoryOf(packageName: String?): String? = packageName?.let { extra[it] ?: builtIn[it] }

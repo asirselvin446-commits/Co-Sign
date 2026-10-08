@@ -30,7 +30,7 @@ object MonitorHub {
     @Volatile var context: Context? = null
         private set
     private lateinit var prefs: SharedPreferences
-    private val worker by lazy { HandlerThread("cosign-monitor").apply { start() } }
+    internal val worker by lazy { HandlerThread("cosign-monitor").apply { start() } }
     private val handler by lazy { Handler(worker.looper) }
 
     /** Shared with the signals plugin so in-app checks and background monitoring agree. */
@@ -94,21 +94,71 @@ object MonitorHub {
 
     // ------------------------------------------------------------------ events
 
+    // ------------------------------------------------------------------ counters
+
+    @Volatile private var lastOtpAt = 0L
+    private val failedLogins = AttemptCounter(30 * 60_000L)
+    private val failedUnlocks = AttemptCounter(15 * 60_000L)
+
+    /** Seconds since the last one-time-code notification, if it was in the last ten minutes. */
+    fun secondsSinceOtp(now: Long = System.currentTimeMillis()): Int? {
+        val t = lastOtpAt
+        if (t == 0L) return null
+        val s = ((now - t) / 1000).toInt()
+        return if (s in 0..600) s else null
+    }
+
+    /** A notification was classified on the phone. */
+    fun onNotification(kind: NotificationClassifier.Kind, packageName: String?, category: String?, amountBucket: String?) {
+        when (kind) {
+            NotificationClassifier.Kind.OTP -> lastOtpAt = System.currentTimeMillis()
+            NotificationClassifier.Kind.FAILED_LOGIN -> {
+                report(kind.wire, packageName, category, attempts = failedLogins.add(), dedupe = false)
+                return
+            }
+            else -> Unit
+        }
+        report(kind.wire, packageName, category, amountBucket)
+    }
+
+    /** A wrong screen-lock PIN, pattern or password (from the device-admin receiver). */
+    fun onUnlockFailed() {
+        val n = failedUnlocks.add()
+        // Report at 3 and 5 wrong tries, then every 5 more, so the guardian hears about it without a flood.
+        if (n == 3 || n == 5 || (n > 5 && n % 5 == 0)) report("unlock_failed", null, null, attempts = n, dedupe = false)
+    }
+
+    fun onUnlockSucceeded() = failedUnlocks.clear()
+
+    // ------------------------------------------------------------------ events
+
     /**
      * Record something that happened. Scores it on the phone first: if it is critical at a sensitive
      * moment, the pause screen appears immediately, then the event is uploaded for the guardian.
      */
-    fun report(kind: String, packageName: String?, category: String?, amountBucket: String? = null) {
+    fun report(
+        kind: String,
+        packageName: String?,
+        category: String?,
+        amountBucket: String? = null,
+        attempts: Int? = null,
+        installer: String? = null,
+        grant: String? = null,
+        dedupe: Boolean = true,
+    ) {
         if (!enabled) return
         val key = "$kind|$packageName"
         val now = System.currentTimeMillis()
-        synchronized(recent) {
-            if (now - (recent[key] ?: 0) < DEDUPE_MS) return
-            recent[key] = now
+        if (dedupe) {
+            synchronized(recent) {
+                if (now - (recent[key] ?: 0) < DEDUPE_MS) return
+                recent[key] = now
+            }
         }
         val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
         val call = currentCall()
-        val assessment = MonitorRules.assess(MonitorRules.Event(kind, category, amountBucket, call, hour), null)
+        val sinceOtp = if (kind == "app_foreground") secondsSinceOtp(now) else null
+        val assessment = MonitorRules.assess(MonitorRules.Event(kind, category, amountBucket, call, hour, sinceOtp, attempts, installer, grant), null)
         val clientId = newClientId()
         if (assessment.pause) PauseController.show(clientId, assessment.rules)
         val event = JSONObject()
@@ -124,6 +174,10 @@ object MonitorHub {
             )
             .put("localHour", hour)
             .put("paused", assessment.pause)
+            .put("sinceOtpSec", sinceOtp ?: JSONObject.NULL)
+            .put("attempts", attempts ?: JSONObject.NULL)
+            .put("installer", installer ?: JSONObject.NULL)
+            .put("grant", grant ?: JSONObject.NULL)
         enqueue(event)
         handler.post { upload() }
     }
@@ -175,6 +229,34 @@ object MonitorHub {
         val base = baseUrl ?: return@post
         val tok = token ?: return@post
         request("POST", "$base/v1/monitor/pauses/$pauseId/dismiss", tok, "{}")
+    }
+
+    /** "Ask my guardian to let me continue", from the pause screen. */
+    fun askRelease(pauseId: String, done: (Boolean) -> Unit) = handler.post {
+        val base = baseUrl
+        val tok = token
+        val ok = base != null && tok != null && request("POST", "$base/v1/monitor/pauses/$pauseId/ask", tok, "{}") != null
+        done(ok)
+    }
+
+    /** "I need help": tells every guardian. */
+    fun help(done: (Boolean) -> Unit) = handler.post {
+        val base = baseUrl
+        val tok = token
+        done(base != null && tok != null && request("POST", "$base/v1/monitor/help", tok, "{}") != null)
+    }
+
+    data class Commands(val pauseId: String?, val pauseRules: List<String>, val byGuardian: Boolean, val lock: Boolean)
+
+    /** What the server wants this phone to do now (a guardian pause or lock). Null when offline. */
+    fun commands(): Commands? {
+        val base = baseUrl ?: return null
+        val tok = token ?: return null
+        val body = request("GET", "$base/v1/monitor/commands", tok, null) ?: return null
+        val json = JSONObject(body)
+        val pause = json.optJSONObject("pause")
+        val rules = pause?.optJSONArray("rules")?.let { a -> (0 until a.length()).map { a.getString(it) } } ?: emptyList()
+        return Commands(pause?.getString("id"), rules, pause?.optBoolean("byGuardian") ?: false, json.optBoolean("lock"))
     }
 
     private fun request(method: String, url: String, tok: String, body: String?): String? = try {

@@ -9,6 +9,8 @@ import '../../core/errors/failure.dart';
 import '../../core/providers.dart';
 import '../../l10n/gen/app_localizations.dart';
 import '../../ui/widgets.dart';
+import '../guardians/guardians_screens.dart';
+import '../home/family_tab.dart';
 
 const _monitorTokenKey = 'cosign.monitor.token.v1';
 
@@ -154,6 +156,7 @@ class _FamilyProtectionScreenState extends ConsumerState<FamilyProtectionScreen>
       _Item(l.fpContacts, null, (s.native['contacts'] ?? false) && (s.native['phoneState'] ?? false), () => _run(() async => channel.requestPermissions(['phone', 'callLog', 'contacts']))),
       _Item(l.fpScreens, l.fpScreensHelp, s.native['accessibility'] ?? false, () => channel.monitorOpen('accessibility')),
       _Item(l.fpPause, null, (s.native['overlay'] ?? false) || (s.native['accessibility'] ?? false), () => channel.monitorOpen('overlay')),
+      _Item(l.fpUnlockWatch, null, s.native['deviceAdmin'] ?? false, () => channel.monitorOpen('deviceAdmin')),
       _Item(l.fpBattery, null, s.native['batteryUnrestricted'] ?? false, () => channel.monitorOpen('battery')),
     ];
     final ready = items.where((i) => i.ready).length;
@@ -202,6 +205,7 @@ String categoryLabel(AppLocalizations l, String? category) => switch (category) 
       'wallet' => l.catWallet,
       'email' => l.catEmail,
       'social' => l.catSocial,
+      'messaging' => l.catMessaging,
       'remote_access' => l.catRemote,
       _ => '',
     };
@@ -273,6 +277,7 @@ class _AlertDetailScreenState extends ConsumerState<AlertDetailScreen> {
           builder: (list) {
             final a = list.where((x) => x.id == widget.alertId).firstOrNull;
             if (a == null) return FailureCard(failure: AppFailure('NOT_FOUND'));
+            final person = ref.watch(peopleProvider).value?.where((p) => p.linkId == a.personLinkId).firstOrNull;
             final callFirst = l.callFirst(a.personName);
             final label = categoryLabel(l, a.appCategory);
             return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -292,11 +297,135 @@ class _AlertDetailScreenState extends ConsumerState<AlertDetailScreen> {
                 PrimaryButton(label: l.releasePause, icon: Icons.lock_open, busy: _busy, onPressed: () => _run(() => ref.read(apiProvider).releasePause(a.pauseId!), done: l.pauseReleased)),
               ],
               if (_error != null) ...[const Gap(), FailureCard(failure: _error!)],
+              if (!a.pauseActive && person != null && person.canAct && (person.protection?.on ?? false)) ...[const Gap(), GuardianControls(person: person)],
               const Gap(),
               if (!a.acknowledged) SecondaryButton(label: l.markSeen, onPressed: _busy ? null : () => _run(() => ref.read(apiProvider).acknowledgeAlert(a.id))),
             ]);
           },
         ),
+      ],
+    );
+  }
+}
+
+// ----------------------------------------------------------------------------- person and pause
+
+/// One person I guard: their status, the controls, and their recent alerts. Opened from the Family
+/// tab, from "I need help", or from a notification's "Pause their phone" button (act=pause).
+class PersonScreen extends ConsumerWidget {
+  const PersonScreen({super.key, required this.linkId, this.act});
+  final String linkId;
+  final String? act;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = context.l10n;
+    final lang = ref.watch(settingsProvider).language;
+    final people = ref.watch(peopleProvider);
+    final alerts = ref.watch(alertsProvider);
+    return AppPage(
+      title: l.tabFamily,
+      children: [
+        AsyncBody<List<Person>>(
+          value: people,
+          onRetry: () => ref.invalidate(peopleProvider),
+          builder: (list) {
+            final p = list.where((x) => x.linkId == linkId).firstOrNull;
+            if (p == null) return FailureCard(failure: AppFailure('NOT_FOUND'));
+            final mine = alerts.value?.where((a) => a.personLinkId == linkId).toList() ?? const <GuardianAlert>[];
+            return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              PersonCard(person: p, lang: lang),
+              const Gap(),
+              Card(child: Padding(padding: const EdgeInsets.all(16), child: BodyText(l.callFirst(p.displayName), emphasis: true))),
+              if (act == 'pause' && p.protection != null && p.protection!.on && !p.protection!.paused) ...[
+                const Gap(),
+                // The notification button already said "Pause their phone": do it now.
+                GuardianControls(person: p, autoPause: true),
+              ],
+              SectionTitle(l.alertsTitle),
+              if (mine.isEmpty) BodyText(l.noAlerts) else for (final a in mine) AlertTile(alert: a),
+            ]);
+          },
+        ),
+      ],
+    );
+  }
+}
+
+/// A paused person asked to continue (or a guardian paused them). One tap lets them continue;
+/// from the notification's "Let them continue" button (act=release) it happens straight away.
+class PauseRequestScreen extends ConsumerStatefulWidget {
+  const PauseRequestScreen({super.key, required this.pauseId, this.act});
+  final String pauseId;
+  final String? act;
+  @override
+  ConsumerState<PauseRequestScreen> createState() => _PauseRequestScreenState();
+}
+
+class _PauseRequestScreenState extends ConsumerState<PauseRequestScreen> {
+  PauseView? _pause;
+  AppFailure? _error;
+  bool _busy = false;
+  bool _released = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_load(autoRelease: widget.act == 'release'));
+  }
+
+  Future<void> _load({bool autoRelease = false}) async {
+    try {
+      final p = await ref.read(apiProvider).guardianPause(widget.pauseId);
+      if (!mounted) return;
+      setState(() => _pause = p);
+      if (autoRelease && p.active) await _release();
+    } on AppFailure catch (f) {
+      if (mounted) setState(() => _error = f);
+    }
+  }
+
+  Future<void> _release() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await ref.read(apiProvider).releasePause(widget.pauseId);
+      if (mounted) setState(() => _released = true);
+      ref
+        ..invalidate(peopleProvider)
+        ..invalidate(alertsProvider);
+    } on AppFailure catch (f) {
+      if (mounted) setState(() => _error = f);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final p = _pause;
+    if (p == null) return AppPage(title: l.tabFamily, children: [if (_error != null) FailureCard(failure: _error!, onRetry: _load) else const LoadingView()]);
+    final open = p.active && !_released;
+    return AppPage(
+      title: l.tabFamily,
+      bottom: open
+          ? PrimaryButton(label: l.letContinue, icon: Icons.lock_open, busy: _busy, onPressed: _release)
+          : PrimaryButton(label: l.close, onPressed: () => context.canPop() ? context.pop() : context.go('/home?tab=family')),
+      children: [
+        Semantics(header: true, child: Text(l.pauseAskTitle(p.personName), style: Theme.of(context).textTheme.headlineSmall)),
+        const Gap(8),
+        if (p.byGuardian) BodyText(l.pauseByYou),
+        SectionTitle(l.whyPaused),
+        ReasonList(reasons: p.reasons),
+        const Gap(8),
+        Card(child: Padding(padding: const EdgeInsets.all(16), child: BodyText(l.callFirst(p.personName), emphasis: true))),
+        const Gap(),
+        if (_released) Semantics(liveRegion: true, child: BodyText(l.letContinueDone(p.personName), emphasis: true)),
+        if (!p.active && !_released) BodyText(l.pauseEnded, emphasis: true),
+        if (_error != null) ...[const Gap(), FailureCard(failure: _error!)],
       ],
     );
   }

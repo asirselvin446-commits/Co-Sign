@@ -8,7 +8,6 @@ import 'core/session/session_controller.dart';
 import 'features/devices/devices_screen.dart';
 import 'features/guardians/guardians_screens.dart';
 import 'features/home/home_screen.dart';
-import 'features/ledger/ledger_screens.dart';
 import 'features/onboarding/onboarding_screens.dart';
 import 'features/protection/protection_screens.dart';
 import 'features/recovery/recovery_screen.dart';
@@ -66,16 +65,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/link-phone', builder: (_, _) => const LinkPhoneScreen()),
       GoRoute(path: '/consent', builder: (_, _) => const ConsentScreen()),
       GoRoute(path: '/permissions', builder: (_, _) => const PermissionsScreen()),
-      GoRoute(path: '/home', builder: (_, _) => const HomeScreen()),
-      GoRoute(path: '/transfer', builder: (_, _) => const TransferScreen()),
-      GoRoute(path: '/payees', builder: (_, _) => const PayeesScreen()),
-      GoRoute(path: '/payees/add', builder: (_, _) => const AddPayeeScreen()),
+      GoRoute(path: '/home', builder: (_, s) => HomeScreen(tab: s.uri.queryParameters['tab'])),
       GoRoute(path: '/devices', builder: (_, _) => const DevicesScreen()),
       GoRoute(path: '/guardians', builder: (_, _) => const GuardiansScreen()),
       GoRoute(path: '/guardians/invite', builder: (_, _) => const InviteGuardianScreen()),
       GoRoute(path: '/guardian/accept', builder: (_, s) => BecomeGuardianScreen(token: s.uri.queryParameters['token'])),
-      GoRoute(path: '/guardian/inbox', builder: (_, _) => const GuardianInboxScreen()),
-      GoRoute(path: '/guardian/request/:id', builder: (_, s) => GuardianRequestScreen(requestId: s.pathParameters['id']!)),
+      // The Family tab is the guardian's inbox now.
+      GoRoute(path: '/guardian/inbox', redirect: (_, _) => '/home?tab=family'),
+      GoRoute(path: '/guardian/request/:id', builder: (_, s) => GuardianRequestScreen(requestId: s.pathParameters['id']!, act: s.uri.queryParameters['act'])),
+      GoRoute(path: '/guardian/person/:linkId', builder: (_, s) => PersonScreen(linkId: s.pathParameters['linkId']!, act: s.uri.queryParameters['act'])),
+      GoRoute(path: '/guardian/pause/:id', builder: (_, s) => PauseRequestScreen(pauseId: s.pathParameters['id']!, act: s.uri.queryParameters['act'])),
       GoRoute(path: '/guardian/recovery/:id', builder: (_, s) => GuardianRecoveryScreen(recoveryId: s.pathParameters['id']!)),
       GoRoute(path: '/stepup/:id', builder: (_, s) => StepupScreen(requestId: s.pathParameters['id']!, start: s.extra as StepupStart?)),
       GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),

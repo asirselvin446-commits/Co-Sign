@@ -1,13 +1,15 @@
 import 'dart:convert';
 
 import 'package:cosign/core/api/api_client.dart';
+import 'package:cosign/core/api/models.dart';
 import 'package:cosign/core/errors/failure.dart';
 import 'package:cosign/core/passkeys/passkey_service.dart';
 import 'package:cosign/core/push/push.dart';
 import 'package:cosign/core/session/session_store.dart';
 import 'package:cosign/core/signals/signal_collector.dart';
+import 'package:cosign/features/home/protection_tab.dart';
+import 'package:cosign/features/protection/protection_screens.dart';
 import 'package:cosign/generated/catalog.g.dart';
-import 'package:cosign/ui/money.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -64,21 +66,40 @@ void main() {
     });
   });
 
-  group('money', () {
-    test('formats minor units with Indian grouping and no floating point', () {
-      expect(formatMoney(BigInt.parse('1234567890'), 'XTS', 'en'), '1,23,45,678.90 XTS');
-      expect(formatMoney(BigInt.from(5), 'XTS', 'en'), '0.05 XTS');
+  group('dates', () {
+    test('anything not today shows the day as well as the time', () {
+      final t = DateTime(2026, 10, 9, 15, 45);
+      expect(formatDate(t, 'en'), allOf(contains('9'), contains('Oct'), contains('3:45')));
+      expect(formatClock(t, 'en'), isNot(contains('Oct')));
+    });
+  });
+
+  group('safety status band', () {
+    MonitorStatus server({bool on = true, String? pause}) =>
+        MonitorStatus(consented: on, consentVersion: '2026-10', enabledOnThisPhone: on, guardians: 1, eventsLast24h: 0, activePauseId: pause);
+    const ravi = GuardianView(linkId: 'l', displayName: 'Ravi', handle: 'ravi', status: 'active', activatesAt: null, removesAt: null);
+    ProtectionHome home({bool on = true, String? pause, List<GuardianView> guardians = const [ravi], List<MyAlert> alerts = const []}) => ProtectionHome(
+          protection: ProtectionState(server(on: on, pause: pause), const {}),
+          guardians: GuardianList(5, guardians),
+          myAlerts: alerts,
+          openChecks: const [],
+          recovery: null,
+        );
+    final now = DateTime(2026, 10, 9, 12);
+    MyAlert alertAt(DateTime t) => MyAlert(id: 'a', kind: 'unlock_failed', severity: 'warn', reasons: const [], occurredAt: t, paused: false);
+
+    test('says the most urgent thing first', () {
+      expect(safetyStateOf(home(guardians: const []), now), SafetyState.noGuardian);
+      expect(safetyStateOf(home(on: false), now), SafetyState.off);
+      expect(safetyStateOf(home(pause: 'p1'), now), SafetyState.paused);
+      expect(safetyStateOf(home(alerts: [alertAt(now.subtract(const Duration(minutes: 10)))]), now), SafetyState.warning);
+      expect(safetyStateOf(home(alerts: [alertAt(now.subtract(const Duration(hours: 2)))]), now), SafetyState.protected);
+      expect(safetyStateOf(home(), now), SafetyState.protected);
     });
 
-    test('parses amounts people type, including Tamil and Devanagari digits', () {
-      expect(parseAmount('250'), BigInt.from(25000));
-      expect(parseAmount('250.5'), BigInt.from(25050));
-      expect(parseAmount('1,000.00'), BigInt.from(100000));
-      expect(parseAmount('௨௫௦'), BigInt.from(25000));
-      expect(parseAmount('२५०.७५'), BigInt.from(25075));
-      expect(parseAmount('0'), isNull);
-      expect(parseAmount('12.345'), isNull);
-      expect(parseAmount('abc'), isNull);
+    test('a guardian who has not started yet does not count', () {
+      const pending = GuardianView(linkId: 'p', displayName: 'Divya', handle: 'divya', status: 'pending_activation', activatesAt: null, removesAt: null);
+      expect(safetyStateOf(home(guardians: const [pending]), now), SafetyState.noGuardian);
     });
   });
 
@@ -182,7 +203,7 @@ void main() {
         throw http.ClientException('offline');
       });
       final api = ApiClient(baseUrl: 'https://x', sessions: await store(), language: () => 'hi', client: client);
-      await expectLater(api.get('/v1/account'), throwsA(predicate((e) => e is AppFailure && e.code == ErrorCodes.NETWORK_ERROR)));
+      await expectLater(api.get('/v1/me'), throwsA(predicate((e) => e is AppFailure && e.code == ErrorCodes.NETWORK_ERROR)));
       expect(lang, 'hi');
     });
   });
@@ -191,9 +212,30 @@ void main() {
     test('opens the right screen from a notification', () {
       expect(routeForPush({'screen': 'guardian_request', 'requestId': 'r1'}), '/guardian/request/r1');
       expect(routeForPush({'screen': 'guardian_alert', 'alertId': 'a1'}), '/guardian/alerts/a1');
+      expect(routeForPush({'screen': 'guardian_pause', 'pauseId': 'p1'}), '/guardian/pause/p1');
+      expect(routeForPush({'screen': 'guardian_person', 'linkId': 'l1'}), '/guardian/person/l1');
       expect(routeForPush({'screen': 'stepup', 'requestId': 's1'}), '/stepup/s1');
       expect(routeForPush({'screen': 'recovery_alert'}), '/home');
       expect(routeForPush({'screen': 'unknown'}), isNull);
+    });
+
+    test('notification buttons act in one tap', () {
+      final request = {'screen': 'guardian_request', 'requestId': 'r1'};
+      expect(routeForPush(request, actionId: 'approve'), '/guardian/request/r1?act=approve');
+      expect(routeForPush(request, actionId: 'deny'), '/guardian/request/r1?act=deny');
+      final alert = {'screen': 'guardian_alert', 'alertId': 'a1', 'linkId': 'l1', 'pauseId': 'p1'};
+      expect(routeForPush(alert, actionId: 'pause'), '/guardian/person/l1?act=pause');
+      expect(routeForPush(alert, actionId: 'release'), '/guardian/pause/p1?act=release');
+      expect(routeForPush(alert, actionId: 'open'), '/guardian/alerts/a1');
+      // An unknown button never invents an action.
+      expect(routeForPush(request, actionId: 'transfer'), '/guardian/request/r1');
+    });
+
+    test('reads the buttons the server sent, and ignores anything malformed', () {
+      expect(pushActions({'actions': '[{"id":"approve","label":"Approve"},{"id":"deny","label":"Deny"}]'}), [('approve', 'Approve'), ('deny', 'Deny')]);
+      expect(pushActions({'actions': 'not json'}), isEmpty);
+      expect(pushActions({'actions': '[{"id":1}]'}), isEmpty);
+      expect(pushActions(const {}), isEmpty);
     });
   });
 

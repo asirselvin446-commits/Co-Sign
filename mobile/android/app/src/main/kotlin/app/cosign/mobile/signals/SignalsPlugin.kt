@@ -23,6 +23,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import app.cosign.mobile.monitor.AppCatalog
 import app.cosign.mobile.monitor.CallWatcher
+import app.cosign.mobile.monitor.CoSignDeviceAdmin
 import app.cosign.mobile.monitor.MonitorForegroundService
 import app.cosign.mobile.monitor.MonitorHub
 import com.google.android.play.core.integrity.IntegrityManagerFactory
@@ -343,6 +344,7 @@ class SignalsPlugin :
             "batteryUnrestricted" to power.isIgnoringBatteryOptimizations(context.packageName),
             "phoneState" to granted(Manifest.permission.READ_PHONE_STATE),
             "contacts" to granted(Manifest.permission.READ_CONTACTS),
+            "deviceAdmin" to CoSignDeviceAdmin.isActive(context),
         )
     }
 
@@ -354,6 +356,9 @@ class SignalsPlugin :
             "accessibility" -> Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
             "overlay" -> Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, pkgUri)
             "battery" -> Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, pkgUri)
+            "deviceAdmin" -> Intent(android.app.admin.DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
+                .putExtra(android.app.admin.DevicePolicyManager.EXTRA_DEVICE_ADMIN, CoSignDeviceAdmin.component(context))
+                .putExtra(android.app.admin.DevicePolicyManager.EXTRA_ADD_EXPLANATION, context.getString(app.cosign.mobile.R.string.device_admin_description))
             else -> Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, pkgUri)
         }.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         try {

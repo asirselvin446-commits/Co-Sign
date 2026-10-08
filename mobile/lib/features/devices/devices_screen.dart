@@ -78,7 +78,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(d.platform == 'ios' ? Icons.phone_iphone : Icons.phone_android),
                 title: Text(d.current ? '${d.name} · ${l.thisPhone}' : d.name),
-                subtitle: Text('${l.addedOn(formatClock(d.enrolledAt, lang))}\n${l.lastUsedOn(formatClock(d.lastSeenAt, lang))}'),
+                subtitle: Text('${l.addedOn(formatDate(d.enrolledAt, lang))}\n${l.lastUsedOn(formatDate(d.lastSeenAt, lang))}'),
                 isThreeLine: true,
                 trailing: d.current
                     ? null

@@ -10,4 +10,4 @@
     android:paddingEnd="16dp"
     android:textSize="18sp"
     android:textStyle="bold"
-    android:textColor="#1B2559" />
+    android:textColor="@color/autofill_text" />

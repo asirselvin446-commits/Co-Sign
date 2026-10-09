@@ -1,8 +1,11 @@
 package app.cosign.mobile.signin
 
+import android.app.ActivityOptions
 import android.app.PendingIntent
 import android.app.assist.AssistStructure
 import android.content.Intent
+import android.os.Build
+import android.os.Bundle
 import android.os.CancellationSignal
 import android.service.autofill.AutofillService
 import android.service.autofill.Dataset
@@ -72,12 +75,28 @@ class CoSignAutofillService : AutofillService() {
 
     private fun datasetWithAuth(ids: List<AutofillId>, title: String, intent: Intent): Dataset {
         val view = RemoteViews(packageName, R.layout.autofill_item).apply { setTextViewText(R.id.autofill_text, title) }
-        val pending = PendingIntent.getActivity(this, (System.nanoTime() and 0x7fffffff).toInt(), intent, PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_MUTABLE)
+        val pending = PendingIntent.getActivity(this, (System.nanoTime() and 0x7fffffff).toInt(), intent, PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_MUTABLE, creatorOptions())
         val b = Dataset.Builder(view)
         @Suppress("DEPRECATION")
         for (id in ids) b.setValue(id, null, view)
         b.setAuthentication(pending.intentSender)
         return b.build()
+    }
+
+    /**
+     * The app being signed in to opens this screen when the person taps the suggestion. Since Android 14
+     * (and by default for apps targeting 15+) that is blocked unless Co-Sign, which made the link, allows
+     * it; without this the tap silently did nothing and no request reached the guardian.
+     */
+    private fun creatorOptions(): Bundle? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return null
+        val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) {
+            ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOW_ALWAYS
+        } else {
+            @Suppress("DEPRECATION")
+            ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+        }
+        return ActivityOptions.makeBasic().setPendingIntentCreatorBackgroundActivityStartMode(mode).toBundle()
     }
 
     private fun appLabel(pkg: String): String = try {

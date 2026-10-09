@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Autofill suggestion text: readable on the light and the dark dropdown. -->
+    <color name="autofill_text">#1B2559</color>
+</resources>

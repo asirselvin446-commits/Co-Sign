@@ -204,6 +204,10 @@ class SignalsPlugin :
                     openAutofillSettings()
                     result.success(true)
                 }
+                "openPasskeySettings" -> {
+                    openPasskeySettings()
+                    result.success(true)
+                }
                 "signInApps" -> result.success(signInApps())
                 "startShowSignIn" -> {
                     MonitorHub.init(context)
@@ -527,6 +531,26 @@ class SignalsPlugin :
             (activity ?: context).startActivity(intent)
         } catch (_: Exception) {
             context.startActivity(Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
+    }
+
+    /**
+     * Android's "passwords, passkeys and accounts" page (Android 14+), where Google Password Manager
+     * can be turned back on. Older phones open their settings.
+     */
+    private fun openPasskeySettings() {
+        val candidates = buildList {
+            if (android.os.Build.VERSION.SDK_INT >= 34) add(Intent("android.settings.CREDENTIAL_PROVIDER"))
+            add(Intent(Settings.ACTION_SYNC_SETTINGS))
+            add(Intent(Settings.ACTION_SETTINGS))
+        }
+        for (intent in candidates) {
+            try {
+                (activity ?: context).startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                return
+            } catch (_: Exception) {
+                // try the next one
+            }
         }
     }
 

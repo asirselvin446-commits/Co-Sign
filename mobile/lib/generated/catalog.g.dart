@@ -148,9 +148,9 @@ const Map<String, ErrorEntry> kErrorCatalog = <String, ErrorEntry>{
     origin: 'client',
     params: <String>[],
     text: <String, ErrorText>{
-      'en': ErrorText("No Co-Sign passkey was found on this phone.", "Sign in on your usual phone, or tap I lost my phone to recover with your guardians."),
-      'ta': ErrorText("இந்தத் தொலைபேசியில் Co-Sign பாஸ்கீ எதுவும் இல்லை.", "உங்கள் வழக்கமான தொலைபேசியில் உள்நுழையுங்கள், அல்லது பாதுகாவலர்களின் உதவியுடன் மீட்க என் தொலைபேசி தொலைந்தது என்பதைத் தட்டுங்கள்."),
-      'hi': ErrorText("इस फ़ोन पर कोई Co-Sign पासकी नहीं मिली।", "अपने रोज़ वाले फ़ोन से साइन इन करें, या संरक्षकों की मदद से खाता वापस पाने के लिए मेरा फ़ोन खो गया पर टैप करें।"),
+      'en': ErrorText("This phone could not find your Co-Sign passkey.", "Your passkey is kept in Google Password Manager. Tap Open passkey settings and check that Google is turned on, then try again. On a new phone, sign in on your usual phone or tap I lost my phone."),
+      'ta': ErrorText("இந்தத் தொலைபேசியால் உங்கள் Co-Sign பாஸ்கீயைக் கண்டுபிடிக்க முடியவில்லை.", "உங்கள் பாஸ்கீ Google கடவுச்சொல் நிர்வாகியில் உள்ளது. பாஸ்கீ அமைப்புகளைத் திற என்பதைத் தட்டி, Google இயக்கத்தில் உள்ளதா எனப் பார்த்து, மீண்டும் முயலுங்கள். புதிய தொலைபேசி என்றால், உங்கள் வழக்கமான தொலைபேசியில் உள்நுழையுங்கள் அல்லது என் தொலைபேசி தொலைந்தது என்பதைத் தட்டுங்கள்."),
+      'hi': ErrorText("यह फ़ोन आपकी Co-Sign पासकी नहीं ढूँढ पाया।", "आपकी पासकी Google पासवर्ड मैनेजर में रखी है। पासकी सेटिंग खोलें पर टैप करें और देखें कि Google चालू है, फिर से कोशिश करें। नया फ़ोन हो तो अपने रोज़ वाले फ़ोन से साइन इन करें या मेरा फ़ोन खो गया पर टैप करें।"),
     },
   ),
   'CREDENTIAL_ALREADY_REGISTERED': ErrorEntry(

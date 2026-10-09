@@ -35,6 +35,8 @@ abstract class SignalsChannel {
   Future<String> signinSeal({required String publicKey, required String plaintext, required String requestId, required String? package, required String? host});
   Future<({bool supported, bool enabled})> autofillStatus();
   Future<void> openAutofillSettings();
+  /// Android's page of passkey and password services (Google Password Manager must stay on there).
+  Future<void> openPasskeySettings();
   /// Installed bank, payment, email and social apps, for "Sign in with help".
   Future<List<({String package, String label, String category})>> signInApps();
   Future<void> startShowSignIn(String package, String label);
@@ -191,6 +193,15 @@ class NativeSignalsChannel implements SignalsChannel {
       return (supported: r?['supported'] == true, enabled: r?['enabled'] == true);
     } on Object {
       return (supported: false, enabled: false);
+    }
+  }
+
+  @override
+  Future<void> openPasskeySettings() async {
+    try {
+      await _methods.invokeMethod<void>('openPasskeySettings');
+    } on Object {
+      // not available on this platform
     }
   }
 

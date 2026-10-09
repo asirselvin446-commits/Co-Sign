@@ -62,7 +62,7 @@ void main() {
 
   late ProviderContainer container;
 
-  Future<void> start(WidgetTester tester) async {
+  Future<void> start(WidgetTester tester, {void Function(ProviderContainer c)? beforeSignIn}) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -77,9 +77,10 @@ void main() {
       child: const CoSignApp(enableDeepLinks: false),
     ));
     await tester.pumpAndSettle();
+    container = ProviderScope.containerOf(tester.element(find.byType(CoSignApp)));
+    beforeSignIn?.call(container);
     await tester.tap(find.text('Sign in'));
     await tester.pumpAndSettle();
-    container = ProviderScope.containerOf(tester.element(find.byType(CoSignApp)));
   }
 
   Future<void> wait(WidgetTester tester, {int seconds = 3}) async {
@@ -97,13 +98,33 @@ void main() {
     await start(tester);
     expect(find.text("Sign in with your guardian's help"), findsOneWidget);
     expect(find.textContaining('Turn this on so that on any sign-in screen'), findsOneWidget);
+    // Choosing Co-Sign for autofill must not cost the person their Co-Sign passkey.
+    expect(find.textContaining('check that Google is still turned on'), findsOneWidget);
     await tester.ensureVisible(find.text('Turn on'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Turn on'));
     await wait(tester);
     expect(find.textContaining('Ready. On any sign-in screen'), findsOneWidget);
+    expect(find.textContaining('turn Google back on in passkey settings'), findsOneWidget);
+    await tester.ensureVisible(find.text('Open passkey settings'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Open passkey settings'));
+    await tester.pumpAndSettle();
+    expect(channel().openedPasskeySettings, isTrue);
     expect(find.text('Gmail'), findsOneWidget);
     expect(find.textContaining('Filled by Ravi Kumar'), findsOneWidget);
+  });
+
+  testWidgets('when the phone cannot find the passkey, it says why and opens passkey settings', (tester) async {
+    await start(tester, beforeSignIn: (c) => (c.read(passkeysProvider) as FakePasskeyService).failNext = 'PASSKEY_NOT_ON_DEVICE');
+    await wait(tester, seconds: 1);
+    expect(find.text('This phone could not find your Co-Sign passkey.'), findsOneWidget);
+    expect(find.textContaining('check that Google is turned on'), findsOneWidget);
+    await tester.ensureVisible(find.text('Open passkey settings'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Open passkey settings'));
+    await tester.pumpAndSettle();
+    expect(channel().openedPasskeySettings, isTrue);
   });
 
   testWidgets('a guardian fills a sign-in, saving it on their own phone for that app', (tester) async {

@@ -116,6 +116,10 @@ class FakeSignalsChannel implements SignalsChannel {
   @override
   Future<void> openAutofillSettings() async => autofillOn = true;
 
+  bool openedPasskeySettings = false;
+  @override
+  Future<void> openPasskeySettings() async => openedPasskeySettings = true;
+
   @override
   Future<List<({String package, String label, String category})>> signInApps() async => const [(package: 'com.sbi.lotusintouch', label: 'YONO SBI', category: 'bank')];
 
@@ -139,6 +143,9 @@ class FakeDeviceLock implements DeviceLock {
 
 /// Stands in for the fingerprint / screen-lock prompt.
 class FakePasskeyService implements PasskeyService {
+  /// Set to make the next passkey prompt fail with this code.
+  String? failNext;
+
   @override
   Future<Json> register(Json creationOptions) async {
     await Future<void>.delayed(const Duration(milliseconds: 700));
@@ -148,6 +155,9 @@ class FakePasskeyService implements PasskeyService {
   @override
   Future<Json> authenticate(Json requestOptions) async {
     await Future<void>.delayed(const Duration(milliseconds: 700));
+    final fail = failNext;
+    failNext = null;
+    if (fail != null) throw AppFailure(fail);
     return {'test': true};
   }
 }

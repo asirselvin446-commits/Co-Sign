@@ -75,6 +75,17 @@ class SignInHelpCard extends ConsumerWidget {
           const Gap(10),
           BodyText(ready ? l.signinCardOn : l.signinCardOff),
           const Gap(12),
+          // Choosing Co-Sign for autofill can turn Google Password Manager off, and with it the
+          // passkey used to sign in to Co-Sign.
+          if (!ready) ...[BodyText(l.signinKeepGoogle, emphasis: true), const Gap(12)],
+          if (ready) ...[
+            Text(l.signinGoogleReminder, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: context.safety.muted)),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: TextButton.icon(icon: const Icon(Icons.settings), label: Text(l.openPasskeySettings), onPressed: () => ref.read(signalsChannelProvider).openPasskeySettings()),
+            ),
+            const Gap(6),
+          ],
           if (!ready)
             PrimaryButton(
               label: l.signinTurnOn,

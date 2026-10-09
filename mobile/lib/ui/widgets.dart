@@ -197,6 +197,13 @@ class FailureCard extends ConsumerWidget {
                   padding: const EdgeInsets.only(top: 8),
                   child: FilledButton.tonal(onPressed: () => onConvertDigits!(converted), child: Text('${context.l10n.convertDigits}: $converted')),
                 ),
+              // Usually Google Password Manager was turned off (for example when another app became
+              // the phone's autofill service), so Android cannot see the passkey.
+              if (failure.code == ErrorCodes.PASSKEY_NOT_ON_DEVICE)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: SecondaryButton(label: context.l10n.openPasskeySettings, icon: Icons.settings, onPressed: () => ref.read(signalsChannelProvider).openPasskeySettings()),
+                ),
               if (onRetry != null) Padding(padding: const EdgeInsets.only(top: 8), child: SecondaryButton(label: context.l10n.tryAgain, onPressed: onRetry)),
             ],
           ),

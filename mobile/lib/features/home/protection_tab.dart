@@ -116,6 +116,9 @@ class _ProtectionTabState extends ConsumerState<ProtectionTab> with WidgetsBindi
     final l = context.l10n;
     final lang = ref.watch(settingsProvider).language;
     final home = ref.watch(protectionHomeProvider);
+    // Owned here (the tab stays mounted), so scrolling the card away does not reload them.
+    final autofill = ref.watch(autofillStatusProvider);
+    final mySignins = ref.watch(mySigninsProvider);
     return TabBody(
       onRefresh: () async {
         refreshProtection(ref);
@@ -136,7 +139,7 @@ class _ProtectionTabState extends ConsumerState<ProtectionTab> with WidgetsBindi
               StatusBand(state: state, home: h, lang: lang),
               const Gap(),
               // Co-Sign is sign-in software first: the guardian signs the person in, safely.
-              if (state != SafetyState.noGuardian) ...[SignInHelpCard(protectionOn: h.protection.on), const Gap()],
+              if (state != SafetyState.noGuardian) ...[SignInHelpCard(protectionOn: h.protection.on, status: autofill, recent: mySignins), const Gap()],
               if (state == SafetyState.noGuardian)
                 PrimaryButton(label: l.inviteGuardian, icon: Icons.person_add_alt_1, onPressed: () => context.push('/guardians/invite'))
               else if (state == SafetyState.off)

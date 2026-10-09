@@ -124,9 +124,7 @@ void main() {
     await signIn(tester);
     await openTab(tester, 'Family');
     // Two of Amma's alerts are urgent: scroll to the list, then open the newest.
-    await tester.scrollUntilVisible(find.text('Alerts'), 200, scrollable: find.byType(Scrollable).first);
-    await tester.ensureVisible(find.text('Urgent · Amma').first);
-    await tester.pumpAndSettle();
+    await scrollTo(tester, find.text('Urgent · Amma'));
     await tester.tap(find.text('Urgent · Amma').first);
     await tester.pumpAndSettle();
     expect(find.textContaining('payment PIN screen'), findsWidgets);
@@ -143,6 +141,8 @@ void main() {
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
     await signIn(tester);
+    await tester.scrollUntilVisible(find.text('Turn on protection'), 200, scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Turn on protection'));
     await tester.pumpAndSettle();
     expect(find.textContaining('never the message'), findsOneWidget);
@@ -208,4 +208,14 @@ void main() {
     await openTab(tester, 'Family');
     expect(tester.takeException(), isNull);
   });
+}
+
+/// Scroll the page down until [finder] has been built (lists build lazily), then bring it on screen.
+Future<void> scrollTo(WidgetTester tester, Finder finder) async {
+  for (var i = 0; i < 20 && finder.evaluate().isEmpty; i++) {
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -300));
+    await tester.pumpAndSettle();
+  }
+  await tester.ensureVisible(finder.first);
+  await tester.pumpAndSettle();
 }

@@ -33,8 +33,10 @@ String _sha256B64url(String s) => base64Url.encode(sha256.convert(utf8.encode(s)
 
 /// Protection tab: set up and use guardian-assisted sign-in.
 class SignInHelpCard extends ConsumerWidget {
-  const SignInHelpCard({super.key, required this.protectionOn});
+  const SignInHelpCard({super.key, required this.protectionOn, required this.status, required this.recent});
   final bool protectionOn;
+  final AsyncValue<({bool supported, bool enabled})> status;
+  final AsyncValue<List<MySignin>> recent;
 
   Future<void> _pickApp(BuildContext context, WidgetRef ref) async {
     final l = context.l10n;
@@ -60,8 +62,6 @@ class SignInHelpCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = context.l10n;
     final lang = ref.watch(settingsProvider).language;
-    final status = ref.watch(autofillStatusProvider);
-    final recent = ref.watch(mySigninsProvider);
     final s = status.value;
     if (s != null && !s.supported) return const SizedBox.shrink();
     final ready = s?.enabled ?? false;

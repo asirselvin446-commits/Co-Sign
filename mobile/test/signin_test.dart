@@ -96,6 +96,8 @@ void main() {
     await start(tester);
     expect(find.text("Sign in with your guardian's help"), findsOneWidget);
     expect(find.textContaining('Turn this on so that on any sign-in screen'), findsOneWidget);
+    await tester.ensureVisible(find.text('Turn on'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Turn on'));
     await wait(tester);
     expect(find.textContaining('Ready. On any sign-in screen'), findsOneWidget);
@@ -113,6 +115,8 @@ void main() {
     await wait(tester);
 
     // Nothing saved yet: the guardian types it once.
+    await tester.scrollUntilVisible(find.widgetWithText(TextField, 'Password or PIN'), 200, scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
     await tester.enterText(find.widgetWithText(TextField, 'Username, email or phone'), 'amma1950');
     await tester.enterText(find.widgetWithText(TextField, 'Password or PIN'), 'S3cret-Pin');
     await tester.pumpAndSettle();
@@ -149,6 +153,8 @@ void main() {
     await wait(tester);
     expect(api().answeredSignins, isEmpty);
     expect(find.text('Saved sign-in: Fake'), findsNothing);
+    await tester.scrollUntilVisible(find.widgetWithText(TextField, 'Password or PIN'), 200, scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
     expect(find.widgetWithText(TextField, 'Password or PIN'), findsOneWidget);
   });
 
@@ -172,6 +178,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Fake website: do not open it'), findsOneWidget);
     expect(find.textContaining('sbi-kyc-update.xyz pretends to be SBI'), findsOneWidget);
+    await scrollTo(tester, find.text('Tell my guardian'));
     await tester.tap(find.text('Tell my guardian'));
     await tester.pumpAndSettle();
     expect(find.text('Your guardians have been told.'), findsOneWidget);
@@ -186,4 +193,14 @@ void main() {
     await wait(tester, seconds: 1);
     expect(find.text('This is the real website of SBI'), findsOneWidget);
   });
+}
+
+/// Scroll the page down until [finder] has been built (lists build lazily), then bring it on screen.
+Future<void> scrollTo(WidgetTester tester, Finder finder) async {
+  for (var i = 0; i < 20 && finder.evaluate().isEmpty; i++) {
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -300));
+    await tester.pumpAndSettle();
+  }
+  await tester.ensureVisible(finder.first);
+  await tester.pumpAndSettle();
 }

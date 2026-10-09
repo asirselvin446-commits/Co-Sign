@@ -59,6 +59,8 @@ void main() {
   testWidgets('turn on protection, see "You are protected", and ask guardians for help', (tester) async {
     await start(tester);
     expect(find.text('Protection is off'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Turn on protection'), 200, scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Turn on protection'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Turn on family protection'));
@@ -70,6 +72,7 @@ void main() {
 
     expect(find.text('You are protected'), findsOneWidget);
     expect(find.textContaining('Ravi Kumar, Divya will be told'), findsOneWidget);
+    await scrollTo(tester, find.text('I need help'));
     await tester.tap(find.text('I need help'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Your guardians have been told'), findsOneWidget);
@@ -121,4 +124,14 @@ void main() {
     expect(find.text('Settings'), findsWidgets);
     expect((container(tester).read(apiProvider) as FakeCoSignApi).email, 'asha.new@mail.test');
   });
+}
+
+/// Scroll the page down until [finder] has been built (lists build lazily), then bring it on screen.
+Future<void> scrollTo(WidgetTester tester, Finder finder) async {
+  for (var i = 0; i < 20 && finder.evaluate().isEmpty; i++) {
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -300));
+    await tester.pumpAndSettle();
+  }
+  await tester.ensureVisible(finder.first);
+  await tester.pumpAndSettle();
 }

@@ -388,11 +388,28 @@ class SignalsPlugin :
             "contacts" to granted(Manifest.permission.READ_CONTACTS),
             "deviceAdmin" to CoSignDeviceAdmin.isActive(context),
             "autofill" to (context.getSystemService(android.view.autofill.AutofillManager::class.java)?.hasEnabledAutofillServices() == true),
-        )
+        ) + (xiaomiPopupsAllowed()?.let { mapOf("xiaomiPopups" to it) } ?: emptyMap())
+    }
+
+    /**
+     * Xiaomi phones (MIUI / HyperOS) have their own permission, "Display pop-up windows while running
+     * in the background". While it is off, the system silently drops the "ask my guardian" screen that
+     * the autofill suggestion opens. Null on other phones, or when the phone does not say.
+     */
+    private fun xiaomiPopupsAllowed(): Boolean? {
+        if (!Build.MANUFACTURER.equals("Xiaomi", ignoreCase = true)) return null
+        return try {
+            val ops = context.getSystemService(Context.APP_OPS_SERVICE) as android.app.AppOpsManager
+            val check = android.app.AppOpsManager::class.java.getMethod("checkOpNoThrow", Int::class.javaPrimitiveType, Int::class.javaPrimitiveType, String::class.java)
+            check.invoke(ops, XIAOMI_OP_BACKGROUND_START_ACTIVITY, android.os.Process.myUid(), context.packageName) as Int == android.app.AppOpsManager.MODE_ALLOWED
+        } catch (_: Exception) {
+            null
+        }
     }
 
     private fun openMonitorSetting(what: String) {
         val pkgUri = Uri.parse("package:" + context.packageName)
+        if (what == "xiaomiPopups") return openXiaomiPermissions(pkgUri)
         val intent = when (what) {
             "usageAccess" -> Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
             "notificationAccess" -> Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
@@ -408,6 +425,27 @@ class SignalsPlugin :
             context.startActivity(intent)
         } catch (_: Exception) {
             context.startActivity(Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
+    }
+
+    /** Xiaomi's per-app permission page ("Other permissions"), else the app's settings page. */
+    private fun openXiaomiPermissions(pkgUri: Uri) {
+        val candidates = listOf(
+            Intent("miui.intent.action.APP_PERM_EDITOR")
+                .setClassName("com.miui.securitycenter", "com.miui.permcenter.permissions.PermissionsEditorActivity")
+                .putExtra("extra_pkgname", context.packageName),
+            Intent("miui.intent.action.APP_PERM_EDITOR")
+                .setClassName("com.miui.securitycenter", "com.miui.permcenter.permissions.AppPermissionsEditorActivity")
+                .putExtra("extra_pkgname", context.packageName),
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, pkgUri),
+        )
+        for (intent in candidates) {
+            try {
+                context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                return
+            } catch (_: Exception) {
+                // try the next one
+            }
         }
     }
 
@@ -522,7 +560,11 @@ class SignalsPlugin :
     /** Co-Sign is the phone's autofill service (needed for guardian sign-in). */
     private fun autofillStatus(): Map<String, Boolean> {
         val am = context.getSystemService(android.view.autofill.AutofillManager::class.java)
-        return mapOf("supported" to (am?.isAutofillSupported == true), "enabled" to (am?.hasEnabledAutofillServices() == true))
+        return mapOf(
+            "supported" to (am?.isAutofillSupported == true),
+            "enabled" to (am?.hasEnabledAutofillServices() == true),
+            "popupsBlocked" to (xiaomiPopupsAllowed() == false),
+        )
     }
 
     private fun openAutofillSettings() {
@@ -564,3 +606,6 @@ class SignalsPlugin :
         }.sortedBy { it["label"] }
     }
 }
+
+/** MIUI's app-op number for "Display pop-up windows while running in the background". */
+private const val XIAOMI_OP_BACKGROUND_START_ACTIVITY = 10021

@@ -127,6 +127,35 @@ void main() {
     expect(channel().openedPasskeySettings, isTrue);
   });
 
+  testWidgets('a Xiaomi phone that blocks the ask screen says so and opens the permission page', (tester) async {
+    await start(tester, beforeSignIn: (c) {
+      final ch = c.read(signalsChannelProvider) as FakeSignalsChannel;
+      ch.autofillOn = true;
+      ch.popupsBlocked = true;
+    });
+    await wait(tester, seconds: 1);
+    expect(find.textContaining('Your Xiaomi phone is blocking it'), findsOneWidget);
+    await tester.ensureVisible(find.text('Allow it now'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Allow it now'));
+    await tester.pumpAndSettle();
+    expect(channel().openedSettings, ['xiaomiPopups']);
+  });
+
+  testWidgets('on a Xiaomi phone the protection checklist asks to allow pop-ups', (tester) async {
+    await start(tester, beforeSignIn: (c) => (c.read(signalsChannelProvider) as FakeSignalsChannel).xiaomiPopups = false);
+    unawaited(container.read(routerProvider).push('/protection'));
+    await wait(tester, seconds: 1);
+    await tester.ensureVisible(find.text('Turn on family protection'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Turn on family protection'));
+    await wait(tester, seconds: 1);
+    expect(find.text('5 of 10 protections ready'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Let Co-Sign open over other apps (Xiaomi phones)'), 200, scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Display pop-up windows while running in the background'), findsOneWidget);
+  });
+
   testWidgets('a guardian fills a sign-in, saving it on their own phone for that app', (tester) async {
     await start(tester);
     await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Family')));

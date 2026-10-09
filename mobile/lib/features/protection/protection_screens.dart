@@ -157,6 +157,8 @@ class _FamilyProtectionScreenState extends ConsumerState<FamilyProtectionScreen>
       _Item(l.fpScreens, l.fpScreensHelp, s.native['accessibility'] ?? false, () => channel.monitorOpen('accessibility')),
       _Item(l.fpPause, null, (s.native['overlay'] ?? false) || (s.native['accessibility'] ?? false), () => channel.monitorOpen('overlay')),
       _Item(l.fpSignInHelp, null, s.native['autofill'] ?? false, channel.openAutofillSettings),
+      // Only on Xiaomi phones, which block the "ask my guardian" screen until this is allowed.
+      if (s.native.containsKey('xiaomiPopups')) _Item(l.fpXiaomiPopups, l.fpXiaomiPopupsHelp, s.native['xiaomiPopups']!, () => channel.monitorOpen('xiaomiPopups')),
       _Item(l.fpUnlockWatch, null, s.native['deviceAdmin'] ?? false, () => channel.monitorOpen('deviceAdmin')),
       _Item(l.fpBattery, null, s.native['batteryUnrestricted'] ?? false, () => channel.monitorOpen('battery')),
     ];

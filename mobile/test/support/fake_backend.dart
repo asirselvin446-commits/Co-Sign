@@ -66,10 +66,17 @@ class FakeSignalsChannel implements SignalsChannel {
         'batteryUnrestricted': false,
         'deviceAdmin': false,
         'autofill': autofillOn,
+        'xiaomiPopups': ?xiaomiPopups,
       };
 
+  /// Set on a pretend Xiaomi phone: whether "Display pop-up windows while running in the background" is allowed.
+  bool? xiaomiPopups;
+
+  /// Settings pages Co-Sign asked to open, in order.
+  final List<String> openedSettings = [];
+
   @override
-  Future<void> monitorOpen(String what) async {}
+  Future<void> monitorOpen(String what) async => openedSettings.add(what);
 
   @override
   Future<bool> requestCallScreening() async => true;
@@ -110,8 +117,11 @@ class FakeSignalsChannel implements SignalsChannel {
     return 'sealed-for-$requestId';
   }
 
+  /// A Xiaomi phone that still blocks pop-ups from the background.
+  bool popupsBlocked = false;
+
   @override
-  Future<({bool supported, bool enabled})> autofillStatus() async => (supported: true, enabled: autofillOn);
+  Future<AutofillStatus> autofillStatus() async => (supported: true, enabled: autofillOn, popupsBlocked: popupsBlocked);
 
   @override
   Future<void> openAutofillSettings() async => autofillOn = true;

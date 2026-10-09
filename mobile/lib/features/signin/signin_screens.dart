@@ -9,13 +9,14 @@ import '../../core/api/models.dart';
 import '../../core/errors/failure.dart';
 import '../../core/providers.dart';
 import '../../core/security/device_lock.dart';
+import '../../core/signals/signals_channel.dart' show AutofillStatus;
 import '../../l10n/gen/app_localizations.dart';
 import '../../ui/theme.dart';
 import '../../ui/widgets.dart';
 import '../home/protection_tab.dart' show StateDot;
 import 'vault.dart';
 
-final autofillStatusProvider = FutureProvider.autoDispose<({bool supported, bool enabled})>((ref) => ref.watch(signalsChannelProvider).autofillStatus());
+final autofillStatusProvider = FutureProvider.autoDispose<AutofillStatus>((ref) => ref.watch(signalsChannelProvider).autofillStatus());
 final mySigninsProvider = FutureProvider.autoDispose<List<MySignin>>((ref) => ref.watch(apiProvider).mySignins());
 final guardianSigninsProvider = FutureProvider.autoDispose<List<SigninRequestView>>((ref) => ref.watch(apiProvider).guardianSignins());
 
@@ -33,7 +34,7 @@ String signinStatusText(AppLocalizations l, String status, String? guardian) => 
 class SignInHelpCard extends ConsumerWidget {
   const SignInHelpCard({super.key, required this.protectionOn, required this.status, required this.recent});
   final bool protectionOn;
-  final AsyncValue<({bool supported, bool enabled})> status;
+  final AsyncValue<AutofillStatus> status;
   final AsyncValue<List<MySignin>> recent;
 
   Future<void> _pickApp(BuildContext context, WidgetRef ref) async {
@@ -74,6 +75,12 @@ class SignInHelpCard extends ConsumerWidget {
           ]),
           const Gap(10),
           BodyText(ready ? l.signinCardOn : l.signinCardOff),
+          if (ready && (s?.popupsBlocked ?? false)) ...[
+            const Gap(10),
+            BodyText(l.signinXiaomiBlocked, emphasis: true),
+            const Gap(8),
+            PrimaryButton(label: l.signinXiaomiAllow, icon: Icons.open_in_new, onPressed: () => ref.read(signalsChannelProvider).monitorOpen('xiaomiPopups')),
+          ],
           const Gap(12),
           // Choosing Co-Sign for autofill can turn Google Password Manager off, and with it the
           // passkey used to sign in to Co-Sign.

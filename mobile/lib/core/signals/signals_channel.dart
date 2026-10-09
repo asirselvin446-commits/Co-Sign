@@ -5,6 +5,10 @@ import 'package:flutter/services.dart';
 
 import '../api/models.dart';
 
+/// Co-Sign as the phone's autofill service. [popupsBlocked]: a Xiaomi phone is blocking the screen the
+/// "ask my guardian" suggestion opens ("Display pop-up windows while running in the background").
+typedef AutofillStatus = ({bool supported, bool enabled, bool popupsBlocked});
+
 /// Bridge to the native signal plugin (Kotlin on Android, Swift on iOS).
 abstract class SignalsChannel {
   /// Raw device snapshot: call, remoteAccess, screen, sim, coverage. Missing parts are omitted.
@@ -33,7 +37,7 @@ abstract class SignalsChannel {
   Future<String?> takeSharedText();
   /// Guardian side: seal a sign-in to the asking phone's one-time key.
   Future<String> signinSeal({required String publicKey, required String plaintext, required String requestId, required String? package, required String? host});
-  Future<({bool supported, bool enabled})> autofillStatus();
+  Future<AutofillStatus> autofillStatus();
   Future<void> openAutofillSettings();
   /// Android's page of passkey and password services (Google Password Manager must stay on there).
   Future<void> openPasskeySettings();
@@ -187,12 +191,12 @@ class NativeSignalsChannel implements SignalsChannel {
       (await _methods.invokeMethod<String>('signinSeal', {'publicKey': publicKey, 'plaintext': plaintext, 'requestId': requestId, 'package': package, 'host': host}))!;
 
   @override
-  Future<({bool supported, bool enabled})> autofillStatus() async {
+  Future<AutofillStatus> autofillStatus() async {
     try {
       final r = await _methods.invokeMapMethod<String, Object?>('autofillStatus');
-      return (supported: r?['supported'] == true, enabled: r?['enabled'] == true);
+      return (supported: r?['supported'] == true, enabled: r?['enabled'] == true, popupsBlocked: r?['popupsBlocked'] == true);
     } on Object {
-      return (supported: false, enabled: false);
+      return (supported: false, enabled: false, popupsBlocked: false);
     }
   }
 

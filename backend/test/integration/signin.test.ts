@@ -2,7 +2,6 @@ import { createPrivateKey } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { sha256B64url } from '../../src/lib/crypto.js';
 import { MONITOR_CONSENT_VERSION } from '../../src/modules/monitor/monitor.routes.js';
 import { startTestApp, type TestApp } from '../helpers/app.js';
 import { call, registerUser, type TestUser } from '../helpers/client.js';
@@ -35,13 +34,10 @@ describe('guardian-assisted sign-in (end-to-end sealed)', () => {
   const ask = (body: Record<string, unknown>) => call(t, 'POST', '/v1/signin', { headers: { 'x-monitor-token': token }, body });
   const poll = (id: string) => call(t, 'GET', `/v1/signin/${id}`, { headers: { 'x-monitor-token': token } });
 
-  /** The guardian's phone: seal the password to the asking phone, then answer with a passkey. */
-  async function fill(guardian: TestUser, id: string, sealed: string, sealedForHash = sealed) {
-    const opts = await call(t, 'POST', `/v1/guardian/signin/${id}/options`, { token: guardian.accessToken, body: { decision: 'fill', ciphertextSha256: sha256B64url(sealedForHash) } });
-    if (opts.status !== 200) return opts;
-    const response = guardian.authenticator.get(opts.body.options);
-    return call(t, 'POST', `/v1/guardian/signin/${id}/answer`, { token: guardian.accessToken, body: { response, ciphertext: sealed } });
-  }
+  /** The guardian's phone: seal the password to the asking phone and answer (signed in; no passkey). */
+  const fill = (guardian: TestUser, id: string, sealed: string) =>
+    call(t, 'POST', `/v1/guardian/signin/${id}/answer`, { token: guardian.accessToken, body: { decision: 'fill', ciphertext: sealed } });
+  const deny = (guardian: TestUser, id: string) => call(t, 'POST', `/v1/guardian/signin/${id}/answer`, { token: guardian.accessToken, body: { decision: 'deny' } });
 
   it('asks the guardian with one-tap buttons, fills once, and the server never sees the password', async () => {
     const phone = newRecipient();
@@ -80,14 +76,17 @@ describe('guardian-assisted sign-in (end-to-end sealed)', () => {
     expect(mine.body.requests[0]).toMatchObject({ id, status: 'delivered', guardianName: 'Ravi', target: { appLabel: 'YONO SBI' } });
   });
 
-  it('a guardian signature covers the exact sealed answer, so it cannot be swapped', async () => {
+  it('only a guardian of this person can answer, once, and "fill" must carry the sealed answer', async () => {
     const phone = newRecipient();
     const id = (await ask({ target: yono, publicKey: phone.publicKeySpkiB64, call: null })).body.id as string;
-    const a = seal(phone.publicKeySpkiB64, '{"u":"a","p":"a"}', signinAad(id, yono.package, null));
-    const b = seal(phone.publicKeySpkiB64, '{"u":"b","p":"b"}', signinAad(id, yono.package, null));
-    const swapped = await fill(ravi, id, b, a);
-    expect(swapped.status).toBe(401);
-    expect((await poll(id)).body.status).toBe('pending');
+    const sealed = seal(phone.publicKeySpkiB64, '{"u":"a","p":"b"}', signinAad(id, yono.package, null));
+    expect((await fill(stranger, id, sealed)).status).toBe(404);
+    const empty = await call(t, 'POST', `/v1/guardian/signin/${id}/answer`, { token: ravi.accessToken, body: { decision: 'fill' } });
+    expect(empty.status).toBe(400);
+    expect((await fill(ravi, id, sealed)).body.status).toBe('filled');
+    const again = await deny(ravi, id);
+    expect(again.status).toBe(409);
+    expect(again.body.error.code).toBe('REQUEST_ALREADY_DECIDED');
   });
 
   it('never asks a guardian to sign in to a fake website, and alerts them instead', async () => {
@@ -114,19 +113,18 @@ describe('guardian-assisted sign-in (end-to-end sealed)', () => {
     expect(r.body.error.code).toBe('SIGNIN_SHOW_REFUSED_ON_CALL');
   });
 
-  it('a denial is passed on with who answered; an unanswered request expires', async () => {
+  it('a denial reaches the phone at once with who answered; an unanswered request expires', async () => {
     const phone = newRecipient();
     const id = (await ask({ target: yono, publicKey: phone.publicKeySpkiB64, call: null })).body.id as string;
-    const opts = await call(t, 'POST', `/v1/guardian/signin/${id}/options`, { token: ravi.accessToken, body: { decision: 'deny' } });
-    const deny = await call(t, 'POST', `/v1/guardian/signin/${id}/answer`, { token: ravi.accessToken, body: { response: ravi.authenticator.get(opts.body.options) } });
-    expect(deny.body.status).toBe('denied');
+    // Saying no needs nothing more than the guardian's signed-in phone.
+    expect((await deny(ravi, id)).body.status).toBe('denied');
     expect((await poll(id)).body).toMatchObject({ status: 'denied', guardianName: 'Ravi', ciphertext: null });
 
     const late = (await ask({ target: yono, publicKey: phone.publicKeySpkiB64, call: null })).body.id as string;
     await t.deps.prisma.signinRequest.update({ where: { id: late }, data: { expiresAt: new Date(Date.now() - 1000) } });
     await tick(t);
     expect((await poll(late)).body.status).toBe('expired');
-    const tooLate = await call(t, 'POST', `/v1/guardian/signin/${late}/options`, { token: ravi.accessToken, body: { decision: 'deny' } });
+    const tooLate = await deny(ravi, late);
     expect(tooLate.status).toBe(409);
   });
 

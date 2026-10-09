@@ -27,8 +27,7 @@ export type ChallengeRecord =
   | { purpose: 'stepup_user'; requestId: string; userId: string; deviceId: string }
   | { purpose: 'guardian_decision'; requestId: string; guardianId: string; decision: 'approve' | 'deny'; nonce: string }
   | { purpose: 'recovery_approval'; recoveryId: string; guardianId: string; nonce: string }
-  | { purpose: 'recovery_register'; recoveryId: string }
-  | { purpose: 'signin_answer'; requestId: string; guardianId: string; decision: 'fill' | 'deny'; ciphertextSha256: string | null; nonce: string };
+  | { purpose: 'recovery_register'; recoveryId: string };
 
 export interface DeviceInfo {
   platform: 'android' | 'ios' | 'web';

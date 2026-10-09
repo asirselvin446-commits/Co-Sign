@@ -91,6 +91,7 @@ void main() {
 
   FakeCoSignApi api() => container.read(apiProvider) as FakeCoSignApi;
   FakeSignalsChannel channel() => container.read(signalsChannelProvider) as FakeSignalsChannel;
+  FakeDeviceLock lock() => container.read(fakeDeviceLockProvider);
 
   testWidgets('the person turns on guardian sign-in and sees who signed them in', (tester) async {
     await start(tester);
@@ -125,6 +126,8 @@ void main() {
     expect(find.text("Done. It has been filled in on Amma's phone."), findsOneWidget);
     expect(channel().lastSealedPlaintext, '{"u":"amma1950","p":"S3cret-Pin"}');
     expect(api().answeredSignins.single, 'signin-1:filled:sealed-for-signin-1');
+    // Confirmed with the guardian's own fingerprint or PIN, not a passkey.
+    expect(lock().asked, ['Confirm it is you to send Amma the password']);
 
     final saved = await container.read(vaultProvider).list('link-amma');
     expect(saved.single.packages, ['com.sbi.lotusintouch']);
@@ -140,6 +143,26 @@ void main() {
     unawaited(container.read(routerProvider).push('/guardian/signin/signin-1?act=fill'));
     await wait(tester);
     expect(find.text("Done. It has been filled in on Amma's phone."), findsOneWidget);
+    expect(api().answeredSignins.single, startsWith('signin-1:filled'));
+    expect(lock().asked, hasLength(1));
+  });
+
+  testWidgets('if the guardian cancels the screen lock, nothing is sent', (tester) async {
+    await start(tester);
+    await container.read(vaultProvider).save(
+          'link-amma',
+          const SavedSignin(id: 'v1', label: 'YONO SBI', packages: ['com.sbi.lotusintouch'], domains: [], username: 'amma1950', password: 'S3cret-Pin'),
+        );
+    lock().refuse = true;
+    unawaited(container.read(routerProvider).push('/guardian/signin/signin-1?act=fill'));
+    await wait(tester);
+    expect(api().answeredSignins, isEmpty);
+    expect(channel().lastSealedPlaintext, isNull);
+    expect(find.textContaining('You closed the fingerprint or PIN check'), findsOneWidget);
+
+    lock().refuse = false;
+    await tester.tap(find.widgetWithText(FilledButton, 'Fill password'));
+    await wait(tester);
     expect(api().answeredSignins.single, startsWith('signin-1:filled'));
   });
 
@@ -164,6 +187,8 @@ void main() {
     await wait(tester);
     expect(find.text('You said no. Amma has been told.'), findsOneWidget);
     expect(api().answeredSignins.single, 'signin-1:denied:');
+    // Saying no never needs a fingerprint, PIN or passkey.
+    expect(lock().asked, isEmpty);
   });
 
   testWidgets('checking a message finds the fake bank site and tells the guardian', (tester) async {

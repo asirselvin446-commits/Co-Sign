@@ -3,7 +3,6 @@ import { accountLimit, type Ctx, type ZApp } from '../../http/context.js';
 import { userAuth } from '../../http/auth.js';
 import { callContextSchema } from '../monitor/monitor.engine.js';
 import { monitorDeviceResolver } from '../monitor/monitor.routes.js';
-import { authenticationResponseSchema, requestOptionsSchema } from '../webauthn/schemas.js';
 
 const PACKAGE = /^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*)+$/;
 const HOST = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i;
@@ -136,38 +135,23 @@ export async function signinRoutes(app: ZApp, ctx: Ctx): Promise<void> {
   );
 
   app.post(
-    '/v1/guardian/signin/:id/options',
-    {
-      schema: {
-        ...tag,
-        security: [{ bearer: [] }],
-        summary: 'Passkey prompt for answering. For "fill", send the SHA-256 (base64url) of the sealed answer.',
-        params: z.object({ id: z.uuid() }),
-        body: z.object({ decision: z.enum(['fill', 'deny']), ciphertextSha256: z.string().regex(/^[A-Za-z0-9_-]{43}$/).nullable().default(null) }),
-        response: { 200: z.object({ options: requestOptionsSchema }) },
-      },
-      preHandler: guards.requireUser,
-      config: accountLimit(30, '10 minutes'),
-    },
-    async (req) => ({ options: await signin.answerOptions(req.params.id, userAuth(req).userId, req.body.decision, req.body.ciphertextSha256) }),
-  );
-
-  app.post(
     '/v1/guardian/signin/:id/answer',
     {
       schema: {
         ...tag,
         security: [{ bearer: [] }],
-        summary: 'Answer with my passkey. "fill" carries the password sealed to the asking phone; the server cannot read it.',
+        summary: 'Answer from my signed-in phone. "fill" carries the password sealed to the asking phone; the server cannot read it. "deny" needs nothing else.',
         params: z.object({ id: z.uuid() }),
-        body: z.object({ response: authenticationResponseSchema, ciphertext: CIPHERTEXT.nullable().default(null) }),
+        body: z
+          .object({ decision: z.enum(['fill', 'deny']), ciphertext: CIPHERTEXT.nullable().default(null) })
+          .refine((b) => b.decision === 'deny' || b.ciphertext !== null, { message: 'fill needs the sealed answer', path: ['ciphertext'] }),
         response: { 200: z.object({ status: z.string() }) },
       },
       preHandler: guards.requireUser,
       config: accountLimit(30, '10 minutes'),
     },
     async (req) => {
-      const r = await signin.answer(req.params.id, userAuth(req).userId, req.body.response, req.body.ciphertext);
+      const r = await signin.answer(req.params.id, userAuth(req).userId, req.body.decision, req.body.ciphertext);
       return { status: r.status };
     },
   );

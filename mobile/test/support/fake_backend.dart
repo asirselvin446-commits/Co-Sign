@@ -6,6 +6,7 @@ import 'package:cosign/core/errors/failure.dart';
 import 'package:cosign/core/passkeys/passkey_service.dart';
 import 'package:cosign/core/push/push.dart';
 import 'package:cosign/core/realtime/realtime.dart';
+import 'package:cosign/core/security/device_lock.dart';
 import 'package:cosign/core/signals/signals_channel.dart';
 import 'package:cosign/generated/catalog.g.dart';
 
@@ -120,6 +121,20 @@ class FakeSignalsChannel implements SignalsChannel {
 
   @override
   Future<void> startShowSignIn(String package, String label) async {}
+}
+
+/// Stands in for the phone's own screen lock (the guardian confirming Fill).
+class FakeDeviceLock implements DeviceLock {
+  /// Set to act as if the fingerprint / PIN check was cancelled.
+  bool refuse = false;
+  final List<String> asked = [];
+
+  @override
+  Future<void> confirm(String reason) async {
+    asked.add(reason);
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    if (refuse) throw AppFailure(ErrorCodes.SCREEN_LOCK_CANCELLED);
+  }
 }
 
 /// Stands in for the fingerprint / screen-lock prompt.
@@ -757,16 +772,10 @@ class FakeCoSignApi implements CoSignApi {
       });
 
   @override
-  Future<Json> signinOptions(String id, String decision, String? ciphertextSha256) => _later(() {
-        _pendingSigninDecision = decision;
-        return <String, Object?>{};
-      });
-  String? _pendingSigninDecision;
-
-  @override
-  Future<String> signinAnswer(String id, Json response, String? ciphertext) => _later(() {
+  Future<String> signinAnswer(String id, String decision, String? ciphertext) => _later(() {
         final r = _signins[id]!;
-        final status = _pendingSigninDecision == 'fill' ? 'filled' : 'denied';
+        if (decision == 'fill' && ciphertext == null) throw AppFailure(ErrorCodes.INVALID_INPUT);
+        final status = decision == 'fill' ? 'filled' : 'denied';
         _signins[id] = SigninRequestView(
           id: r.id,
           mode: r.mode,

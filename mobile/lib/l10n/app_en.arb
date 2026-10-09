@@ -597,6 +597,14 @@
   "signinSaveNote": "Saved only on your phone, locked by your screen lock. Co-Sign's server never sees it.",
   "signinAllowShow": "Let them see it for 1 minute (this app does not accept autofill)",
   "signinConfirmSite": "I have called them and this is the right website",
+  "signinConfirmLock": "Confirm it is you to send {name} the password",
+  "@signinConfirmLock": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "signinFill": "Fill password",
   "signinShowButton": "Let them see it",
   "signinFilled": "Done. It has been filled in on {name}'s phone.",

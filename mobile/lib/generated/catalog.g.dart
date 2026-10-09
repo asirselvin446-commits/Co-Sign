@@ -35,6 +35,8 @@ class ErrorCodes {
   static const String PASSKEY_CANCELLED = 'PASSKEY_CANCELLED';
   static const String PASSKEY_TIMED_OUT = 'PASSKEY_TIMED_OUT';
   static const String NO_SCREEN_LOCK = 'NO_SCREEN_LOCK';
+  static const String SCREEN_LOCK_CANCELLED = 'SCREEN_LOCK_CANCELLED';
+  static const String SCREEN_LOCK_LOCKED_OUT = 'SCREEN_LOCK_LOCKED_OUT';
   static const String PASSKEY_NOT_ON_DEVICE = 'PASSKEY_NOT_ON_DEVICE';
   static const String CREDENTIAL_ALREADY_REGISTERED = 'CREDENTIAL_ALREADY_REGISTERED';
   static const String PASSKEY_UNSUPPORTED = 'PASSKEY_UNSUPPORTED';
@@ -107,9 +109,35 @@ const Map<String, ErrorEntry> kErrorCatalog = <String, ErrorEntry>{
     origin: 'client',
     params: <String>[],
     text: <String, ErrorText>{
-      'en': ErrorText("This phone has no screen lock or fingerprint set up, so it cannot hold a passkey.", "Open your phone Settings, set a PIN, pattern or fingerprint, then come back."),
-      'ta': ErrorText("இந்தத் தொலைபேசியில் திரைப் பூட்டு அல்லது கைரேகை அமைக்கப்படவில்லை, அதனால் பாஸ்கீயைச் சேமிக்க முடியாது.", "தொலைபேசி அமைப்புகளைத் திறந்து PIN, பேட்டர்ன் அல்லது கைரேகையை அமைத்துவிட்டுத் திரும்பி வாருங்கள்."),
-      'hi': ErrorText("इस फ़ोन में स्क्रीन लॉक या फ़िंगरप्रिंट सेट नहीं है, इसलिए इसमें पासकी नहीं रखी जा सकती।", "फ़ोन की सेटिंग खोलें, PIN, पैटर्न या फ़िंगरप्रिंट सेट करें, फिर वापस आएँ।"),
+      'en': ErrorText("This phone has no screen lock or fingerprint set up, so it cannot confirm it is really you.", "Open your phone Settings, set a PIN, pattern or fingerprint, then come back."),
+      'ta': ErrorText("இந்தத் தொலைபேசியில் திரைப் பூட்டு அல்லது கைரேகை அமைக்கப்படவில்லை, அதனால் இது நீங்கள்தான் என்பதை உறுதிசெய்ய முடியாது.", "தொலைபேசி அமைப்புகளைத் திறந்து PIN, பேட்டர்ன் அல்லது கைரேகையை அமைத்துவிட்டுத் திரும்பி வாருங்கள்."),
+      'hi': ErrorText("इस फ़ोन में स्क्रीन लॉक या फ़िंगरप्रिंट सेट नहीं है, इसलिए यह पक्का नहीं कर सकता कि यह आप ही हैं।", "फ़ोन की सेटिंग खोलें, PIN, पैटर्न या फ़िंगरप्रिंट सेट करें, फिर वापस आएँ।"),
+    },
+  ),
+  'SCREEN_LOCK_CANCELLED': ErrorEntry(
+    code: 'SCREEN_LOCK_CANCELLED',
+    http: 400,
+    tier: 'public',
+    generic: null,
+    origin: 'client',
+    params: <String>[],
+    text: <String, ErrorText>{
+      'en': ErrorText("You closed the fingerprint or PIN check, so nothing was sent.", "Tap the button again and confirm with your fingerprint, face or phone PIN."),
+      'ta': ErrorText("கைரேகை அல்லது PIN சரிபார்ப்பை மூடிவிட்டீர்கள், அதனால் எதுவும் அனுப்பப்படவில்லை.", "பொத்தானை மீண்டும் தட்டி, கைரேகை, முகம் அல்லது தொலைபேசி PIN மூலம் உறுதிசெய்யுங்கள்."),
+      'hi': ErrorText("आपने फ़िंगरप्रिंट या PIN जाँच बंद कर दी, इसलिए कुछ नहीं भेजा गया।", "बटन फिर से टैप करें और फ़िंगरप्रिंट, चेहरे या फ़ोन PIN से पुष्टि करें।"),
+    },
+  ),
+  'SCREEN_LOCK_LOCKED_OUT': ErrorEntry(
+    code: 'SCREEN_LOCK_LOCKED_OUT',
+    http: 400,
+    tier: 'public',
+    generic: null,
+    origin: 'client',
+    params: <String>[],
+    text: <String, ErrorText>{
+      'en': ErrorText("Too many tries, so your phone has paused the fingerprint check for now.", "Wait a minute and try again, or unlock with your phone PIN."),
+      'ta': ErrorText("பல முறை முயன்றதால், உங்கள் தொலைபேசி கைரேகை சரிபார்ப்பைத் தற்காலிகமாக நிறுத்தியுள்ளது.", "ஒரு நிமிடம் காத்திருந்து மீண்டும் முயலுங்கள், அல்லது தொலைபேசி PIN மூலம் திறவுங்கள்."),
+      'hi': ErrorText("बहुत ज़्यादा कोशिशों के कारण फ़ोन ने अभी फ़िंगरप्रिंट जाँच रोक दी है।", "एक मिनट रुककर फिर कोशिश करें, या फ़ोन PIN से अनलॉक करें।"),
     },
   ),
   'PASSKEY_NOT_ON_DEVICE': ErrorEntry(

@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/api/models.dart';
 import '../../core/errors/failure.dart';
 import '../../core/providers.dart';
+import '../../core/security/device_lock.dart';
 import '../../l10n/gen/app_localizations.dart';
 import '../../ui/theme.dart';
 import '../../ui/widgets.dart';
@@ -26,8 +26,6 @@ String signinStatusText(AppLocalizations l, String status, String? guardian) => 
       'pending' => l.signinWaitingShort,
       _ => l.signinNoAnswer,
     };
-
-String _sha256B64url(String s) => base64Url.encode(sha256.convert(utf8.encode(s)).bytes).replaceAll('=', '');
 
 // ----------------------------------------------------------------------------- the person
 
@@ -202,6 +200,8 @@ class _GuardianSigninScreenState extends ConsumerState<GuardianSigninScreen> {
       String? sealed;
       SavedSignin? toSave;
       if (decision == 'fill') {
+        // Only the guardian can send it: their own fingerprint, face or phone PIN. Saying no needs nothing.
+        await ref.read(deviceLockProvider).confirm(l.signinConfirmLock(r.personName));
         final user = _typing ? _user.text.trim() : _use!.username;
         final pass = _typing ? _pass.text : _use!.password;
         sealed = await ref.read(signalsChannelProvider).signinSeal(
@@ -217,9 +217,7 @@ class _GuardianSigninScreenState extends ConsumerState<GuardianSigninScreen> {
           toSave = _use!.boundTo(r.target);
         }
       }
-      final options = await api.signinOptions(r.id, decision, sealed == null ? null : _sha256B64url(sealed));
-      final response = await ref.read(passkeysProvider).authenticate(options);
-      await api.signinAnswer(r.id, response, sealed);
+      await api.signinAnswer(r.id, decision, sealed);
       if (toSave != null) await ref.read(vaultProvider).save(r.personLinkId!, toSave);
       _pass.clear();
       ref.invalidate(guardianSigninsProvider);
@@ -257,6 +255,8 @@ class _GuardianSigninScreenState extends ConsumerState<GuardianSigninScreen> {
       title: l.signinRequests,
       bottom: open
           ? Column(mainAxisSize: MainAxisSize.min, children: [
+              // Right above the buttons, so the guardian sees why nothing was sent.
+              if (_error != null) ...[FailureCard(failure: _error!), const Gap(10)],
               PrimaryButton(label: r.mode == 'show' ? l.signinShowButton : l.signinFill, icon: Icons.key, busy: _busy, onPressed: _canFill ? () => _answer('fill') : null),
               const Gap(10),
               SecondaryButton(label: l.deny, icon: Icons.block, onPressed: _busy ? null : () => _answer('deny')),
@@ -308,7 +308,7 @@ class _GuardianSigninScreenState extends ConsumerState<GuardianSigninScreen> {
         ],
         if (_done != null) ...[const Gap(), Semantics(liveRegion: true, child: BodyText(_done!, emphasis: true))],
         if (!r.open && _done == null) ...[const Gap(), BodyText(l.signinClosed, emphasis: true)],
-        if (_error != null) ...[const Gap(), FailureCard(failure: _error!)],
+        if (_error != null && !open) ...[const Gap(), FailureCard(failure: _error!)],
       ],
     );
   }

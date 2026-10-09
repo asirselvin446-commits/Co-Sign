@@ -1,9 +1,8 @@
 import type { SigninRequest } from '@prisma/client';
-import type { AuthenticationResponseJSON, PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/server';
 import type { Deps } from '../../deps.js';
 import { TERMS, type Lang } from '../../generated/catalog.js';
 import { AppError } from '../../lib/errors.js';
-import { randomToken, sha256, sha256B64url } from '../../lib/crypto.js';
+import { randomToken } from '../../lib/crypto.js';
 import type { Services } from '../../services.js';
 import { analyzeLink, type LinkAnalysis } from '../links/link.engine.js';
 import { riskyCall, type MonitorEvent } from '../monitor/monitor.engine.js';
@@ -26,20 +25,6 @@ export interface CreateSignin {
   /** The asking phone's one-time public key (SPKI, base64). Only it can read the answer. */
   publicKey: string;
   call: MonitorEvent['call'];
-}
-
-/**
- * The passkey challenge a guardian signs to answer. It binds the request, the exact app or website,
- * the person, the expiry, the decision and the hash of the encrypted answer, so a signature cannot
- * be reused for another request, another site or a different ciphertext.
- */
-export function signinChallenge(
-  r: Pick<SigninRequest, 'id' | 'userId' | 'targetPackage' | 'targetHost' | 'expiresAt'>,
-  decision: 'fill' | 'deny',
-  ciphertextSha256: string | null,
-  nonce: string,
-): Buffer {
-  return sha256(`signin|${r.id}|${r.targetPackage ?? ''}|${r.targetHost ?? ''}|${r.userId}|${r.expiresAt.toISOString()}|${decision}|${ciphertextSha256 ?? ''}|${nonce}`);
 }
 
 /**
@@ -230,34 +215,15 @@ export class SigninService {
     };
   }
 
-  async answerOptions(id: string, guardianId: string, decision: 'fill' | 'deny', ciphertextSha256: string | null): Promise<PublicKeyCredentialRequestOptionsJSON> {
+  /**
+   * The guardian answers from their signed-in phone (the app confirms with that phone's own screen
+   * lock before sealing). "deny" needs nothing more: saying no only ever protects the person.
+   */
+  async answer(id: string, guardianId: string, decision: 'fill' | 'deny', ciphertext: string | null): Promise<SigninRequest> {
     const r = await this.guardedRequest(id, guardianId);
     this.assertOpen(r);
-    if (decision === 'fill' && !ciphertextSha256) throw new AppError('INVALID_INPUT', {}, { fields: ['ciphertextSha256'] });
-    const nonce = randomToken(16);
-    const challenge = signinChallenge(r, decision, decision === 'fill' ? ciphertextSha256 : null, nonce);
-    const creds = await this.deps.prisma.credential.findMany({ where: { userId: guardianId, revokedAt: null }, select: { id: true, transports: true } });
-    const options = await this.services.webauthn.authenticationOptions({ challenge: new Uint8Array(challenge), allowCredentials: creds });
-    await this.services.webauthn.storeChallenge(
-      options.challenge,
-      { purpose: 'signin_answer', requestId: id, guardianId, decision, ciphertextSha256: decision === 'fill' ? ciphertextSha256 : null, nonce },
-      300,
-    );
-    return options;
-  }
-
-  async answer(id: string, guardianId: string, response: AuthenticationResponseJSON, ciphertext: string | null): Promise<SigninRequest> {
-    const { webauthn, credentials } = this.services;
-    const r = await this.guardedRequest(id, guardianId);
-    const { challenge, record } = await webauthn.takeChallengeFor(response.response.clientDataJSON, 'signin_answer');
-    if (record.requestId !== id || record.guardianId !== guardianId) throw new AppError('SIGN_IN_FAILED');
-    // Recompute from the stored request: a change to the site, person, expiry or answer breaks it.
-    if (signinChallenge(r, record.decision, record.ciphertextSha256, record.nonce).toString('base64url') !== challenge) throw new AppError('SIGN_IN_FAILED');
-    if (record.decision === 'fill' && (!ciphertext || sha256B64url(ciphertext) !== record.ciphertextSha256)) throw new AppError('SIGN_IN_FAILED');
-    await credentials.verifyAssertion(response, challenge, guardianId);
-    this.assertOpen(r);
-
-    const fill = record.decision === 'fill';
+    const fill = decision === 'fill';
+    if (fill && !ciphertext) throw new AppError('INVALID_INPUT', {}, { fields: ['ciphertext'] });
     const updated = await this.deps.audit.transaction(async (tx, log) => {
       const u = await tx.signinRequest.updateMany({
         where: { id, status: OPEN, expiresAt: { gt: new Date() } },
